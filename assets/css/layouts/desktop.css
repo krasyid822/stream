@@ -1,0 +1,92 @@
+/* ============================================================
+   RETRO PIXEL STREAM — DESKTOP LAYOUT (Min-width: 769px)
+   ============================================================ */
+
+@media (min-width: 769px) {
+    .app-container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid var(--accent-purple);
+        padding-bottom: 0.75rem;
+    }
+
+    .brand-title {
+        font-family: var(--pixel-font);
+        font-size: 1.4rem;
+        color: var(--accent-cyan);
+        text-shadow: 2px 2px 0px #000;
+    }
+
+    .breadcrumb-bar {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--bg-surface);
+        border: 2px solid var(--accent-purple);
+        padding: 0.4rem 0.75rem;
+        font-family: var(--code-font);
+        font-size: 0.9rem;
+        box-shadow: 3px 3px 0px #000;
+        align-self: flex-start;
+        width: fit-content;
+        margin-bottom: 0.5rem;
+    }
+
+    .main-layout {
+        display: flex;
+        flex-direction: row;
+        gap: 1.5rem;
+        align-items: flex-start;
+        width: 100%;
+        margin-top: 0;
+    }
+
+    .explorer-section {
+        flex: 1 1 0%;
+        min-width: 0;
+    }
+
+    .player-wrapper {
+        width: 420px;
+        flex-shrink: 0;
+    }
+
+    .grid-explorer {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+
+    .grid-card {
+        padding: 1rem 0.75rem;
+    }
+
+    .grid-card i {
+        font-size: 2.8rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .card-name {
+        font-size: 0.75rem;
+    }
+
+    .footer {
+        border-top: 2px dashed var(--accent-purple);
+        padding-top: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+    }
+}

@@ -1,0 +1,51 @@
+{
+  "categories": [
+    "anime",
+    "donghua"
+  ],
+  "media": [
+    {
+      "id": "anime_gsyos_2_Episode 14_hls",
+      "name": "Episode 14",
+      "folder": "anime/gsyos/2",
+      "path": "anime/gsyos/2/Episode 14_hls",
+      "master_url": "anime/gsyos/2/Episode 14_hls/master.m3u8",
+      "poster_url": "anime/gsyos/2/Episode 14_hls/poster.jpg",
+      "subtitles": [
+        "anime/gsyos/2/Episode 14_hls/sub_0_ind.vtt"
+      ],
+      "aliases": [
+        "GSYOS",
+        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
+        "Genjitsushugi Yusha no Okoku Saikenki",
+        "How a Realist Hero Rebuilt the Kingdom",
+        "Restorasi Kerajaan Sang Realis",
+        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
+        "Realist Hero"
+      ],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_gsyos_2_Episode 15_hls",
+      "name": "Episode 15",
+      "folder": "anime/gsyos/2",
+      "path": "anime/gsyos/2/Episode 15_hls",
+      "master_url": "anime/gsyos/2/Episode 15_hls/master.m3u8",
+      "poster_url": "anime/gsyos/2/Episode 15_hls/poster.jpg",
+      "subtitles": [
+        "anime/gsyos/2/Episode 15_hls/sub_0_ind.vtt"
+      ],
+      "aliases": [
+        "GSYOS",
+        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
+        "Genjitsushugi Yusha no Okoku Saikenki",
+        "How a Realist Hero Rebuilt the Kingdom",
+        "Restorasi Kerajaan Sang Realis",
+        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
+        "Realist Hero"
+      ],
+      "type": "hls_stream"
+    }
+  ],
+  "updated_at": "1785228510.1837022"
+}
