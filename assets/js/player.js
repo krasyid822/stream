@@ -98,10 +98,56 @@ function playMedia(media, cardElement) {
             hlsInstance.destroy();
         }
 
+        /* ============================================================
+           ADAPTIVE DYNAMIC RAM BUFFER ALLOCATION
+           Mendeteksi kapasitas RAM perangkat (navigator.deviceMemory)
+           ============================================================ */
+        const deviceRamGb = (navigator.deviceMemory || 4); // Default asumsi 4GB jika API tidak tersedia
+        
+        // Alokasikan panjang buffer maju (forward buffer) proporsional dengan RAM
+        // Perangkat RAM kecil (<=2GB): 30 detik | Perangkat RAM sedang (4GB): 60 detik | Perangkat RAM besar (>=8GB): 120 detik
+        let dynamicForwardBuffer = 60;
+        if (deviceRamGb <= 2) {
+            dynamicForwardBuffer = 30;
+        } else if (deviceRamGb >= 8) {
+            dynamicForwardBuffer = 120;
+        }
+
         hlsInstance = new Hls({
             debug: false,
             enableWorker: true,
-            lowLatencyMode: false
+            lowLatencyMode: false,
+            
+            /* ============================================================
+               1. ADAPTIVE BUFFER & ZERO RE-DOWNLOAD (PERMANENT CACHE)
+               ============================================================ */
+            maxBufferLength: dynamicForwardBuffer,  // Alokasi buffer maju dinamis sesuai RAM ready
+            maxMaxBufferLength: dynamicForwardBuffer * 2,
+            maxBufferSize: deviceRamGb * 1024 * 1024 * 16, // Alokasi memori RAM fleksibel untuk HLS buffer
+            
+            // SET HINGGA INFINITY: Segmen yang sudah ter-download disimpan di memori
+            // selama RAM mencukupi dan TIDAK PERNAH DI-DOWNLOAD ULANG saat mundur/rewind!
+            backBufferLength: Infinity,
+            maxBackBufferLength: Infinity,
+            
+            /* ============================================================
+               2. EFISIENSI KUOTA & DETEKSI LAYAR
+               ============================================================ */
+            testBandwidth: false,          // Matikan tes bandwidth redundant untuk hemat kuota
+            capLevelToPlayerSize: true,    // Sesuaikan resolusi maksimum dengan ukuran fisik monitor/layar HP
+            
+            /* ============================================================
+               3. AKURASI DETEKSI KECEPATAN DOWNLOAD (MOVING AVERAGE ABR)
+               ============================================================ */
+            abrEmaFastLive: 3.0,
+            abrEmaSlowLive: 9.0,
+            abrEmaFastVoD: 3.0,
+            abrEmaSlowVoD: 9.0,           // Rata-rataMoving Average kecepatan download selama streaming
+            abrBandwidthFactor: 0.85,     // 85% safety factor dari bandwidth nyata
+            abrBandwidthUpFactor: 0.7,    // Menjaga kestabilan sebelum menaikkan kualitas resolusi
+
+            /* Ambang batas estimasi awal yang aman (360p ~1.5M, 480p ~3M, 720p ~6M, 1080p ~12M) */
+            bandwidthEstimate: 1500000
         });
 
         hlsInstance.loadSource(hlsUrl);
