@@ -201,22 +201,27 @@ function renderDirectoryGrid() {
             });
         }
 
-        // Helper untuk menyesuaikan posisi adaptif popup agar tidak overflow kiri/kanan
+        // Helper untuk menyesuaikan posisi adaptif pintar (kiri/kanan & atas/bawah)
         const adjustPopupPosition = () => {
             const popup = wrapperEl.querySelector(".pixel-balloon-popup");
-            if (!popup) return;
+            const btn = wrapperEl.querySelector(".info-btn");
+            if (!popup || !btn) return;
 
-            // Reset class alignment
-            popup.classList.remove("align-left", "align-right");
+            // Reset class alignment & direction
+            popup.classList.remove("align-left", "align-right", "pop-down");
 
             const rect = btn.getBoundingClientRect();
-            const popupWidth = 210;
 
-            // Jika tombol 'i' berada terlalu dekat dengan batas kiri layar (< 150px dari kiri)
-            if (rect.left < 150) {
+            // 1. Deteksi Horisontal (Kiri vs Kanan)
+            if (rect.left < 160) {
                 popup.classList.add("align-left");
             } else {
                 popup.classList.add("align-right");
+            }
+
+            // 2. Deteksi Vertikal (Atas vs Bawah): Jika tombol 'i' berada dekat batas atas viewport (< 280px dari atas)
+            if (rect.top < 280) {
+                popup.classList.add("pop-down");
             }
         };
 

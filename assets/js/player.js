@@ -168,9 +168,6 @@ function playMedia(media, cardElement) {
             }
         });
 
-        let retryCount = 0;
-        const MAX_RETRIES = 3;
-
         hlsInstance.on(Hls.Events.ERROR, function (event, data) {
             // Abaikan warning internal non-fatal HLS (bufferStalledError, bufferSeekOverHole)
             if (!data.fatal) return;
@@ -182,33 +179,13 @@ function playMedia(media, cardElement) {
                 data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR ||
                 data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR;
 
-            // Jika kesalahan disebabkan oleh jaringan/offline, LANGSUNG tampilkan notifikasi persisten di UI!
-            if (isOfflineError) {
+            if (isOfflineError || data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                 showToast("Koneksi Internet Terputus...", true);
-            }
-
-            if (data.fatal) {
-                if (retryCount >= MAX_RETRIES) {
-                    showToast("Gagal memuat stream video. Periksa koneksi internet Anda.", true);
-                    hlsInstance.destroy();
-                    return;
-                }
-                
-                retryCount++;
-                switch (data.type) {
-                    case Hls.ErrorTypes.NETWORK_ERROR:
-                        showToast(`Masalah Jaringan! Mencoba ulang (${retryCount}/${MAX_RETRIES})...`, true);
-                        hlsInstance.startLoad();
-                        break;
-                    case Hls.ErrorTypes.MEDIA_ERROR:
-                        showToast("Memulihkan kesalahan media video...", true);
-                        hlsInstance.recoverMediaError();
-                        break;
-                    default:
-                        showToast("Terjadi kesalahan fatal pada pemutar video.", true);
-                        hlsInstance.destroy();
-                        break;
-                }
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                showToast("Memulihkan media video...", true);
+                hlsInstance.recoverMediaError();
+            } else {
+                showToast("Terjadi kesalahan pada pemutar video.", true);
             }
         });
     } else if (videoElement.canPlayType("application/vnd.apple.mpegurl")) {
@@ -257,14 +234,7 @@ function changeResolution(levelIndex) {
     }
 }
 
-// Monitor Status Koneksi Internet Real-Time (Online / Offline)
-window.addEventListener("offline", function () {
-    showToast("Koneksi Internet Terganggu");
-});
 
-window.addEventListener("online", function () {
-    showToast("Koneksi Internet Terhubung Kembali!");
-});
 
 // Toggle Subtitle On/Off
 function toggleSubtitle() {

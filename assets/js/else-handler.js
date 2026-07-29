@@ -40,10 +40,36 @@ function hideToast() {
 }
 
 // Monitor Status Koneksi Internet Real-Time (Online / Offline)
+function checkInitialOnlineStatus() {
+    if (!navigator.onLine) {
+        showToast("Koneksi Internet Terputus...", true);
+    }
+}
+
 window.addEventListener("offline", function () {
     showToast("Koneksi Internet Terputus...", true);
 });
 
 window.addEventListener("online", function () {
     showToast("Koneksi Internet Terhubung Kembali!");
+    
+    // Otomatis pulihkan pemutar video HLS tanpa perlu diklik manual oleh pengguna
+    if (typeof hlsInstance !== "undefined" && hlsInstance) {
+        try {
+            hlsInstance.startLoad();
+            const videoEl = document.getElementById("hlsPlayer");
+            if (videoEl && videoEl.paused) {
+                videoEl.play().catch(e => console.warn("Auto resume play on online failed:", e));
+            }
+        } catch (err) {
+            console.warn("Auto reload HLS on reconnect error:", err);
+        }
+    }
 });
+
+// Jalankan pengecekan awal saat DOM selesai dimuat
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", checkInitialOnlineStatus);
+} else {
+    checkInitialOnlineStatus();
+}

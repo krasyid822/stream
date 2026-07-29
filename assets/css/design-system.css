@@ -347,12 +347,13 @@ video::-webkit-media-controls-overflow-button {
 }
 
 /* Opsi Alignment Kiri (jika kartu ada di paling kiri layar) */
+/* Opsi Alignment Kiri (jika kartu ada di paling kiri layar) */
 .pixel-balloon-popup.align-left {
     left: 0;
     right: auto;
 }
 .pixel-balloon-popup.align-left::after {
-    left: 4px;
+    left: 6px;
     right: auto;
 }
 
@@ -362,11 +363,17 @@ video::-webkit-media-controls-overflow-button {
     left: auto;
 }
 .pixel-balloon-popup.align-right::after {
-    right: 4px;
+    right: 6px;
     left: auto;
 }
 
-/* Panah Ekor Balloon Tooltip Retro Base */
+/* Mode Pop-Down (jika kartu berada dekat dengan batas atas layar) */
+.pixel-balloon-popup.pop-down {
+    bottom: auto;
+    top: calc(100% + 8px);
+}
+
+/* Panah Ekor Balloon Tooltip Retro Base (Pop-Up Atas Biasa) */
 .pixel-balloon-popup::after {
     content: '';
     position: absolute;
@@ -374,6 +381,13 @@ video::-webkit-media-controls-overflow-button {
     border-width: 6px;
     border-style: solid;
     border-color: var(--accent-cyan) transparent transparent transparent;
+}
+
+/* Panah Ekor Balloon Tooltip Retro (Pop-Down Bawah) */
+.pixel-balloon-popup.pop-down::after {
+    top: -12px;
+    bottom: auto;
+    border-color: transparent transparent var(--accent-cyan) transparent;
 }
 
 /* Hanya tampilkan balloon popup saat class .active di-toggle lewat klik tombol */

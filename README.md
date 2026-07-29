@@ -107,3 +107,19 @@ RAW/
    - Jika nama file/folder mengandung tag domain seperti `[doronime.id]`, skrip otomatis mengekstrak provider (`Doronime.id`), URL (`https://doronime.id`), dan ikon favicon tanpa perlu pendaftaran manual.
 3. **Kategorisasi & Sub-label Hierarki Direktori pada Hasil Pencarian**:
    - Saat pengguna menggunakan fitur pencarian global di Web UI, setiap kartu media menampilkan sub-label path direktori (misal: `📁 anime/fulldive rpg`) untuk memudahkan navigasi.
+
+---
+
+## 📤 Otomatisasi Git Push Media Segmen `.ts` (`./push.sh`)
+
+Karena segmen video HLS (`.ts`) berukuran cukup besar, skrip **`./push.sh`** (berbasis `git_smart_push.py`) disediakan untuk mengunggah file media ke GitHub secara otomatis dan aman dari batas maksimal komit (2.0 GB).
+
+### Cara Penggunaan:
+```bash
+./push.sh
+```
+
+### Cara Kerja Skrip:
+- Menghitung ukuran total berkas media `.ts` yang baru atau berubah.
+- Otomatis membagi komit menjadi beberapa batch aman (maksimal **~1.2 GB per push**).
+- Melakukan `git add`, `git commit`, dan `git push` berurutan hingga seluruh berkas media terunggah 100% tanpa risiko error batas ukuran push GitHub.
