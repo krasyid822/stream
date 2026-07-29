@@ -72,10 +72,28 @@ function playMedia(media, cardElement) {
             track.kind = "subtitles";
             track.label = `Indonesian (${idx + 1})`;
             track.srclang = "id";
-            track.src = (!isLocalhost && !subUrl.startsWith("http"))
+            track.default = (idx === 0);
+
+            const vttTargetUrl = (!isLocalhost && !subUrl.startsWith("http"))
                 ? GITHUB_RAW_BASE + subUrl.replace(/^\//, "")
                 : subUrl;
-            track.default = (idx === 0);
+
+            // Trik CORS Safe Subtitle: Fetch VTT dan konversi ke Blob URL lokal agar tidak diblokir browser
+            if (!isLocalhost && vttTargetUrl.startsWith("http")) {
+                fetch(vttTargetUrl)
+                    .then(response => response.text())
+                    .then(vttText => {
+                        const blob = new Blob([vttText], { type: "text/vtt" });
+                        track.src = URL.createObjectURL(blob);
+                    })
+                    .catch(err => {
+                        console.warn("Gagal memuat subtitle CORS VTT, fallback ke URL direct:", err);
+                        track.src = vttTargetUrl;
+                    });
+            } else {
+                track.src = vttTargetUrl;
+            }
+
             videoElement.appendChild(track);
         });
 
