@@ -48,8 +48,13 @@ function playMedia(media, cardElement) {
     document.querySelectorAll(".grid-card").forEach(c => c.classList.remove("active"));
     if (cardElement) cardElement.classList.add("active");
 
+    const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/krasyid822/stream/main/";
+
     if (videoElement && media.poster_url) {
-        videoElement.poster = media.poster_url;
+        videoElement.poster = (!isLocalhost && !media.poster_url.startsWith("http"))
+            ? GITHUB_RAW_BASE + media.poster_url.replace(/^\//, "")
+            : media.poster_url;
     }
 
     // Bersihkan track subtitle lama dari elemen <video>
@@ -67,7 +72,9 @@ function playMedia(media, cardElement) {
             track.kind = "subtitles";
             track.label = `Indonesian (${idx + 1})`;
             track.srclang = "id";
-            track.src = subUrl;
+            track.src = (!isLocalhost && !subUrl.startsWith("http"))
+                ? GITHUB_RAW_BASE + subUrl.replace(/^\//, "")
+                : subUrl;
             track.default = (idx === 0);
             videoElement.appendChild(track);
         });

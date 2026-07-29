@@ -258,9 +258,14 @@ function renderDirectoryGrid() {
 
         let thumbHtml = `<i class="fa-solid fa-film"></i>`;
         if (media.poster_url) {
+            const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+            const posterUrl = (!isLocalhost && !media.poster_url.startsWith("http")) 
+                ? "https://raw.githubusercontent.com/krasyid822/stream/main/" + media.poster_url.replace(/^\//, "")
+                : media.poster_url;
+
             thumbHtml = `
                 <div style="width: 100%; aspect-ratio: 16/9; overflow: hidden; border: 1px solid var(--accent-cyan); margin-bottom: 0.5rem; background: #000;">
-                    <img src="${media.poster_url}" alt="${media.name}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="${posterUrl}" alt="${media.name}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>`;
         }
 
