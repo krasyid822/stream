@@ -235,8 +235,10 @@ function playMedia(media, cardElement) {
         });
     }
 
-    if (window.innerWidth <= 768) {
-        videoElement.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (window.innerWidth <= 768 && playerWrapper) {
+        setTimeout(() => {
+            playerWrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 120);
     }
 }
 
