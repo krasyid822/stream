@@ -21,8 +21,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout Code (Fast Sparse Checkout)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            index.html
+            favicon.ico
+            assets
+            aliases.json
+            metadata.json
 
       - name: Prepare Lightweight Web UI Artifact
         run: |
