@@ -237,8 +237,8 @@ function playMedia(media, cardElement) {
 
     if (window.innerWidth <= 768 && playerWrapper) {
         setTimeout(() => {
-            playerWrapper.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 120);
+            playerWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
+        }, 150);
     }
 }
 
