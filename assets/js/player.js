@@ -123,6 +123,14 @@ function playMedia(media, cardElement) {
             dynamicForwardBuffer = 120;
         }
 
+        // Trik GitHub RAW CDN: Alihkan request file .m3u8 & .ts ke GitHub RAW jika web berjalan di GitHub Pages/online
+        const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/krasyid822/stream/main/";
+
+        const finalHlsUrl = (!isLocalhost && !hlsUrl.startsWith("http")) 
+            ? GITHUB_RAW_BASE + hlsUrl.replace(/^\//, "") 
+            : hlsUrl;
+
         hlsInstance = new Hls({
             debug: false,
             enableWorker: true,
@@ -140,10 +148,17 @@ function playMedia(media, cardElement) {
             abrEmaSlowVoD: 9.0,
             abrBandwidthFactor: 0.85,
             abrBandwidthUpFactor: 0.7,
-            bandwidthEstimate: 1500000
+            bandwidthEstimate: 1500000,
+            xhrSetup: function (xhr, url) {
+                // Ubah URL segmen HLS (.m3u8 & .ts) ke GitHub RAW jika dipanggil relatif dari GitHub Pages
+                if (!isLocalhost && !url.startsWith("http") && !url.startsWith("blob:")) {
+                    const relativePath = url.replace(location.origin + "/", "");
+                    xhr.open("GET", GITHUB_RAW_BASE + relativePath, true);
+                }
+            }
         });
 
-        hlsInstance.loadSource(hlsUrl);
+        hlsInstance.loadSource(finalHlsUrl);
         hlsInstance.attachMedia(videoElement);
 
         hlsInstance.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
