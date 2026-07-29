@@ -16,16 +16,20 @@ def run_cmd_push(cmd):
     return subprocess.run(cmd, check=False)
 
 def get_untracked_and_modified_files():
-    """Mengambil daftar semua file yang belum dikomit (untracked & modified)."""
-    res = subprocess.run(["git", "status", "--porcelain"], check=True, text=True, capture_output=True)
+    """Mengambil daftar semua file yang belum dikomit (untracked & modified), termasuk ekspansi folder."""
+    res = subprocess.run(["git", "status", "--porcelain", "-uall"], check=True, text=True, capture_output=True)
     files = []
     for line in res.stdout.splitlines():
         if not line.strip():
             continue
-        status_code = line[:2]
         filepath = line[3:].strip().strip('"')
-        if filepath and os.path.exists(filepath) and not os.path.isdir(filepath):
-            files.append(filepath)
+        if filepath and os.path.exists(filepath):
+            if os.path.isdir(filepath):
+                for root, _, filenames in os.walk(filepath):
+                    for fname in filenames:
+                        files.append(os.path.join(root, fname))
+            else:
+                files.append(filepath)
     return files
 
 def get_file_size(filepath):
