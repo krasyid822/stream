@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os
 import subprocess
@@ -163,18 +164,61 @@ def generate_poster_thumbnail(output_dir, num_streams):
                 print(f"[-] Gagal membuat sampul poster: {e.stderr.decode('utf-8', errors='ignore')}")
     return None
 
+import re
+
+def extract_web_source_from_filename(filename):
+    """Mendeteksi domain websumber otomatis dari nama file atau folder (misal: [doronime.id] -> Doronime.id)."""
+    match = re.search(r'\[([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\]', filename)
+    if match:
+        domain = match.group(1).strip()
+        provider_name = domain.capitalize() if not domain.startswith("http") else domain
+        # Format nama provider rapi (misal: doronime.id -> Doronime.id)
+        if "." in provider_name:
+            parts = provider_name.split(".")
+            provider_name = parts[0].capitalize() + "." + ".".join(parts[1:])
+        return {
+            "provider": provider_name,
+            "url": f"https://{domain}" if not domain.startswith("http") else domain,
+            "icon": f"https://{domain}/favicon.ico",
+            "note": "Sumber mentah otomatis diekstrak dari nama file"
+        }
+    return None
+
+def clean_episode_name(raw_name):
+    """Memangkas nama folder/file episode yang panjang menjadi ringkas (misal: 'Episode 04' atau 'Episode 14')."""
+    clean_name = raw_name.replace("_hls", "").strip()
+    
+    # 1. Cek apakah ada pola nomor episode seperti 'Episode 04', 'Ep 14', 'E04', atau angka '04' di dalam nama
+    ep_match = re.search(r'(?:episode|ep|e)?\s*(\d+)', clean_name, re.IGNORECASE)
+    
+    # 2. Jika ada tag pembuka seperti [Doronime.id] atau [480p] [h265], bersihkan tag tanda kurung siku/bisa
+    no_brackets = re.sub(r'\[.*?\]|\(.*?\)', '', clean_name).strip()
+    
+    if ep_match:
+        ep_num = ep_match.group(1)
+        if not no_brackets or no_brackets.isdigit() or len(no_brackets.split()) <= 2:
+            return f"Episode {ep_num}"
+
+    if no_brackets:
+        return no_brackets
+        
+    return clean_name
+
 def update_library_metadata(workspace_dir):
     """Memindai seluruh folder kategori (anime, donghua, dll) serta file media HLS."""
     media_library = []
     category_folders = []
     
-    # Load Aliases Dictionary jika ada
+    # Load Aliases & Sources Dictionary jika ada
     aliases_dict = {}
+    sources_dict = {}
     aliases_path = os.path.join(workspace_dir, "aliases.json")
     if os.path.exists(aliases_path):
         try:
             with open(aliases_path, "r", encoding="utf-8") as f:
-                aliases_dict = json.load(f).get("aliases", {})
+                data_json = json.load(f)
+                aliases_dict = data_json.get("aliases", {})
+                sources_dict = data_json.get("sources", {})
         except Exception as e:
             print(f"[-] Gagal membaca aliases.json: {e}")
 
@@ -196,23 +240,37 @@ def update_library_metadata(workspace_dir):
             vtt_files = [f for f in files if f.endswith(".vtt")]
             poster_file = "poster.jpg" if "poster.jpg" in files else None
             
-            # Cari apakah ada alias yang cocok dengan kata di dalam path
+            # Cari apakah ada alias & source yang cocok dengan kata di dalam path
             matched_aliases = []
+            matched_source = None
             lower_rel_path = rel_path.lower()
             for key, alias_list in aliases_dict.items():
                 if key.lower() in lower_rel_path:
                     matched_aliases.extend(alias_list)
 
+            for src_key, src_val in sources_dict.items():
+                if src_key.lower() in lower_rel_path:
+                    matched_source = src_val
+
+            raw_folder_name = os.path.basename(root)
+            
+            # Jika belum ada di sources_dict, ekstrak websumber otomatis dari tag kurung siku nama folder/file
+            if not matched_source:
+                matched_source = extract_web_source_from_filename(raw_folder_name)
+
+            display_name = clean_episode_name(raw_folder_name)
+
             # Format path: kategori/id-judul/id-season/hls_folder
             item = {
                 "id": rel_path.replace(os.sep, "_"),
-                "name": os.path.basename(root).replace("_hls", ""),
+                "name": display_name,
                 "folder": os.path.dirname(rel_path),
                 "path": rel_path,
                 "master_url": os.path.join(rel_path, "master.m3u8"),
                 "poster_url": os.path.join(rel_path, poster_file) if poster_file else None,
                 "subtitles": [os.path.join(rel_path, v) for v in vtt_files],
                 "aliases": matched_aliases,
+                "source": matched_source,
                 "type": "hls_stream"
             }
             media_library.append(item)
@@ -220,24 +278,43 @@ def update_library_metadata(workspace_dir):
     metadata_path = os.path.join(workspace_dir, "metadata.json")
     with open(metadata_path, "w") as f:
         json.dump({
+            "sources": sources_dict,
             "categories": category_folders,
             "media": media_library, 
             "updated_at": str(os.path.getmtime(workspace_dir))
         }, f, indent=2)
     print(f"[+] Metadata perpustakaan diperbarui: {metadata_path}")
 
-def main():
-    if len(sys.argv) > 1:
-        video_path = sys.argv[1].strip()
-    else:
-        video_path = input("Masukkan path file video: ").strip()
+def find_existing_case_insensitive_dir(base_dir, relative_path):
+    """Mencari direktori fisik secara case-insensitive agar tidak membuat folder ganda (misal: GSYOS vs gsyos)."""
+    parts = [p for p in relative_path.split(os.sep) if p]
+    current = base_dir
 
-    # Bersihkan kutipan (quotes) jika ada
+    for part in parts:
+        found_match = False
+        if os.path.exists(current) and os.path.isdir(current):
+            try:
+                for existing in os.listdir(current):
+                    if existing.lower() == part.lower() and os.path.isdir(os.path.join(current, existing)):
+                        current = os.path.join(current, existing)
+                        found_match = True
+                        break
+            except Exception:
+                pass
+        if not found_match:
+            current = os.path.join(current, part.lower())
+    return current
+
+def process_single_video(video_path):
+    """Memproses 1 file video ke format HLS ABR dan menghapus file sumber jika berhasil 100%."""
     video_path = video_path.strip("'\"")
-
     if not os.path.exists(video_path):
-        print(f"[-] File '{video_path}' tidak ditemukan!")
-        sys.exit(1)
+        print(f"\n[-] Error: File video '{video_path}' tidak ditemukan.")
+        return False
+
+    print(f"\n========================================================")
+    print(f"[+] Memproses File: {os.path.basename(video_path)}")
+    print(f"========================================================")
 
     # Dapatkan resolusi asli video & stream subtitle
     in_w, in_h = get_video_info(video_path)
@@ -266,12 +343,16 @@ def main():
     rel_parts = rel_video_path.split(os.sep)
     if rel_parts[0] == "RAW" and len(rel_parts) > 1:
         target_rel_dir = os.path.dirname(os.path.join(*rel_parts[1:]))
-        prod_base_dir = os.path.join(workspace_root, target_rel_dir)
+        prod_base_dir = find_existing_case_insensitive_dir(workspace_root, target_rel_dir)
     else:
         prod_base_dir = os.path.dirname(abs_video_path)
 
-    filename_without_ext = os.path.splitext(os.path.basename(video_path))[0]
-    output_dir = os.path.join(prod_base_dir, filename_without_ext + "_hls")
+    raw_filename = os.path.splitext(os.path.basename(video_path))[0]
+    clean_ep_name = clean_episode_name(raw_filename)
+    
+    # Jika clean_ep_name menghasilkan nama ringkas (misal 'Episode 04' atau 'Episode 14'), gunakan sebagai nama folder HLS
+    clean_ep_folder = clean_ep_name if clean_ep_name else raw_filename
+    output_dir = os.path.join(prod_base_dir, clean_ep_folder + "_hls")
     os.makedirs(output_dir, exist_ok=True)
 
     print(f"[+] Direktori output: {output_dir}")
@@ -279,6 +360,8 @@ def main():
     master_playlist = os.path.join(output_dir, "master.m3u8")
     stream_playlist = os.path.join(output_dir, "stream_%v", "playlist.m3u8")
     segment_filename = os.path.join(output_dir, "stream_%v", "segment_%03d.ts")
+
+    num_streams = len(filtered_profiles)
 
     # Cek apakah master playlist sudah ada (video HLS sudah pernah di-generate sebelumnya)
     if os.path.exists(master_playlist):
@@ -289,15 +372,22 @@ def main():
             update_master_playlist_with_subtitles(master_playlist, subtitles)
         generate_poster_thumbnail(output_dir, num_streams)
         update_library_metadata(workspace_root)
-        print(f"\n[✓] Selesai! Master playlist HLS: {master_playlist}")
-        return
+        print(f"[✓] Selesai! Master playlist HLS: {master_playlist}")
+        
+        # Hapus file sumber asli jika HLS master sudah ada & berhasil
+        if os.path.exists(abs_video_path):
+            try:
+                os.remove(abs_video_path)
+                print(f"[🗑️] File video sumber berhasil dihapus: {os.path.basename(abs_video_path)}")
+            except Exception as e:
+                print(f"[-] Gagal menghapus file sumber: {e}")
+        return True
 
     # Ekstrak subtitle ke format WebVTT (.vtt)
     if subtitles:
         extract_subtitles(video_path, subtitles, output_dir)
 
     # Bangun argumen perintah FFmpeg
-    num_streams = len(filtered_profiles)
     filter_complex_split = f"[0:v]split={num_streams}" + "".join([f"[v{i+1}]" for i in range(num_streams)])
     filter_complex_scales = []
 
@@ -353,10 +443,44 @@ def main():
         # Tambahkan subtitle ke master playlist
         if subtitles:
             update_master_playlist_with_subtitles(master_playlist, subtitles)
+        generate_poster_thumbnail(output_dir, num_streams)
         update_library_metadata(workspace_root)
         print(f"\n[✓] Berhasil! Master playlist HLS tersimpan di: {master_playlist}")
+        
+        # HAPUS OTOMATIS FILE VIDEO SUMBER HANYA JIKA PROSES BERHASIL 100%
+        if os.path.exists(abs_video_path):
+            try:
+                os.remove(abs_video_path)
+                print(f"[🗑️] File video sumber berhasil dihapus otomatis: {os.path.basename(abs_video_path)}")
+            except Exception as e:
+                print(f"[-] Gagal menghapus file video sumber: {e}")
+        return True
     except subprocess.CalledProcessError as e:
         print(f"\n[-] Proses HLS gagal diproses oleh FFmpeg. Error code: {e.returncode}")
+        print("[!] File video sumber TIDAK dihapus karena terjadi kesalahan.")
+        return False
+
+def main():
+    parser = argparse.ArgumentParser(description="Script otomatis generator HLS ABR & Subtitle Extractor untuk Video Streaming (Multi-input & Auto-cleanup)")
+    parser.add_argument("video_paths", nargs="+", help="Satu atau banyak path ke file video input (misal: video1.mkv video2.mkv *.mkv)")
+    args = parser.parse_args()
+
+    total_files = len(args.video_paths)
+    successful_files = 0
+
+    print(f"\n========================================================")
+    print(f"[🚀] Menerima {total_files} file video untuk diproses ke HLS ABR")
+    print(f"========================================================")
+
+    for idx, path in enumerate(args.video_paths, 1):
+        print(f"\n>>> Progres: [{idx}/{total_files}] <<<")
+        success = process_single_video(path)
+        if success:
+            successful_files += 1
+
+    print(f"\n========================================================")
+    print(f"[🏁] SELESAI! {successful_files}/{total_files} file video berhasil diproses ke HLS ABR.")
+    print(f"========================================================")
 
 if __name__ == "__main__":
     main()

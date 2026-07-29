@@ -82,7 +82,7 @@
     <div class="crt-overlay"></div>
 
     <!-- Retro Pixel Toast Notification -->
-    <div id="pixelToast" style="display: none; position: fixed; top: 1.5rem; right: 1.5rem; z-index: 10000; background: var(--bg-surface); border: 2px solid var(--accent-pink); color: var(--text-main); font-family: var(--pixel-font); font-size: 0.8rem; padding: 0.6rem 1rem; box-shadow: 4px 4px 0px #000;">
+    <div id="pixelToast" style="display: none; position: fixed; top: 1.5rem; right: 1rem; max-width: calc(100vw - 2rem); z-index: 10000; background: var(--bg-surface); border: 2px solid var(--accent-pink); color: var(--text-main); font-family: var(--pixel-font); font-size: 0.75rem; padding: 0.6rem 0.8rem; box-shadow: 4px 4px 0px #000; box-sizing: border-box; word-break: break-word;">
         <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-pink); margin-right: 0.5rem;"></i>
         <span id="toastMsg">Notification message</span>
     </div>
@@ -134,7 +134,7 @@
                 </div>
 
                 <div class="video-container">
-                    <video id="hlsPlayer" controls poster=""></video>
+                    <video id="hlsPlayer" controls controlslist="nodownload no-mute noremoteplayback" disablePictureInPicture poster=""></video>
                 </div>
 
                 <!-- Custom Retro Subtitle & Quality Control Bar -->
@@ -158,6 +158,7 @@
     </div>
 
     <!-- Clean Architecture JavaScript Modules -->
+    <script src="assets/js/else-handler.js"></script>
     <script src="assets/js/player.js"></script>
     <script src="assets/js/explorer.js"></script>
 </body>

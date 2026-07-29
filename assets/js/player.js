@@ -1,17 +1,29 @@
-/* ============================================================
-   RETRO PIXEL STREAM — PLAYER & SUBTITLE CONTROLLER MODULE
-   ============================================================ */
+// Helper untuk mensinkronisasi tampilan tombol UI Subtitle dengan status asli HTML5 TextTracks
+function updateSubtitleUIStatus() {
+    const btn = document.getElementById("btnToggleSub");
+    const tracks = videoElement ? videoElement.textTracks : null;
+    if (!btn) return;
 
-// Utility: Show Retro Pixel Toast Notification
-function showToast(message) {
-    const toast = document.getElementById("pixelToast");
-    const toastMsg = document.getElementById("toastMsg");
-    if (toast && toastMsg) {
-        toastMsg.textContent = message;
-        toast.style.display = "block";
-        setTimeout(() => {
-            toast.style.display = "none";
-        }, 3000);
+    let isAnyShowing = false;
+    if (tracks) {
+        for (let i = 0; i < tracks.length; i++) {
+            if (tracks[i].mode === "showing") {
+                isAnyShowing = true;
+                break;
+            }
+        }
+    }
+
+    if (isAnyShowing) {
+        btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: ON`;
+        btn.className = "pixel-btn primary";
+        btn.style.borderColor = "var(--accent-purple)";
+        btn.style.color = "var(--accent-cyan)";
+    } else {
+        btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: OFF`;
+        btn.className = "pixel-btn";
+        btn.style.borderColor = "var(--text-dim)";
+        btn.style.color = "var(--text-muted)";
     }
 }
 
@@ -25,8 +37,12 @@ function playMedia(media, cardElement) {
     window.currentPlayingMediaId = media ? media.id : "";
     window.currentPlayingMediaFolder = media ? media.folder : "";
     window.currentPlayingMediaObj = media || null;
+    
     if (typeof syncUrlHash === "function") {
         syncUrlHash();
+    }
+    if (typeof renderDirectoryGrid === "function") {
+        renderDirectoryGrid();
     }
 
     document.querySelectorAll(".grid-card").forEach(c => c.classList.remove("active"));
@@ -61,23 +77,15 @@ function playMedia(media, cardElement) {
             for (let i = 0; i < videoElement.textTracks.length; i++) {
                 videoElement.textTracks[i].mode = (i === 0) ? "showing" : "disabled";
             }
-            const btn = document.getElementById("btnToggleSub");
-            if (btn) {
-                btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: ON`;
-                btn.className = "pixel-btn primary";
-                btn.style.borderColor = "var(--accent-purple)";
-                btn.style.color = "var(--accent-cyan)";
-            }
+            updateSubtitleUIStatus();
         }, 100);
     } else {
-        // Reset tombol ke OFF jika media tidak memiliki subtitle
-        const btn = document.getElementById("btnToggleSub");
-        if (btn) {
-            btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: OFF`;
-            btn.className = "pixel-btn";
-            btn.style.borderColor = "var(--text-dim)";
-            btn.style.color = "var(--text-muted)";
-        }
+        updateSubtitleUIStatus();
+    }
+
+    if (videoElement && videoElement.textTracks) {
+        videoElement.textTracks.onchange = updateSubtitleUIStatus;
+        videoElement.textTracks.addEventListener("change", updateSubtitleUIStatus);
     }
 
     const hlsUrl = media.master_url;
@@ -86,7 +94,10 @@ function playMedia(media, cardElement) {
         const playPromise = videoElement.play();
         if (playPromise !== undefined) {
             playPromise.catch(error => {
-                if (error.name !== "AbortError") {
+                if (error.name === "NotAllowedError") {
+                    // Biarkan video tetap ter-pause secara bersih sesuai Autoplay Policy browser
+                    videoElement.pause();
+                } else if (error.name !== "AbortError") {
                     console.warn("Play error:", error);
                 }
             });
@@ -105,7 +116,6 @@ function playMedia(media, cardElement) {
         const deviceRamGb = (navigator.deviceMemory || 4); // Default asumsi 4GB jika API tidak tersedia
         
         // Alokasikan panjang buffer maju (forward buffer) proporsional dengan RAM
-        // Perangkat RAM kecil (<=2GB): 30 detik | Perangkat RAM sedang (4GB): 60 detik | Perangkat RAM besar (>=8GB): 120 detik
         let dynamicForwardBuffer = 60;
         if (deviceRamGb <= 2) {
             dynamicForwardBuffer = 30;
@@ -117,36 +127,19 @@ function playMedia(media, cardElement) {
             debug: false,
             enableWorker: true,
             lowLatencyMode: false,
-            
-            /* ============================================================
-               1. ADAPTIVE BUFFER & ZERO RE-DOWNLOAD (PERMANENT CACHE)
-               ============================================================ */
-            maxBufferLength: dynamicForwardBuffer,  // Alokasi buffer maju dinamis sesuai RAM ready
+            maxBufferLength: dynamicForwardBuffer,
             maxMaxBufferLength: dynamicForwardBuffer * 2,
-            maxBufferSize: deviceRamGb * 1024 * 1024 * 16, // Alokasi memori RAM fleksibel untuk HLS buffer
-            
-            // SET HINGGA INFINITY: Segmen yang sudah ter-download disimpan di memori
-            // selama RAM mencukupi dan TIDAK PERNAH DI-DOWNLOAD ULANG saat mundur/rewind!
+            maxBufferSize: deviceRamGb * 1024 * 1024 * 16,
             backBufferLength: Infinity,
             maxBackBufferLength: Infinity,
-            
-            /* ============================================================
-               2. EFISIENSI KUOTA & DETEKSI LAYAR
-               ============================================================ */
-            testBandwidth: false,          // Matikan tes bandwidth redundant untuk hemat kuota
-            capLevelToPlayerSize: true,    // Sesuaikan resolusi maksimum dengan ukuran fisik monitor/layar HP
-            
-            /* ============================================================
-               3. AKURASI DETEKSI KECEPATAN DOWNLOAD (MOVING AVERAGE ABR)
-               ============================================================ */
+            testBandwidth: false,
+            capLevelToPlayerSize: true,
             abrEmaFastLive: 3.0,
             abrEmaSlowLive: 9.0,
             abrEmaFastVoD: 3.0,
-            abrEmaSlowVoD: 9.0,           // Rata-rataMoving Average kecepatan download selama streaming
-            abrBandwidthFactor: 0.85,     // 85% safety factor dari bandwidth nyata
-            abrBandwidthUpFactor: 0.7,    // Menjaga kestabilan sebelum menaikkan kualitas resolusi
-
-            /* Ambang batas estimasi awal yang aman (360p ~1.5M, 480p ~3M, 720p ~6M, 1080p ~12M) */
+            abrEmaSlowVoD: 9.0,
+            abrBandwidthFactor: 0.85,
+            abrBandwidthUpFactor: 0.7,
             bandwidthEstimate: 1500000
         });
 
@@ -179,10 +172,24 @@ function playMedia(media, cardElement) {
         const MAX_RETRIES = 3;
 
         hlsInstance.on(Hls.Events.ERROR, function (event, data) {
+            // Abaikan warning internal non-fatal HLS (bufferStalledError, bufferSeekOverHole)
+            if (!data.fatal) return;
+
+            console.warn("[HLS Fatal Error]:", data.type, data.details);
+
+            const isOfflineError = !navigator.onLine || 
+                data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || 
+                data.details === Hls.ErrorDetails.LEVEL_LOAD_ERROR ||
+                data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR;
+
+            // Jika kesalahan disebabkan oleh jaringan/offline, LANGSUNG tampilkan notifikasi persisten di UI!
+            if (isOfflineError) {
+                showToast("Koneksi Internet Terputus...", true);
+            }
+
             if (data.fatal) {
-                console.error("[HLS Error Fatal]:", data.type, data.details);
                 if (retryCount >= MAX_RETRIES) {
-                    console.error("[HLS] Max retries reached. Stopping player to prevent freeze.");
+                    showToast("Gagal memuat stream video. Periksa koneksi internet Anda.", true);
                     hlsInstance.destroy();
                     return;
                 }
@@ -190,15 +197,15 @@ function playMedia(media, cardElement) {
                 retryCount++;
                 switch (data.type) {
                     case Hls.ErrorTypes.NETWORK_ERROR:
-                        console.log(`[HLS] Network error retry (${retryCount}/${MAX_RETRIES})...`);
+                        showToast(`Masalah Jaringan! Mencoba ulang (${retryCount}/${MAX_RETRIES})...`, true);
                         hlsInstance.startLoad();
                         break;
                     case Hls.ErrorTypes.MEDIA_ERROR:
-                        console.log(`[HLS] Media error retry (${retryCount}/${MAX_RETRIES})...`);
+                        showToast("Memulihkan kesalahan media video...", true);
                         hlsInstance.recoverMediaError();
                         break;
                     default:
-                        console.error("[HLS] Unrecoverable error, destroying instance.");
+                        showToast("Terjadi kesalahan fatal pada pemutar video.", true);
                         hlsInstance.destroy();
                         break;
                 }
@@ -249,6 +256,15 @@ function changeResolution(levelIndex) {
         }
     }
 }
+
+// Monitor Status Koneksi Internet Real-Time (Online / Offline)
+window.addEventListener("offline", function () {
+    showToast("Koneksi Internet Terganggu");
+});
+
+window.addEventListener("online", function () {
+    showToast("Koneksi Internet Terhubung Kembali!");
+});
 
 // Toggle Subtitle On/Off
 function toggleSubtitle() {

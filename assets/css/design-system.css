@@ -146,7 +146,12 @@ html, body {
     background: rgba(0, 245, 212, 0.1);
     text-transform: uppercase;
 }
-
+/* Sembunyikan Tombol Mute & Tiga Titik (Overflow Menu) pada HTML5 Player */
+video::-webkit-media-controls-mute-button,
+video::-webkit-media-controls-volume-slider,
+video::-webkit-media-controls-overflow-button {
+    display: none !important;
+}
 .pixel-badge.purple {
     border-color: var(--accent-purple);
     color: var(--accent-purple);
@@ -211,9 +216,37 @@ html, body {
     height: 50%;
     background-color: #e70000;
 }
-.id-white {
-    height: 50%;
-    background-color: #ffffff;
+/* Search Grouping Hierarchy Blocks */
+.search-group-block {
+    background: var(--bg-panel);
+    border: 2px solid var(--accent-purple);
+    box-shadow: 4px 4px 0px #000;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.search-group-header {
+    font-family: var(--code-font);
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--accent-cyan);
+    background: var(--bg-surface);
+    border-left: 4px solid var(--accent-pink);
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 2px 2px 0px #000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+    width: 100%;
 }
 
 /* Pixel Borders & Cards */
@@ -228,7 +261,28 @@ html, body {
     cursor: pointer;
     transition: all 0.15s ease;
     position: relative;
-    padding: 1.5rem 0.6rem 0.8rem 0.6rem; /* Berikan padding atas yang cukup agar badge & info btn tidak tumpuk */
+    padding: 1.5rem 0.6rem 0.8rem 0.6rem;
+    z-index: 1;
+}
+
+.grid-card.playing {
+    border-color: var(--accent-pink) !important;
+    background: rgba(255, 0, 127, 0.12) !important;
+    box-shadow: 0 0 12px rgba(255, 0, 127, 0.6), 4px 4px 0px #000 !important;
+}
+
+.now-playing-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-family: var(--pixel-font);
+    font-size: 0.5rem;
+    padding: 0.15rem 0.4rem;
+    background: var(--accent-pink);
+    color: #fff;
+    border: 1px solid #000;
+    box-shadow: 2px 2px 0px #000;
+    z-index: 2;
 }
 
 /* Tag Badge - Sudut Kiri Atas */
@@ -238,7 +292,7 @@ html, body {
     left: 6px !important;
     right: auto !important;
     font-size: 0.55rem;
-    z-index: 5;
+    z-index: 2;
     margin: 0;
 }
 
@@ -247,7 +301,7 @@ html, body {
     position: absolute;
     top: 6px;
     right: 6px;
-    z-index: 20;
+    z-index: 999;
 }
 
 .info-btn {
@@ -272,13 +326,13 @@ html, body {
     transform: scale(1.15);
 }
 
-/* Balloon Popup Container - Menyesuaikan Posisi Kanan Atas */
+/* Balloon Popup Container - Posisi Adaptif Pintar di Atas Segalanya */
 .pixel-balloon-popup {
     display: none;
     position: absolute;
     bottom: calc(100% + 8px);
-    right: 0;
     width: 210px;
+    max-width: calc(100vw - 32px);
     background: var(--bg-surface);
     border: 2px solid var(--accent-cyan);
     box-shadow: 4px 4px 0px #000;
@@ -286,23 +340,43 @@ html, body {
     font-family: var(--code-font);
     font-size: 0.75rem;
     color: var(--text-main);
-    z-index: 100;
+    z-index: 1000;
     pointer-events: none;
     text-align: left;
+    word-break: break-word;
 }
 
-/* Panah Ekor Balloon Tooltip Retro Di Kanan */
+/* Opsi Alignment Kiri (jika kartu ada di paling kiri layar) */
+.pixel-balloon-popup.align-left {
+    left: 0;
+    right: auto;
+}
+.pixel-balloon-popup.align-left::after {
+    left: 4px;
+    right: auto;
+}
+
+/* Opsi Alignment Kanan (jika kartu ada di tengah/kanan layar) */
+.pixel-balloon-popup.align-right {
+    right: 0;
+    left: auto;
+}
+.pixel-balloon-popup.align-right::after {
+    right: 4px;
+    left: auto;
+}
+
+/* Panah Ekor Balloon Tooltip Retro Base */
 .pixel-balloon-popup::after {
     content: '';
     position: absolute;
     top: 100%;
-    right: 8px;
     border-width: 6px;
     border-style: solid;
     border-color: var(--accent-cyan) transparent transparent transparent;
 }
 
-.info-btn-wrapper:hover .pixel-balloon-popup,
+/* Hanya tampilkan balloon popup saat class .active di-toggle lewat klik tombol */
 .info-btn-wrapper.active .pixel-balloon-popup {
     display: block;
 }
