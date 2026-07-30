@@ -14,6 +14,34 @@ const itemCount = document.getElementById("itemCount");
 const statusBadge = document.getElementById("statusBadge");
 const videoElement = document.getElementById("hlsPlayer");
 
+// Update Room Widget Komentar (komen.site.je) berdasarkan Sub-Directory / Media URL
+function updateCommentWidgetRoom() {
+    const commentBtn = document.getElementById("commentWidgetBtn");
+    const commentIframe = document.getElementById("commentWidgetIframe");
+    if (!commentBtn && !commentIframe) return;
+
+    let roomName = "default";
+    if (window.currentPlayingMediaObj) {
+        // Gabungkan path folder & nama episode sebagai room unik (misal: donghua_am_Episode_1)
+        const folderSlug = (window.currentPlayingMediaObj.folder || "").replace(/[^a-zA-Z0-9_\-]/g, "_");
+        const nameSlug = (window.currentPlayingMediaObj.name || "").replace(/[^a-zA-Z0-9_\-]/g, "_");
+        roomName = `${folderSlug}_${nameSlug}`.replace(/^_+|_+$/g, "");
+    } else if (currentFolder) {
+        // Jika sedang menelusuri sub-dir folder tertentu (misal: donghua_am)
+        roomName = currentFolder.replace(/[^a-zA-Z0-9_\-]/g, "_").replace(/^_+|_+$/g, "");
+    }
+
+    if (!roomName) roomName = "default";
+    const targetUrl = `https://komen.site.je/index.php?room=${encodeURIComponent(roomName)}`;
+
+    if (commentBtn && commentBtn.href !== targetUrl) {
+        commentBtn.href = targetUrl;
+    }
+    if (commentIframe && commentIframe.src !== targetUrl) {
+        commentIframe.src = targetUrl;
+    }
+}
+
 // Synchronize & Sync URL Hash for Deep-Linking & Reload Persistence with Pretty Path Slashes & Underscore Spaces
 function syncUrlHash() {
     let hashPath = "";
@@ -35,6 +63,9 @@ function syncUrlHash() {
     } else {
         history.replaceState(null, "", window.location.pathname + window.location.search);
     }
+
+    // Sinkronkan room widget komentar secara otomatis
+    updateCommentWidgetRoom();
 }
 
 function parseUrlHash() {
@@ -99,6 +130,7 @@ async function loadMetadata() {
         currentFolder = dir;
 
         renderDirectoryGrid();
+        updateCommentWidgetRoom();
 
         // Otomatis putar media jika nama episode ada di URL hash (#/.../Season 1?ep=...)
         if (ep) {

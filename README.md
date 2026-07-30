@@ -138,13 +138,18 @@ Agar struktur data tetap rapi, tidak terjadi duplikasi manual, dan sistem berjal
 
 ---
 
-## Penggunaan Widget Komentar 
+## Penggunaan Widget Komentar (`komen.site.je`)
 
-| URL | Keterangan |
-|-----|------------|
-| `/` | Room default |
-| `/?room=diskusi` | Room bernama "diskusi" |
-| `/?room=feedback` | Room bernama "feedback" |
+Widget komentar retro terpasang tepat di bawah HLS Player Monitor. Widget ini mendukung **Multi-Room Otomatis**:
+- **Berdasarkan Media Diputar**: Setiap episode di dalam sub-direktori (misal `donghua/am` -> `Episode 1`) secara otomatis memiliki ruang komentar tersendiri dengan nama room unik `donghua_am_Episode_1`.
+- **Berdasarkan Folder / Sub-Dir**: Ketika menelusuri folder tanpa memilih media, room otomatis menyesuaikan nama folder tersebut (misal `?room=donghua_am`).
+
+| Tipe Navigasi | URL Room Komentar (`https://komen.site.je`) |
+|---------------|---------------------------------------------|
+| Library Utama | `https://komen.site.je/index.php?room=default` |
+| Sub-Directory | `https://komen.site.je/index.php?room=donghua_am` |
+| Media Episode | `https://komen.site.je/index.php?room=donghua_am_Episode_1` |
+
+---
 
 # Catatan
-
