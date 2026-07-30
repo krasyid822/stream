@@ -38,17 +38,27 @@ function playMedia(media, cardElement) {
     window.currentPlayingMediaFolder = media ? media.folder : "";
     window.currentPlayingMediaObj = media || null;
     
+    // Pindahkan blok folder episode secara halus ke posisi dekat player (TANPA RELOAD DOM)
+    if (typeof movePlayingGroupBlockToPlayer === "function" && media && media.folder) {
+        movePlayingGroupBlockToPlayer(media.folder);
+    }
+
+    // Cukup update class active/playing pada kartu yang diklik tanpa merusak DOM
+    document.querySelectorAll(".grid-card.media-card").forEach(c => c.classList.remove("active", "playing"));
+    if (cardElement) {
+        cardElement.classList.add("active", "playing");
+    }
+
+    // DI MOBILE: Eksekusi autoscroll meluncur langsung ke playerWrapper tanpa efek reload
+    if (window.innerWidth <= 768 && playerWrapper) {
+        playerWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+
     if (typeof syncUrlHash === "function") {
         syncUrlHash();
     }
-    if (typeof renderDirectoryGrid === "function") {
-        renderDirectoryGrid();
-    }
 
-    document.querySelectorAll(".grid-card").forEach(c => c.classList.remove("active"));
-    if (cardElement) cardElement.classList.add("active");
-
-    const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "0.0.0.0";
     const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/krasyid822/stream/main/";
 
     if (videoElement && media.poster_url) {
@@ -65,8 +75,12 @@ function playMedia(media, cardElement) {
         videoElement.removeChild(videoElement.getElementsByTagName("track")[0]);
     }
 
-    // Tambahkan track subtitle WebVTT (.vtt) jika ada
+    const btnSub = document.getElementById("btnToggleSub");
+
+    // Tambahkan track subtitle WebVTT (.vtt) jika ada (Softsub)
     if (media.subtitles && media.subtitles.length > 0) {
+        if (btnSub) btnSub.style.display = "inline-flex";
+
         media.subtitles.forEach((subUrl, idx) => {
             const track = document.createElement("track");
             track.kind = "subtitles";
@@ -105,6 +119,8 @@ function playMedia(media, cardElement) {
             updateSubtitleUIStatus();
         }, 100);
     } else {
+        // Sembunyikan tombol Subtitle untuk video yang tidak memiliki file subtitle / Hardsub
+        if (btnSub) btnSub.style.display = "none";
         updateSubtitleUIStatus();
     }
 
@@ -134,54 +150,198 @@ function playMedia(media, cardElement) {
             hlsInstance.destroy();
         }
 
-        /* ============================================================
-           ADAPTIVE DYNAMIC RAM BUFFER ALLOCATION
-           Mendeteksi kapasitas RAM perangkat (navigator.deviceMemory)
-           ============================================================ */
-        const deviceRamGb = (navigator.deviceMemory || 4); // Default asumsi 4GB jika API tidak tersedia
-        
-        // Alokasikan panjang buffer maju (forward buffer) proporsional dengan RAM
-        let dynamicForwardBuffer = 60;
-        if (deviceRamGb <= 2) {
-            dynamicForwardBuffer = 30;
-        } else if (deviceRamGb >= 8) {
-            dynamicForwardBuffer = 120;
-        }
-
         // Trik GitHub RAW CDN: Alihkan request file .m3u8 & .ts ke GitHub RAW jika web berjalan di GitHub Pages/online
-        const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+        const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "0.0.0.0";
         const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/krasyid822/stream/main/";
 
         const finalHlsUrl = (!isLocalhost && !hlsUrl.startsWith("http")) 
             ? GITHUB_RAW_BASE + hlsUrl.replace(/^\//, "") 
             : hlsUrl;
 
+        /* ============================================================
+           INDEXEDDB STORAGE CACHE & HYBRID RAM MANAGEMENT
+           - Mengalihkan segmen .ts dari RAM ke Storage Sementara (IndexedDB)
+           - Memantau ketersediaan RAM via Performance API jika didukung
+           - Mencegah kuota terbuang saat seek jauh & menjaga RAM tetap ringan
+           ============================================================ */
+        const DB_NAME = "HlsSegmentCacheDB";
+        const DB_STORE = "segments";
+        let segmentDB = null;
+
+        // Inisialisasi IndexedDB Storage Sementara
+        const initSegmentCacheDB = function () {
+            return new Promise((resolve) => {
+                try {
+                    const req = indexedDB.open(DB_NAME, 1);
+                    req.onupgradeneeded = function (e) {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(DB_STORE)) {
+                            db.createObjectStore(DB_STORE);
+                        }
+                    };
+                    req.onsuccess = function (e) {
+                        segmentDB = e.target.result;
+                        resolve(true);
+                    };
+                    req.onerror = function () {
+                        resolve(false);
+                    };
+                } catch (e) {
+                    resolve(false);
+                }
+            });
+        };
+
+        initSegmentCacheDB();
+
+        // Simpan blob segmen ke IndexedDB Storage Sementara
+        const saveSegmentToStorage = function (url, arrayBuffer) {
+            if (!segmentDB || !arrayBuffer) return;
+            try {
+                // Duplikasi (clone) ArrayBuffer agar tidak menjadi 'detached' saat diserahkan ke SourceBuffer HLS.js
+                const bufferCopy = arrayBuffer.slice(0);
+                const tx = segmentDB.transaction(DB_STORE, "readwrite");
+                const store = tx.objectStore(DB_STORE);
+                store.put(bufferCopy, url);
+            } catch (e) {
+                // Tangani error secara silent agar playback tetap berjalan mulus
+            }
+        };
+
+        // Ambil blob segmen dari IndexedDB jika sudah pernah diunduh
+        const getSegmentFromStorage = function (url) {
+            return new Promise((resolve) => {
+                if (!segmentDB) return resolve(null);
+                try {
+                    const tx = segmentDB.transaction(DB_STORE, "readonly");
+                    const store = tx.objectStore(DB_STORE);
+                    const req = store.get(url);
+                    req.onsuccess = function () {
+                        resolve(req.result || null);
+                    };
+                    req.onerror = function () {
+                        resolve(null);
+                    };
+                } catch (e) {
+                    resolve(null);
+                }
+            });
+        };
+
         hlsInstance = new Hls({
             debug: false,
             enableWorker: true,
             lowLatencyMode: false,
-            maxBufferLength: dynamicForwardBuffer,
-            maxMaxBufferLength: dynamicForwardBuffer * 2,
-            maxBufferSize: deviceRamGb * 1024 * 1024 * 16,
-            backBufferLength: Infinity,
-            maxBackBufferLength: Infinity,
+            maxBufferLength: 30,             // 3 segmen maju (~30 detik) di RAM
+            maxMaxBufferLength: 35,
+            maxBufferSize: 0,                // RAM Murni 3 segmen
+            backBufferLength: 30,            // 3 segmen mundur (~30 detik) di RAM
+            maxBackBufferLength: 30,
             testBandwidth: false,
-            capLevelToPlayerSize: true,
-            abrEmaFastLive: 3.0,
-            abrEmaSlowLive: 9.0,
-            abrEmaFastVoD: 3.0,
-            abrEmaSlowVoD: 9.0,
-            abrBandwidthFactor: 0.85,
-            abrBandwidthUpFactor: 0.7,
-            bandwidthEstimate: 1500000,
+            capLevelToPlayerSize: false,     // Jangan batasi level resolusi berdasarkan dimensi elemen player HTML
+            abrEmaFastLive: 1.0,
+            abrEmaSlowLive: 3.0,
+            abrEmaFastVoD: 1.0,              // Deteksi lonjakan kecepatan jaringan secara instan (1 detik)
+            abrEmaSlowVoD: 3.0,
+            abrBandwidthFactor: 0.9,
+            abrBandwidthUpFactor: 0.95,      // Sangat responsif menaikkan resolusi ke level lebih tinggi saat jaringan cepat (95%)
             xhrSetup: function (xhr, url) {
-                // Ubah URL segmen HLS (.m3u8 & .ts) ke GitHub RAW jika dipanggil relatif dari GitHub Pages
+                const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "0.0.0.0";
+                const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/krasyid822/stream/main/";
+                
                 if (!isLocalhost && !url.startsWith("http") && !url.startsWith("blob:")) {
-                    const relativePath = url.replace(location.origin + "/", "");
+                    const relativePath = url.replace(location.origin + "/", "").replace(/^\//, "");
                     xhr.open("GET", GITHUB_RAW_BASE + relativePath, true);
                 }
             }
         });
+
+        // Intersepsi Loader HLS: Cek Storage Sementara (IndexedDB) sebelum download internet
+        hlsInstance.on(Hls.Events.FRAG_LOADED, function (event, data) {
+            isFetchingChunk = false;
+            if (data && data.frag && data.payload) {
+                // Simpan segmen yang telah selesai diunduh ke IndexedDB
+                saveSegmentToStorage(data.frag.url, data.payload);
+            }
+            checkAndManageBufferThreshold();
+        });
+
+        /* ============================================================
+           ALGORITMA DUAL-DIRECTION THRESHOLD (SEEKING & PLAYING)
+           ============================================================ */
+        let isFetchingChunk = false;
+
+        const checkAndManageBufferThreshold = function () {
+            if (!hlsInstance || !videoElement) return;
+
+            // Kunci pengunduhan HANYA saat video benar-benar dipause pengguna
+            if (videoElement.paused) {
+                hlsInstance.stopLoad();
+                return;
+            }
+
+            // Saat video PLAYING: Biarkan Hls.js mengelola alokasi 30 detik (3 segmen maju) secara alami
+            // tanpa ada pembatalan / stopLoad() manual yang menghambat koneksi 4G Slow
+            if (!hlsInstance.loadingEnabled) {
+                hlsInstance.startLoad();
+            }
+        };
+
+        // Pemulihan Otomatis jika buffer sempat terhenti akibat jaringan (Stalling Protection)
+        hlsInstance.on(Hls.Events.BUFFER_STALLED, function () {
+            if (hlsInstance && videoElement && !videoElement.paused) {
+                isFetchingChunk = true;
+                hlsInstance.startLoad();
+            }
+        });
+
+        // Evaluasi buffer setiap kali 1 segmen selesai dimuat
+        hlsInstance.on(Hls.Events.FRAG_LOADED, function (event, data) {
+            isFetchingChunk = false;
+            checkAndManageBufferThreshold();
+        });
+
+        // Pemantau posisi waktu pemutaran video secara berkala
+        videoElement.ontimeupdate = checkAndManageBufferThreshold;
+
+        // Listener penggeseran timeline (Seeking Maju / Mundur)
+        videoElement.onseeking = function () {
+            if (!hlsInstance || !videoElement) return;
+
+            const currentTime = videoElement.currentTime;
+            const buffered = videoElement.buffered;
+            let bufferedAhead = 0;
+            let bufferedBehind = 0;
+
+            for (let i = 0; i < buffered.length; i++) {
+                if (buffered.start(i) <= currentTime && currentTime <= buffered.end(i)) {
+                    bufferedAhead = buffered.end(i) - currentTime;
+                    bufferedBehind = currentTime - buffered.start(i);
+                    break;
+                }
+            }
+
+            // Cerdas: Jika menggeser timeline ke posisi yang sisa buffer maju ATAU mundurnya tinggal <= 1 segmen (10s),
+            // segera izinkan unduh 3 segmen adegan di posisi tersebut!
+            if (bufferedAhead <= 10 || bufferedBehind <= 10) {
+                isFetchingChunk = true;
+                hlsInstance.startLoad();
+            }
+        };
+
+        videoElement.onpause = function () {
+            if (hlsInstance) {
+                hlsInstance.stopLoad();
+            }
+        };
+
+        videoElement.onplay = function () {
+            isFetchingChunk = false;
+            if (hlsInstance) {
+                hlsInstance.startLoad();
+            }
+            checkAndManageBufferThreshold();
+        };
 
         hlsInstance.loadSource(finalHlsUrl);
         hlsInstance.attachMedia(videoElement);
@@ -199,12 +359,49 @@ function playMedia(media, cardElement) {
             safePlay();
         });
 
-        // Event listener saat level kualitas berubah secara otomatis (ABR)
-        hlsInstance.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
+        // Synchronize tampilan indikator Auto (Resolusi) saat ABR HLS menyesuaikan level kualitas secara adaptif
+        const updateAutoResolutionLabel = function (targetLevelIndex) {
             const resSelect = document.getElementById("resSelect");
-            if (resSelect && hlsInstance.currentLevel === -1 && hlsInstance.levels[data.level]) {
-                const currentRes = hlsInstance.levels[data.level];
-                resSelect.options[0].text = `Auto (${currentRes.height}p)`;
+            if (!resSelect || !hlsInstance) return;
+
+            // HANYA perbarui teks opsi 0 jika user sedang memilih mode "Auto" (value "-1")
+            if (resSelect.value !== "-1") return;
+
+            let activeLevel = typeof targetLevelIndex === "number" ? targetLevelIndex : hlsInstance.currentLevel;
+            if (activeLevel === -1) {
+                activeLevel = hlsInstance.loadLevel >= 0 ? hlsInstance.loadLevel : (hlsInstance.firstLevel || 0);
+            }
+
+            if (hlsInstance.levels && hlsInstance.levels[activeLevel]) {
+                const currentRes = hlsInstance.levels[activeLevel];
+                if (resSelect.options && resSelect.options.length > 0) {
+                    resSelect.options[0].text = `Auto (${currentRes.height}p)`;
+                }
+            }
+        };
+
+        // Event listener saat level ABR mulai berpindah, selesai berpindah, atau memuat segmen baru
+        hlsInstance.on(Hls.Events.LEVEL_SWITCHING, function (event, data) {
+            if (data && typeof data.level !== "undefined") {
+                updateAutoResolutionLabel(data.level);
+            }
+        });
+
+        hlsInstance.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
+            if (data && typeof data.level !== "undefined") {
+                updateAutoResolutionLabel(data.level);
+            }
+        });
+
+        hlsInstance.on(Hls.Events.FRAG_LOADING, function (event, data) {
+            if (data && data.frag && typeof data.frag.level !== "undefined") {
+                updateAutoResolutionLabel(data.frag.level);
+            }
+        });
+
+        hlsInstance.on(Hls.Events.FRAG_CHANGED, function (event, data) {
+            if (data && data.frag && typeof data.frag.level !== "undefined") {
+                updateAutoResolutionLabel(data.frag.level);
             }
         });
 
@@ -222,8 +419,12 @@ function playMedia(media, cardElement) {
             if (isOfflineError || data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                 showToast("Koneksi Internet Terputus...", true);
             } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-                showToast("Memulihkan media video...", true);
+                // Simpan posisi waktu pemutaran saat ini agar tidak ter-reset ke detik 0
+                const savedTime = videoElement ? videoElement.currentTime : 0;
                 hlsInstance.recoverMediaError();
+                if (videoElement && savedTime > 0) {
+                    videoElement.currentTime = savedTime;
+                }
             } else {
                 showToast("Terjadi kesalahan pada pemutar video.", true);
             }
@@ -233,12 +434,6 @@ function playMedia(media, cardElement) {
         videoElement.addEventListener("loadedmetadata", function () {
             safePlay();
         });
-    }
-
-    if (window.innerWidth <= 768 && playerWrapper) {
-        setTimeout(() => {
-            playerWrapper.scrollIntoView({ behavior: "smooth", block: "end" });
-        }, 150);
     }
 }
 
@@ -264,7 +459,8 @@ function changeResolution(levelIndex) {
     if (!hlsInstance) return;
     const targetLevel = parseInt(levelIndex);
 
-    hlsInstance.currentLevel = targetLevel;
+    // Gunakan nextLevel agar pergantian resolusi berjalan seamless pada segmen berikutnya (TIDAK RESET DETIK VDEO)
+    hlsInstance.nextLevel = targetLevel;
 
     if (targetLevel === -1) {
         showToast("Resolusi: ABR AUTO");

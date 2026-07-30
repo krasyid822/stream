@@ -20,6 +20,14 @@
       "Gim Kelewat Maju tuh Gim Ampas",
       "究極進化したフルダイブRPGが現実よりもクソゲーだったら",
       "Doronime.id"
+    ],
+    "am": [
+      "Above Myriads",
+      "Wan Ren Zhi Shang",
+      "Di Atas Ribuan",
+      "万人之上",
+      "Hidoristream",
+      "https://hidoristream.my.id/"
     ]
   },
   "sources": {
@@ -34,6 +42,12 @@
       "url": "https://doronime.id",
       "icon": "https://doronime.id/images/doronime.png?v=6",
       "note": "Sumber mentah (RAW source) video FullDive RPG"
+    },
+    "donghua/am": {
+      "provider": "Hidoristream",
+      "url": "https://hidoristream.my.id/",
+      "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+      "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
     }
   }
 }

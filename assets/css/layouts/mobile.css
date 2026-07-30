@@ -3,14 +3,26 @@
    ============================================================ */
 
 @media (max-width: 768px) {
+    /* Notifikasi Toast di Mobile: Muncul di BANYAK/BAWAH layar agar tidak menutupi header & search */
     #pixelToast {
-        top: 0.75rem !important;
-        right: 0.5rem !important;
-        left: 0.5rem !important;
+        top: auto !important;
+        bottom: 1rem !important;
+        right: 0.75rem !important;
+        left: 0.75rem !important;
         width: auto !important;
         max-width: none !important;
         font-size: 0.7rem !important;
         padding: 0.5rem 0.75rem !important;
+        z-index: 20000 !important;
+    }
+
+    /* Kolom Pencarian Mengambang di Mobile: Memenuhi lebar bagian atas layar secara rapi */
+    .search-box-container.floating-search {
+        top: 0.5rem !important;
+        left: 0.5rem !important;
+        right: 0.5rem !important;
+        width: auto !important;
+        box-sizing: border-box !important;
     }
 
     .app-container {

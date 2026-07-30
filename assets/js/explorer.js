@@ -57,13 +57,42 @@ function parseUrlHash() {
     return { dir: dirPath, ep: episodeName };
 }
 
-// Fetch Metadata
+let aliasesStore = {};
+let sourcesStore = {};
+
+// Fetch Metadata & Aliases secara terpisah tanpa duplikasi data
 async function loadMetadata() {
     try {
-        const res = await fetch("metadata.json?t=" + new Date().getTime());
-        const data = await res.json();
+        const [metaRes, aliasRes] = await Promise.all([
+            fetch("metadata.json?t=" + new Date().getTime()),
+            fetch("aliases.json?t=" + new Date().getTime()).catch(() => null)
+        ]);
+
+        const data = await metaRes.json();
         metadataStore = data.media || [];
         categoriesStore = data.categories || [];
+
+        if (aliasRes && aliasRes.ok) {
+            const aliasData = await aliasRes.json();
+            aliasesStore = aliasData.aliases || {};
+            sourcesStore = aliasData.sources || {};
+
+            // Merge alias dan source ke item media secara dinamis di runtime (TANPA DUPLIKASI FILE)
+            metadataStore.forEach(item => {
+                const folderKey = item.folder || "";
+                const folderLeaf = folderKey.split("/").pop() || "";
+                
+                // Ambil daftar alias berdasarkan folderLeaf (misal: "am" atau "gsyos")
+                const matchedAliases = aliasesStore[folderLeaf] || aliasesStore[folderKey] || [];
+                item.aliases = matchedAliases;
+
+                // Ambil objek source penyedia
+                const matchedSource = sourcesStore[folderKey] || sourcesStore[folderLeaf] || null;
+                if (matchedSource) {
+                    item.source = matchedSource;
+                }
+            });
+        }
 
         // Baca URL Hash jika ada saat reload / share link
         const { dir, ep } = parseUrlHash();
@@ -130,12 +159,15 @@ function renderDirectoryGrid() {
     if (!gridExplorer) return;
     gridExplorer.innerHTML = "";
 
+    const searchBoxContainer = document.getElementById("searchBoxContainer");
+
     const folders = new Set();
     const mediaItems = [];
     const searchGroups = {}; // Objek untuk mengelompokkan hasil pencarian berdasarkan folder
 
     // Mode Pencarian Global (jika pengguna mengetik di kotak pencarian)
     if (searchQuery !== "") {
+        if (searchBoxContainer) searchBoxContainer.classList.add("floating-search");
         gridExplorer.style.display = "block";
         metadataStore.forEach(item => {
             const matchName = item.name.toLowerCase().includes(searchQuery);
@@ -150,6 +182,7 @@ function renderDirectoryGrid() {
             }
         });
     } else {
+        if (searchBoxContainer) searchBoxContainer.classList.remove("floating-search");
         gridExplorer.style.display = "";
         // Mode Penjelajahan Direktori Biasa
         if (currentFolder === "") {
@@ -212,8 +245,9 @@ function renderDirectoryGrid() {
 
             const rect = btn.getBoundingClientRect();
 
-            // 1. Deteksi Horisontal (Kiri vs Kanan)
-            if (rect.left < 160) {
+            // 1. Deteksi Horisontal (Kiri vs Kanan):
+            // Jika tombol 'i' kurang dari 220px dari tepi kiri layar, gunakan align-left agar popup tidak terpotong di tepi kiri.
+            if (rect.left < 220) {
                 popup.classList.add("align-left");
             } else {
                 popup.classList.add("align-right");
@@ -258,7 +292,7 @@ function renderDirectoryGrid() {
 
         let thumbHtml = `<i class="fa-solid fa-film"></i>`;
         if (media.poster_url) {
-            const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+            const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "0.0.0.0";
             const posterUrl = (!isLocalhost && !media.poster_url.startsWith("http")) 
                 ? "https://raw.githubusercontent.com/krasyid822/stream/main/" + media.poster_url.replace(/^\//, "")
                 : media.poster_url;
@@ -275,7 +309,6 @@ function renderDirectoryGrid() {
             const iconImg = media.source.icon ? `<img src="${media.source.icon}" alt="icon" style="height:14px; width:auto; object-fit:contain; vertical-align:middle; margin-right:4px; border-radius:2px;">` : "";
             sourceHtml = `${iconImg}<a href="${media.source.url}" target="_blank" style="color:var(--accent-cyan); text-decoration:none;">${media.source.provider}</a>`;
         }
-        const playingBadgeHtml = isPlaying ? `<span class="now-playing-badge"><i class="fa-solid fa-play" style="font-size:0.45rem;"></i> PLAYING</span>` : "";
 
         mediaCard.innerHTML = `
             <div class="info-btn-wrapper">
@@ -290,7 +323,6 @@ function renderDirectoryGrid() {
                 </div>
             </div>
             <span class="pixel-badge purple card-badge">HLS</span>
-            ${playingBadgeHtml}
             ${thumbHtml}
             <div class="card-name">${media.name}</div>
         `;
@@ -308,11 +340,24 @@ function renderDirectoryGrid() {
 
     // MODE PENCARIAN: Render dalam blok-blok baris hierarki direktori/season yang terpisah
     if (searchQuery !== "") {
-        const sortedFolderKeys = Object.keys(searchGroups).sort();
+        const playingFolder = window.currentPlayingMediaFolder || "";
+        const isMobile = (window.innerWidth <= 768);
+
+        const sortedFolderKeys = Object.keys(searchGroups).sort((a, b) => {
+            if (playingFolder) {
+                // Di Mobile: Pemutar video di bawah grid -> dekatkan folder aktif ke PALING BAWAH
+                // Di Desktop: Pemutar video di atas grid -> dekatkan folder aktif ke PALING ATAS
+                if (a === playingFolder) return isMobile ? 1 : -1;
+                if (b === playingFolder) return isMobile ? -1 : 1;
+            }
+            return a.localeCompare(b);
+        });
         
         sortedFolderKeys.forEach(folderPath => {
+            const isCurrentPlayingGroup = (playingFolder && folderPath === playingFolder);
             const groupBlock = document.createElement("div");
-            groupBlock.className = "search-group-block";
+            groupBlock.className = `search-group-block${isCurrentPlayingGroup ? " playing-group" : ""}`;
+            groupBlock.setAttribute("data-folder-path", folderPath);
 
             const headerEl = document.createElement("div");
             headerEl.className = "search-group-header";
@@ -446,6 +491,43 @@ function updateBreadcrumb() {
 
     breadcrumbPath.innerHTML = html;
 }
+
+// Pindahkan blok folder yang sedang diputar secara langsung di DOM (TANPA RELOAD GRID)
+function movePlayingGroupBlockToPlayer(folderPath) {
+    if (!gridExplorer || !folderPath) return;
+
+    const targetBlock = gridExplorer.querySelector(`.search-group-block[data-folder-path="${CSS.escape(folderPath)}"]`);
+    if (!targetBlock) return;
+
+    const isMobile = (window.innerWidth <= 768);
+
+    if (isMobile) {
+        // Di Mobile: Pindahkan blok folder aktif ke PALING BAWAH (dekat player di bawah)
+        gridExplorer.appendChild(targetBlock);
+    } else {
+        // Di Desktop: Pindahkan blok folder aktif ke PALING ATAS (dekat player di atas)
+        if (gridExplorer.firstChild && gridExplorer.firstChild !== targetBlock) {
+            gridExplorer.insertBefore(targetBlock, gridExplorer.firstChild);
+        }
+    }
+}
+
+// Auto-reorder grid saat pengguna mengubah ukuran jendela browser (Responsive Switch)
+let resizeDebounceTimer = null;
+let lastIsMobileState = (window.innerWidth <= 768);
+
+window.addEventListener("resize", function () {
+    const currentIsMobileState = (window.innerWidth <= 768);
+    if (currentIsMobileState !== lastIsMobileState) {
+        lastIsMobileState = currentIsMobileState;
+        if (resizeDebounceTimer) clearTimeout(resizeDebounceTimer);
+        resizeDebounceTimer = setTimeout(() => {
+            if (typeof renderDirectoryGrid === "function") {
+                renderDirectoryGrid();
+            }
+        }, 150);
+    }
+});
 
 // Initialize Explorer on DOM Ready
 window.addEventListener("DOMContentLoaded", loadMetadata);

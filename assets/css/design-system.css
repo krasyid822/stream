@@ -136,6 +136,18 @@ html, body {
     color: #fff;
 }
 
+/* Floating Search Engine Box saat Mode CARI Aktif */
+.search-box-container.floating-search {
+    position: fixed !important;
+    top: 1rem !important;
+    right: 1rem !important;
+    z-index: 10000 !important;
+    background: var(--bg-panel) !important;
+    border-color: var(--accent-pink) !important;
+    box-shadow: 0 0 20px rgba(255, 0, 127, 0.6), 4px 4px 0px #000 !important;
+    transform: none !important;
+}
+
 /* Pixel Badge */
 .pixel-badge {
     font-family: var(--pixel-font);
@@ -332,7 +344,8 @@ video::-webkit-media-controls-overflow-button {
     position: absolute;
     bottom: calc(100% + 8px);
     width: 210px;
-    max-width: calc(100vw - 32px);
+    max-width: calc(100vw - 24px);
+    box-sizing: border-box;
     background: var(--bg-surface);
     border: 2px solid var(--accent-cyan);
     box-shadow: 4px 4px 0px #000;

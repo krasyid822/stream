@@ -11,6 +11,12 @@
       "url": "https://doronime.id",
       "icon": "https://doronime.id/images/doronime.png?v=6",
       "note": "Sumber mentah (RAW source) video FullDive RPG"
+    },
+    "donghua/am": {
+      "provider": "Hidoristream",
+      "url": "https://hidoristream.my.id/",
+      "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+      "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
     }
   },
   "categories": [
@@ -730,7 +736,343 @@
         "note": "Sumber mentah (RAW source) video FullDive RPG"
       },
       "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 1_hls",
+      "name": "Episode 1",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 1_hls",
+      "master_url": "donghua/am/Episode 1_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 1_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 2_hls",
+      "name": "Episode 2",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 2_hls",
+      "master_url": "donghua/am/Episode 2_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 2_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 3_hls",
+      "name": "Episode 3",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 3_hls",
+      "master_url": "donghua/am/Episode 3_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 3_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 4_hls",
+      "name": "Episode 4",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 4_hls",
+      "master_url": "donghua/am/Episode 4_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 4_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 5_hls",
+      "name": "Episode 5",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 5_hls",
+      "master_url": "donghua/am/Episode 5_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 5_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 6_hls",
+      "name": "Episode 6",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 6_hls",
+      "master_url": "donghua/am/Episode 6_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 6_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 7_hls",
+      "name": "Episode 7",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 7_hls",
+      "master_url": "donghua/am/Episode 7_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 7_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 8_hls",
+      "name": "Episode 8",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 8_hls",
+      "master_url": "donghua/am/Episode 8_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 8_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 9_hls",
+      "name": "Episode 9",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 9_hls",
+      "master_url": "donghua/am/Episode 9_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 9_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 10_hls",
+      "name": "Episode 10",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 10_hls",
+      "master_url": "donghua/am/Episode 10_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 10_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 11_hls",
+      "name": "Episode 11",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 11_hls",
+      "master_url": "donghua/am/Episode 11_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 11_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 12_hls",
+      "name": "Episode 12",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 12_hls",
+      "master_url": "donghua/am/Episode 12_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 12_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 13_hls",
+      "name": "Episode 13",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 13_hls",
+      "master_url": "donghua/am/Episode 13_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 13_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 14_hls",
+      "name": "Episode 14",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 14_hls",
+      "master_url": "donghua/am/Episode 14_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 14_hls/poster.jpg",
+      "subtitles": [],
+      "aliases": [
+        "Above Myriads",
+        "Wan Ren Zhi Shang",
+        "Di Atas Ribuan",
+        "\u4e07\u4eba\u4e4b\u4e0a",
+        "Hidoristream",
+        "https://hidoristream.my.id/"
+      ],
+      "source": {
+        "provider": "Hidoristream",
+        "url": "https://hidoristream.my.id/",
+        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
+      },
+      "type": "hls_stream"
     }
   ],
-  "updated_at": "1785243283.0799303"
+  "updated_at": "1785363192.201181"
 }

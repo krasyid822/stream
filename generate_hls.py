@@ -260,7 +260,7 @@ def update_library_metadata(workspace_dir):
 
             display_name = clean_episode_name(raw_folder_name)
 
-            # Format path: kategori/id-judul/id-season/hls_folder
+            # Format path murni tanpa duplikasi data alias & sources
             item = {
                 "id": rel_path.replace(os.sep, "_"),
                 "name": display_name,
@@ -269,8 +269,6 @@ def update_library_metadata(workspace_dir):
                 "master_url": os.path.join(rel_path, "master.m3u8"),
                 "poster_url": os.path.join(rel_path, poster_file) if poster_file else None,
                 "subtitles": [os.path.join(rel_path, v) for v in vtt_files],
-                "aliases": matched_aliases,
-                "source": matched_source,
                 "type": "hls_stream"
             }
             media_library.append(item)
@@ -278,7 +276,6 @@ def update_library_metadata(workspace_dir):
     metadata_path = os.path.join(workspace_dir, "metadata.json")
     with open(metadata_path, "w") as f:
         json.dump({
-            "sources": sources_dict,
             "categories": category_folders,
             "media": media_library, 
             "updated_at": str(os.path.getmtime(workspace_dir))

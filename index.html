@@ -59,9 +59,12 @@
             transform: translate(-2px, -2px);
             box-shadow: 6px 6px 0px var(--accent-glow);
         }
-        .grid-card.active {
-            border-color: var(--accent-pink);
-            background: rgba(255, 0, 127, 0.1);
+        .grid-card.active,
+        .grid-card.playing {
+            border-width: 3px !important;
+            border-color: var(--accent-pink) !important;
+            background: rgba(255, 0, 127, 0.15) !important;
+            box-shadow: inset 0 0 10px rgba(255, 0, 127, 0.5), 6px 6px 0px #000 !important;
         }
         .grid-card.folder-card i {
             color: var(--accent-yellow);
@@ -82,7 +85,7 @@
     <div class="crt-overlay"></div>
 
     <!-- Retro Pixel Toast Notification -->
-    <div id="pixelToast" style="display: none; position: fixed; top: 1.5rem; right: 1rem; max-width: calc(100vw - 2rem); z-index: 10000; background: var(--bg-surface); border: 2px solid var(--accent-pink); color: var(--text-main); font-family: var(--pixel-font); font-size: 0.75rem; padding: 0.6rem 0.8rem; box-shadow: 4px 4px 0px #000; box-sizing: border-box; word-break: break-word;">
+    <div id="pixelToast" style="display: none; position: fixed; top: 1rem; left: 1rem; max-width: calc(100vw - 2rem); z-index: 20000; background: var(--bg-surface); border: 2px solid var(--accent-pink); color: var(--text-main); font-family: var(--pixel-font); font-size: 0.75rem; padding: 0.6rem 0.8rem; box-shadow: 4px 4px 0px #000; box-sizing: border-box; word-break: break-word;">
         <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-pink); margin-right: 0.5rem;"></i>
         <span id="toastMsg">Notification message</span>
     </div>
@@ -106,7 +109,7 @@
             </div>
 
             <!-- Retro Search Engine Input -->
-            <div style="display: flex; align-items: center; gap: 0.4rem; background: var(--bg-surface); border: 2px solid var(--accent-purple); padding: 0.3rem 0.6rem; box-shadow: 3px 3px 0px #000;">
+            <div id="searchBoxContainer" class="search-box-container" style="display: flex; align-items: center; gap: 0.4rem; background: var(--bg-surface); border: 2px solid var(--accent-purple); padding: 0.3rem 0.6rem; box-shadow: 3px 3px 0px #000; transition: all 0.2s ease;">
                 <i class="fa-solid fa-magnifying-glass" style="color: var(--accent-cyan); font-size: 0.85rem;"></i>
                 <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="CARI..." style="background: transparent; border: none; color: var(--text-main); font-family: var(--code-font); font-size: 0.85rem; outline: none; width: 220px;">
             </div>

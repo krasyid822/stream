@@ -123,3 +123,20 @@ Karena segmen video HLS (`.ts`) berukuran cukup besar, skrip **`./push.sh`** (be
 - Menghitung ukuran total berkas media `.ts` yang baru atau berubah.
 - Otomatis membagi komit menjadi beberapa batch aman (maksimal **~1.2 GB per push**).
 - Melakukan `git add`, `git commit`, dan `git push` berurutan hingga seluruh berkas media terunggah 100% tanpa risiko error batas ukuran push GitHub.
+
+# Aturan & Perbedaan Fungsi Berkas Metadata
+
+Agar struktur data tetap rapi, tidak terjadi duplikasi manual, dan sistem berjalan secara otomatis:
+
+### 1. 📁 `aliases.json` — *(Source File Utama / Konfigurasi Manual)*
+- **Fungsi**: Tempat **manusia (pengembang)** mendaftarkan nama alternatif (judul Mandarin, Jepang, Indonesia), kata kunci pencarian, serta informasi situs penyedia media (*sources/provider*).
+- **Aturan**: Segala pembaruan judul pencarian atau provider **HANYA dilakukan di berkas ini**.
+
+### 2. 📄 `metadata.json` — *(Compiled Output File / Hasil Generasi Otomatis)*
+- **Fungsi**: Berkas JSON kompilasi akhir yang dikonsumsi langsung oleh Web UI (`explorer.js`).
+- **Aturan**: Berkas ini **DISUSUN OTOMATIS oleh skrip Python (`generate_hls.py`)**. Skrip akan membaca folder video fisik lalu me-merge informasi alias & source dari `aliases.json` secara otomatis. **Jangan mengedit berkas ini secara manual!**
+
+---
+
+# Catatan
+
