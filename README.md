@@ -138,5 +138,13 @@ Agar struktur data tetap rapi, tidak terjadi duplikasi manual, dan sistem berjal
 
 ---
 
+## Penggunaan Widget Komentar 
+
+| URL | Keterangan |
+|-----|------------|
+| `/` | Room default |
+| `/?room=diskusi` | Room bernama "diskusi" |
+| `/?room=feedback` | Room bernama "feedback" |
+
 # Catatan
 
