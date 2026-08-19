@@ -136,12 +136,13 @@ Skrip **`./pull.sh`** (berbasis `git_smart_pull.py`) digunakan untuk mengambil u
 ```
 
 ### Cara Kerja Skrip:
-1. **`git pull origin main`**: Mengambil perubahan terbaru (kode, metadata, struktur folder, file `.m3u8`, `.vtt`, `.jpg`).
-2. **Pembersihan `.ts` Lokal**: Menghapus seluruh file segmen `.ts` di folder kategori lokal (misal: `anime/`, `donghua/`) untuk membebaskan ruang disk PC.
-3. **`git update-index --assume-unchanged`**: Menandai file `.ts` agar Git mengabaikan hilangnya file `.ts` di lokal. Dengan demikian:
+1. **Konfigurasi & Pull Blobless (`--filter=blob:none`)**: Mengaktifkan konfigurasi blobless pada remote origin sehingga saat `git pull`, Git hanya mengambil histori teks, metadata, playlist `.m3u8`, subtitle `.vtt`, dan poster `.jpg` tanpa mengunduh riwayat blob biner `.ts`.
+2. **Pembersihan `.ts` di Working Directory**: Menghapus seluruh file segmen `.ts` di folder kategori lokal (misal: `anime/`, `donghua/`) untuk membebaskan ruang disk PC.
+3. **`git update-index --assume-unchanged`**: Menandai file `.ts` agar Git mengabaikan hilangnya file `.ts` di lokal.
    - File `.ts` di repositori remote GitHub **tetap utuh dan terjaga 100%**.
    - Git tidak akan menganggap file `.ts` terhapus / modified saat melakukan commit/push di masa mendatang.
-   - Pemutar HLS tetap dapat memutar video secara online melalui CDN GitHub RAW.
+   - Pemutar HLS tetap memutar video secara online melalui CDN GitHub RAW.
+4. **Pembersihan Database Objek Lokal (`.git/objects/pack`)**: Menjalankan repack blobless dan garbage collection (`git repack -a -d --filter=blob:none` & `git gc --prune=now`) untuk menyusutkan ukuran direktori `.git/` lokal.
 
 # Aturan & Perbedaan Fungsi Berkas Metadata
 
