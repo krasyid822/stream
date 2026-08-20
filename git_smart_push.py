@@ -43,7 +43,7 @@ def chunk_push():
     print("🚀 SMART AUTO GIT CHUNK PUSHER (Max ~1.2GB per Push Batch)")
     print("==========================================================")
 
-    # Bersihkan file kunci index.lock yang kadaluarsa jika ada
+    # 1. Bersihkan file kunci index.lock yang kadaluarsa jika ada
     lock_file = os.path.join(".git", "index.lock")
     if os.path.exists(lock_file):
         try:
@@ -52,7 +52,20 @@ def chunk_push():
         except Exception:
             pass
 
-    # Pastikan .gitignore di-commit terlebih dahulu jika ada perubahan
+    # 2. Terapkan konfigurasi speed-up jaringan & multi-thread Git
+    try:
+        subprocess.run(["git", "config", "core.preloadindex", "true"], check=False)
+        subprocess.run(["git", "config", "core.fscache", "true"], check=False)
+        subprocess.run(["git", "config", "fetch.parallel", "8"], check=False)
+        subprocess.run(["git", "config", "submodule.fetchJobs", "8"], check=False)
+        subprocess.run(["git", "config", "http.postBuffer", "1048576000"], check=False)
+        subprocess.run(["git", "config", "pack.windowMemory", "1024m"], check=False)
+        subprocess.run(["git", "config", "pack.packSizeLimit", "1024m"], check=False)
+        subprocess.run(["git", "config", "pack.threads", "0"], check=False)
+    except Exception:
+        pass
+
+    # 3. Pastikan .gitignore di-commit terlebih dahulu jika ada perubahan
     if os.path.exists(".gitignore"):
         run_cmd(["git", "add", ".gitignore"], check=False)
         run_cmd(["git", "commit", "-m", "chore: update .gitignore rules"], check=False)
