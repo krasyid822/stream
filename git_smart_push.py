@@ -43,6 +43,15 @@ def chunk_push():
     print("🚀 SMART AUTO GIT CHUNK PUSHER (Max ~1.2GB per Push Batch)")
     print("==========================================================")
 
+    # Bersihkan file kunci index.lock yang kadaluarsa jika ada
+    lock_file = os.path.join(".git", "index.lock")
+    if os.path.exists(lock_file):
+        try:
+            os.remove(lock_file)
+            print("[*] Membersihkan file kunci .git/index.lock yang kadaluarsa...")
+        except Exception:
+            pass
+
     # Pastikan .gitignore di-commit terlebih dahulu jika ada perubahan
     if os.path.exists(".gitignore"):
         run_cmd(["git", "add", ".gitignore"], check=False)
