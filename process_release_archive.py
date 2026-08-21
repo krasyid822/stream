@@ -7,6 +7,12 @@ import subprocess
 import sys
 import glob
 
+# Pastikan semua output print langsung tampil real-time di GitHub Actions
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(line_buffering=True)
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(line_buffering=True)
+
 # Daftar tag release yang sudah diproses sebelumnya dan TIDAK boleh diproses lagi
 IGNORED_RELEASE_TAGS = {"AM", "FULLDIVE-RPG", "GSYOS", "PASSWORD"}
 

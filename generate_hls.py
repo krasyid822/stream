@@ -5,6 +5,12 @@ import os
 import subprocess
 import sys
 
+# Pastikan semua output print langsung tampil real-time di GitHub Actions
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(line_buffering=True)
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(line_buffering=True)
+
 # Definisi profil target (resolusi & bitrate)
 RESOLUTIONS = [
     {"name": "1080p", "width": 1920, "height": 1080, "bitrate": "5000k", "maxrate": "5350k", "bufsize": "7500k", "audio_bitrate": "192k"},
