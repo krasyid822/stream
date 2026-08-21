@@ -38,7 +38,7 @@ def get_untracked_and_modified_files():
     for line in res.stdout.splitlines():
         if not line.strip():
             continue
-        filepath = line[3:].strip().strip('"')
+        filepath = line[2:].strip().strip('"')
         if filepath and os.path.exists(filepath) and not is_ignored_file(filepath):
             if os.path.isdir(filepath):
                 for root, _, filenames in os.walk(filepath):
