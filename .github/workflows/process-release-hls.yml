@@ -21,10 +21,28 @@ jobs:
   process-archive-hls:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code Repository (Bare / Shallow)
+      - name: Checkout Code Repository (Instant Sparse Checkout)
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          sparse-checkout: |
+            .github
+            assets
+            aliases.json
+            metadata.json
+            generate_hls.py
+            process_release_archive.py
+            git_smart_push.py
+            git_smart_pull.py
+            push.sh
+            pull.sh
+            hls.sh
+            run.sh
+            README.md
+            index.html
+            favicon.ico
+            .gitignore
+          sparse-checkout-cone-mode: false
 
       - name: Setup Python 3
         uses: actions/setup-python@v5

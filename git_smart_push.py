@@ -17,13 +17,13 @@ def run_cmd_push(cmd):
 
 IGNORED_EXTENSIONS = (
     ".zip", ".rar", ".7z", ".zpaq", ".tar", ".gz", ".bz2", ".xz", ".tgz",
-    ".mp4", ".mkv", ".mov", ".avi", ".webm", ".flv"
+    ".mp4", ".mkv", ".mov", ".avi", ".webm", ".flv", ".pyc"
 )
-IGNORED_PATH_PREFIXES = ("release_downloads", "RAW_TEMP", "RAW_TEMP_EXTRACT", ".git")
+IGNORED_PATH_PREFIXES = ("release_downloads", "RAW_TEMP", "RAW_TEMP_EXTRACT", ".git", "__pycache__")
 
 def is_ignored_file(path):
-    norm = path.replace("\\", "/")
-    if any(norm.startswith(p) for p in IGNORED_PATH_PREFIXES):
+    norm = path.replace("\\", "/").lstrip("./")
+    if any(norm.startswith(p) or f"/{p}/" in f"/{norm}/" for p in IGNORED_PATH_PREFIXES):
         return True
     if any(norm.lower().endswith(ext) or f"{ext}." in norm.lower() for ext in IGNORED_EXTENSIONS):
         return True
@@ -36,9 +36,9 @@ def get_untracked_and_modified_files():
     res = subprocess.run(["git", "status", "--porcelain", "-uall"], check=True, text=True, capture_output=True)
     files = []
     for line in res.stdout.splitlines():
-        if not line.strip():
+        if len(line) < 4:
             continue
-        filepath = line[2:].strip().strip('"')
+        filepath = line[3:].strip().strip('"')
         if filepath and os.path.exists(filepath) and not is_ignored_file(filepath):
             if os.path.isdir(filepath):
                 for root, _, filenames in os.walk(filepath):
