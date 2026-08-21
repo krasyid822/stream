@@ -320,6 +320,15 @@ def main():
     cmd_gen = [sys.executable, generate_script] + all_processed_videos
     run_cmd(cmd_gen, check=True)
 
+    # 7. Bersihkan file arsip download & sementara agar tidak ter-push ke Git
+    print("\n[🧹] Membersihkan file arsip dan berkas unduhan sementara...")
+    shutil.rmtree(download_dir, ignore_errors=True)
+    if os.path.exists(release_body_file):
+        try:
+            os.remove(release_body_file)
+        except Exception:
+            pass
+
     print("\n==========================================================")
     print("🎉 SEMUA VIDEO BERHASIL DIPROSES KE HLS!")
     print("==========================================================")
