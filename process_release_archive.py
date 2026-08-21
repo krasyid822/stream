@@ -131,7 +131,7 @@ def recursive_extract(archive_path, output_dir, passwords):
             for f in sorted(files):
                 full_f = os.path.join(root, f)
                 lf = f.lower()
-                if re.search(r'\.part0*2\.rar$', lf) or re.search(r'\.00[2-9]$') or re.search(r'\.0[1-9][0-9]$'):
+                if re.search(r'\.part0*2\.rar$', lf) or re.search(r'\.00[2-9]$', lf) or re.search(r'\.0[1-9][0-9]$', lf):
                     continue
                 if any(lf.endswith(ext) for ext in ARCHIVE_EXTENSIONS) or re.search(r'\.part0*1\.rar$', lf):
                     nested_archives.append(full_f)
@@ -257,7 +257,7 @@ def main():
     primary_archives = []
     for f in sorted(downloaded_files):
         lf = os.path.basename(f).lower()
-        if re.search(r'\.part0*2\.rar$', lf) or re.search(r'\.00[2-9]$') or re.search(r'\.0[1-9][0-9]$'):
+        if re.search(r'\.part0*2\.rar$', lf) or re.search(r'\.00[2-9]$', lf) or re.search(r'\.0[1-9][0-9]$', lf):
             continue
         if any(lf.endswith(ext) for ext in ARCHIVE_EXTENSIONS) or re.search(r'\.part0*1\.rar$', lf):
             primary_archives.append(f)
