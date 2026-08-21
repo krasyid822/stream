@@ -94,26 +94,25 @@ def extract_archive_single(archive_path, output_dir, passwords):
             cmd = ["zpaq", "x", archive_path, "-to", output_dir, "-force"]
             if pwd:
                 cmd.extend(["-key", pwd])
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            res = subprocess.run(cmd)
             if res.returncode == 0:
                 success = True
         else:
             pwd_flag = f"-p{pwd}" if pwd else "-p"
             cmd = ["7z", "x", f"-o{output_dir}", "-y", pwd_flag, archive_path]
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            res = subprocess.run(cmd)
             if res.returncode == 0:
                 success = True
-            elif "Wrong password" not in res.stderr and "Wrong password" not in res.stdout:
-                if lower_path.endswith('.rar'):
-                    unrar_cmd = ["unrar", "x", "-y"]
-                    if pwd:
-                        unrar_cmd.append(f"-p{pwd}")
-                    else:
-                        unrar_cmd.append("-p-")
-                    unrar_cmd.extend([archive_path, output_dir])
-                    unrar_res = subprocess.run(unrar_cmd, capture_output=True, text=True)
-                    if unrar_res.returncode == 0:
-                        success = True
+            elif lower_path.endswith('.rar'):
+                unrar_cmd = ["unrar", "x", "-y"]
+                if pwd:
+                    unrar_cmd.append(f"-p{pwd}")
+                else:
+                    unrar_cmd.append("-p-")
+                unrar_cmd.extend([archive_path, output_dir])
+                unrar_res = subprocess.run(unrar_cmd)
+                if unrar_res.returncode == 0:
+                    success = True
 
         if success:
             print(f"[✓] Berhasil mengekstrak {os.path.basename(archive_path)}!")
