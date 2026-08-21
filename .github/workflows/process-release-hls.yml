@@ -58,6 +58,8 @@ jobs:
           ls -lh release_downloads/
 
       - name: Extract Archive & Generate HLS Pipeline
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
           python3 process_release_archive.py release_downloads "$TAG" release_body.txt

@@ -24,7 +24,7 @@ def run_cmd(cmd, check=True, cwd=None):
 
 def fetch_passwords_from_password_tag():
     """Mengambil kunci/password enkripsi dari release tag 'password' via gh cli."""
-    passwords = []
+    passwords = ["kurniawan"]  # Default known release encryption password
     try:
         res = subprocess.run(["gh", "release", "view", "password", "--json", "body"], capture_output=True, text=True)
         if res.returncode == 0:
@@ -35,6 +35,8 @@ def fetch_passwords_from_password_tag():
                 if clean_l and clean_l not in passwords:
                     passwords.append(clean_l)
             print(f"[+] Berhasil mengambil {len(passwords)} kunci dari tag release 'password'.")
+        else:
+            print(f"[-] Peringatan gh release view password: {res.stderr.strip()}")
     except Exception as e:
         print(f"[-] Peringatan saat mengambil release tag password: {e}")
     return passwords
