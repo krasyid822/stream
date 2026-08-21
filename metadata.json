@@ -1,1052 +1,18 @@
 {
-  "sources": {
-    "anime/gsyos/2": {
-      "provider": "Doronime.id",
-      "url": "https://doronime.id",
-      "icon": "https://doronime.id/images/doronime.png?v=6",
-      "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-    },
-    "anime/fulldive rpg": {
-      "provider": "Doronime.id",
-      "url": "https://doronime.id",
-      "icon": "https://doronime.id/images/doronime.png?v=6",
-      "note": "Sumber mentah (RAW source) video FullDive RPG"
-    },
-    "donghua/am": {
-      "provider": "Hidoristream",
-      "url": "https://hidoristream.my.id/",
-      "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-      "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-    }
-  },
   "categories": [
+    "release_downloads",
     "anime",
     "donghua"
   ],
   "media": [
     {
-      "id": "anime_gsyos_2_Episode 14_hls",
-      "name": "Episode 14",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 14_hls",
-      "master_url": "anime/gsyos/2/Episode 14_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 14_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 14_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 15_hls",
-      "name": "Episode 15",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 15_hls",
-      "master_url": "anime/gsyos/2/Episode 15_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 15_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 15_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 16_hls",
-      "name": "Episode 16",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 16_hls",
-      "master_url": "anime/gsyos/2/Episode 16_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 16_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 16_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 17_hls",
-      "name": "Episode 17",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 17_hls",
-      "master_url": "anime/gsyos/2/Episode 17_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 17_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 17_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 18_hls",
-      "name": "Episode 18",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 18_hls",
-      "master_url": "anime/gsyos/2/Episode 18_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 18_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 18_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 19_hls",
-      "name": "Episode 19",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 19_hls",
-      "master_url": "anime/gsyos/2/Episode 19_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 19_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 19_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 20_hls",
-      "name": "Episode 20",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 20_hls",
-      "master_url": "anime/gsyos/2/Episode 20_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 20_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 20_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 21_hls",
-      "name": "Episode 21",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 21_hls",
-      "master_url": "anime/gsyos/2/Episode 21_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 21_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 21_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 22_hls",
-      "name": "Episode 22",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 22_hls",
-      "master_url": "anime/gsyos/2/Episode 22_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 22_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 22_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 23_hls",
-      "name": "Episode 23",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 23_hls",
-      "master_url": "anime/gsyos/2/Episode 23_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 23_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 23_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 24_hls",
-      "name": "Episode 24",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 24_hls",
-      "master_url": "anime/gsyos/2/Episode 24_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 24_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 24_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 25_hls",
-      "name": "Episode 25",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 25_hls",
-      "master_url": "anime/gsyos/2/Episode 25_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 25_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 25_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_gsyos_2_Episode 26_hls",
-      "name": "Episode 26",
-      "folder": "anime/gsyos/2",
-      "path": "anime/gsyos/2/Episode 26_hls",
-      "master_url": "anime/gsyos/2/Episode 26_hls/master.m3u8",
-      "poster_url": "anime/gsyos/2/Episode 26_hls/poster.jpg",
-      "subtitles": [
-        "anime/gsyos/2/Episode 26_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "GSYOS",
-        "Genjitsushugi Y\u016bsha no \u014ckoku Saikenki",
-        "Genjitsushugi Yusha no Okoku Saikenki",
-        "How a Realist Hero Rebuilt the Kingdom",
-        "Restorasi Kerajaan Sang Realis",
-        "\u73fe\u5b9f\u4e3b\u7fa9\u52c7\u8005\u306e\u738b\u56fd\u518d\u5efa\u8a18",
-        "Realist Hero",
-        "Doronime.id",
-        "https://doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video GSYOS (Genjitsushugi Y\u016bsha no \u014ckoku Saikenki) Part 2"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 01_hls",
-      "name": "Episode 01",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 01_hls",
-      "master_url": "anime/fulldive rpg/Episode 01_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 01_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 01_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 02_hls",
-      "name": "Episode 02",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 02_hls",
-      "master_url": "anime/fulldive rpg/Episode 02_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 02_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 02_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 03_hls",
-      "name": "Episode 03",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 03_hls",
-      "master_url": "anime/fulldive rpg/Episode 03_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 03_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 03_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 04_hls",
-      "name": "Episode 04",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 04_hls",
-      "master_url": "anime/fulldive rpg/Episode 04_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 04_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 04_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 05_hls",
-      "name": "Episode 05",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 05_hls",
-      "master_url": "anime/fulldive rpg/Episode 05_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 05_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 05_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 06_hls",
-      "name": "Episode 06",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 06_hls",
-      "master_url": "anime/fulldive rpg/Episode 06_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 06_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 06_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 07_hls",
-      "name": "Episode 07",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 07_hls",
-      "master_url": "anime/fulldive rpg/Episode 07_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 07_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 07_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 08_hls",
-      "name": "Episode 08",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 08_hls",
-      "master_url": "anime/fulldive rpg/Episode 08_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 08_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 08_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 09_hls",
-      "name": "Episode 09",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 09_hls",
-      "master_url": "anime/fulldive rpg/Episode 09_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 09_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 09_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 10_hls",
-      "name": "Episode 10",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 10_hls",
-      "master_url": "anime/fulldive rpg/Episode 10_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 10_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 10_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 11_hls",
-      "name": "Episode 11",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 11_hls",
-      "master_url": "anime/fulldive rpg/Episode 11_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 11_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 11_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_fulldive rpg_Episode 12_hls",
-      "name": "Episode 12",
-      "folder": "anime/fulldive rpg",
-      "path": "anime/fulldive rpg/Episode 12_hls",
-      "master_url": "anime/fulldive rpg/Episode 12_hls/master.m3u8",
-      "poster_url": "anime/fulldive rpg/Episode 12_hls/poster.jpg",
-      "subtitles": [
-        "anime/fulldive rpg/Episode 12_hls/sub_0_ind.vtt"
-      ],
-      "aliases": [
-        "FullDive RPG",
-        "Ky\u016bkyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kuso-ge Dattara",
-        "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
-        "Full Dive: This Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
-        "Gim Kelewat Maju tuh Gim Ampas",
-        "\u7a76\u6975\u9032\u5316\u3057\u305f\u30d5\u30eb\u30c0\u30a4\u30d6RPG\u304c\u73fe\u5b9f\u3088\u308a\u3082\u30af\u30bd\u30b2\u30fc\u3060\u3063\u305f\u3089",
-        "Doronime.id"
-      ],
-      "source": {
-        "provider": "Doronime.id",
-        "url": "https://doronime.id",
-        "icon": "https://doronime.id/images/doronime.png?v=6",
-        "note": "Sumber mentah (RAW source) video FullDive RPG"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 1_hls",
-      "name": "Episode 1",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 1_hls",
-      "master_url": "donghua/am/Episode 1_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 1_hls/poster.jpg",
+      "id": "anime_29dcbnn_Episode 29_hls",
+      "name": "Episode 29",
+      "folder": "anime/29dcbnn",
+      "path": "anime/29dcbnn/Episode 29_hls",
+      "master_url": "anime/29dcbnn/Episode 29_hls/master.m3u8",
+      "poster_url": "anime/29dcbnn/Episode 29_hls/poster.jpg",
       "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 2_hls",
-      "name": "Episode 2",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 2_hls",
-      "master_url": "donghua/am/Episode 2_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 2_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 3_hls",
-      "name": "Episode 3",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 3_hls",
-      "master_url": "donghua/am/Episode 3_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 3_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 4_hls",
-      "name": "Episode 4",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 4_hls",
-      "master_url": "donghua/am/Episode 4_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 4_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 5_hls",
-      "name": "Episode 5",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 5_hls",
-      "master_url": "donghua/am/Episode 5_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 5_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 6_hls",
-      "name": "Episode 6",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 6_hls",
-      "master_url": "donghua/am/Episode 6_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 6_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 7_hls",
-      "name": "Episode 7",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 7_hls",
-      "master_url": "donghua/am/Episode 7_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 7_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 8_hls",
-      "name": "Episode 8",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 8_hls",
-      "master_url": "donghua/am/Episode 8_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 8_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 9_hls",
-      "name": "Episode 9",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 9_hls",
-      "master_url": "donghua/am/Episode 9_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 9_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 10_hls",
-      "name": "Episode 10",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 10_hls",
-      "master_url": "donghua/am/Episode 10_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 10_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 11_hls",
-      "name": "Episode 11",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 11_hls",
-      "master_url": "donghua/am/Episode 11_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 11_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 12_hls",
-      "name": "Episode 12",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 12_hls",
-      "master_url": "donghua/am/Episode 12_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 12_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode 13_hls",
-      "name": "Episode 13",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 13_hls",
-      "master_url": "donghua/am/Episode 13_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 13_hls/poster.jpg",
-      "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
       "type": "hls_stream"
     },
     {
@@ -1057,22 +23,98 @@
       "master_url": "donghua/am/Episode 14_hls/master.m3u8",
       "poster_url": "donghua/am/Episode 14_hls/poster.jpg",
       "subtitles": [],
-      "aliases": [
-        "Above Myriads",
-        "Wan Ren Zhi Shang",
-        "Di Atas Ribuan",
-        "\u4e07\u4eba\u4e4b\u4e0a",
-        "Hidoristream",
-        "https://hidoristream.my.id/"
-      ],
-      "source": {
-        "provider": "Hidoristream",
-        "url": "https://hidoristream.my.id/",
-        "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
-        "note": "Sumber mentah (RAW source) video Donghua Above Myriads (Wan Ren Zhi Shang / Di Atas Ribuan)"
-      },
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 8_hls",
+      "name": "Episode 8",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 8_hls",
+      "master_url": "donghua/am/Episode 8_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 8_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 1_hls",
+      "name": "Episode 1",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 1_hls",
+      "master_url": "donghua/am/Episode 1_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 1_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 2_hls",
+      "name": "Episode 2",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 2_hls",
+      "master_url": "donghua/am/Episode 2_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 2_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 4_hls",
+      "name": "Episode 4",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 4_hls",
+      "master_url": "donghua/am/Episode 4_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 4_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 7_hls",
+      "name": "Episode 7",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 7_hls",
+      "master_url": "donghua/am/Episode 7_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 7_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 6_hls",
+      "name": "Episode 6",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 6_hls",
+      "master_url": "donghua/am/Episode 6_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 6_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 9_hls",
+      "name": "Episode 9",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 9_hls",
+      "master_url": "donghua/am/Episode 9_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 9_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 3_hls",
+      "name": "Episode 3",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 3_hls",
+      "master_url": "donghua/am/Episode 3_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 3_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode 5_hls",
+      "name": "Episode 5",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 5_hls",
+      "master_url": "donghua/am/Episode 5_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 5_hls/poster.jpg",
+      "subtitles": [],
       "type": "hls_stream"
     }
   ],
-  "updated_at": "1785363192.201181"
+  "updated_at": "1787291389.1902933"
 }
