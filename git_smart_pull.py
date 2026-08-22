@@ -51,9 +51,9 @@ def smart_pull():
 
     print("[✓] Sinkronisasi kode Web UI dan metadata berhasil!")
 
-    # 4. Hapus folder media biner lokal (karena semua media sudah dialihkan ke stream_drive)
+    # 4. Hapus folder media biner lokal & folder kosong usang
     workspace_dir = os.path.dirname(os.path.abspath(__file__))
-    print("\n[2/3] Memeriksa folder media lokal (Dialihkan ke stream_drive)...")
+    print("\n[2/3] Memeriksa folder media & direktori kosong lokal...")
     
     media_dirs_cleaned = 0
     # Deteksi dan bersihkan folder biner lokal yang ada
@@ -66,11 +66,23 @@ def smart_pull():
                 if any(f.endswith(".ts") or f.endswith(".m3u8") for f in fls):
                     has_hls = True
                     break
-            if has_hls or item in {"RAW", "RAW_TEMP", "RAW_TEMP_EXTRACT", "release_downloads"}:
+            if has_hls or item in {"RAW", "RAW_TEMP", "RAW_TEMP_EXTRACT", "release_downloads", "anime", "donghua", "série_animée"}:
                 try:
                     shutil.rmtree(item_path, ignore_errors=True)
                     media_dirs_cleaned += 1
                     print(f" -> Membersihkan folder media lokal: {item}")
+                except Exception:
+                    pass
+
+    # Bersihkan semua direktori kosong yang tersisa (kecuali direktori sistem .git)
+    for root, dirs, files in os.walk(workspace_dir, topdown=False):
+        if ".git" in root:
+            continue
+        for d in dirs:
+            dir_to_check = os.path.join(root, d)
+            if not os.listdir(dir_to_check):
+                try:
+                    os.rmdir(dir_to_check)
                 except Exception:
                     pass
 
