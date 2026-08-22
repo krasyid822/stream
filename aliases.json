@@ -1,0 +1,15 @@
+{
+  "aliases": {
+    "minuscule": [
+      "YouTube"
+    ]
+  },
+  "sources": {
+    "série_animée/minuscule": {
+      "provider": "YouTube",
+      "url": "https://youtube.com",
+      "icon": "https://www.youtube.com/s/desktop/f7beeeec/img/favicon.ico",
+      "note": "Sumber mentah dari Release YouTube_Minuscule_.1.7z"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+# Media output directories (sekarang disimpan dan di-host di stream_drive)
+anime/
+donghua/
+série_animée/
+RAW/
+RAW_TEMP/
+RAW_TEMP_EXTRACT/
+__pycache__/
+*.pyc
+
+# Video RAW (agar tidak ter-commit ke git langsung jika ada sisa)
+RAW/**/*.mp4
+RAW/**/*.mkv
+RAW/**/*.avi
+RAW/**/*.mov
+RAW/**/*.webm
+RAW/**/*.flv
+
+# Arsip
+*.7z
+*.7z.*
+*.rar
+*.part*.rar
+*.zip
+*.zpaq
+*.tar.*

@@ -1,0 +1,123 @@
+name: Process Release Archive & Auto HLS Stream Pipeline
+
+on:
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag GitHub Release yang ingin diproses secara manual'
+        required: true
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "hls-release-processing"
+  cancel-in-progress: false
+
+jobs:
+  process-archive-hls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Repository (Instant Sparse Checkout)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            .github
+            assets
+            aliases.json
+            metadata.json
+            generate_hls.py
+            process_release_archive.py
+            git_smart_push.py
+            git_smart_pull.py
+            push.sh
+            pull.sh
+            hls.sh
+            run.sh
+            README.md
+            index.html
+            favicon.ico
+            .gitignore
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install System Dependencies (FFmpeg & Archive Extractors)
+        run: |
+          sudo apt update
+          sudo apt install -y ffmpeg p7zip-full p7zip-rar unrar zpaq unshield
+
+      - name: Configure Git Identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Download Release Assets
+        id: download_assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p release_downloads
+          TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
+          echo "Processing Release Tag: $TAG"
+          
+          cat << 'EOF' > release_body.txt
+          ${{ github.event.release.body }}
+          EOF
+
+          gh release download "$TAG" --dir release_downloads --clobber || true
+          ls -lh release_downloads/
+
+      - name: Extract Archive & Generate HLS Pipeline
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
+          python3 -u process_release_archive.py release_downloads "$TAG" release_body.txt
+
+      - name: Auto Chunk Push HLS to stream_drive & Metadata to stream
+        env:
+          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x push.sh git_smart_push.py
+          
+          # 1. Commit & Push update metadata dan aliases ke repo stream (Web UI)
+          git add aliases.json metadata.json || true
+          git commit -m "chore(metadata): update library index & aliases [skip ci]" || true
+          ./push.sh || true
+
+          # 2. Siapkan repositori stream_drive untuk menampung file media HLS
+          mkdir -p ../stream_drive_clone
+          cd ../stream_drive_clone
+          git init -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add origin https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git
+          git fetch --depth 1 origin main || true
+          git reset --soft origin/main || true
+          
+          # Pindahkan semua folder konten media dari workspace ke repo stream_drive
+          cd "$GITHUB_WORKSPACE"
+          for dir in */ ; do
+            if [ "$dir" != "assets/" ] && [ "$dir" != ".github/" ] && [ "$dir" != "release_downloads/" ] && [ "$dir" != "RAW_TEMP/" ] && [ "$dir" != "RAW/" ]; then
+              echo "Memindahkan $dir ke stream_drive..."
+              cp -r "$dir" ../stream_drive_clone/
+            fi
+          done
+
+          # Jalankan push cerdas di repositori stream_drive langsung dari workspace
+          cd ../stream_drive_clone
+          python3 "$GITHUB_WORKSPACE/git_smart_push.py"
+
+      - name: Clean Up Workspace
+        if: always()
+        run: |
+          rm -rf release_downloads release_body.txt RAW_TEMP RAW RAW_TEMP_EXTRACT ../stream_drive_clone

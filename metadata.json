@@ -1,0 +1,18 @@
+{
+  "categories": [
+    "série_animée"
+  ],
+  "media": [
+    {
+      "id": "série_animée_minuscule_Minuscule - Compilation #1_hls",
+      "name": "Minuscule - Compilation #1",
+      "folder": "série_animée/minuscule",
+      "path": "série_animée/minuscule/Minuscule - Compilation #1_hls",
+      "master_url": "série_animée/minuscule/Minuscule - Compilation #1_hls/master.m3u8",
+      "poster_url": "série_animée/minuscule/Minuscule - Compilation #1_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    }
+  ],
+  "updated_at": "1787313278.905042"
+}

@@ -1,0 +1,61 @@
+name: Deploy GitHub Pages Web UI Only
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'favicon.ico'
+      - 'assets/**'
+      - 'aliases.json'
+      - 'metadata.json'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code (Instant Sparse Checkout)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            index.html
+            favicon.ico
+            assets
+            aliases.json
+            metadata.json
+          sparse-checkout-cone-mode: false
+
+      - name: Prepare Lightweight Web UI Artifact
+        run: |
+          mkdir -p site_dist
+          cp -r index.html favicon.ico assets aliases.json metadata.json site_dist/
+          echo "Lightweight Web UI size:"
+          du -sh site_dist/
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Web UI Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'site_dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

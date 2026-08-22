@@ -1,0 +1,435 @@
+/* ============================================================
+   RETRO PIXEL STREAM — DESIGN SYSTEM & TOKENS
+   ============================================================ */
+
+:root {
+    /* Fonts */
+    --pixel-font: 'Silkscreen', cursive, monospace;
+    --terminal-font: 'VT323', monospace;
+    --code-font: 'JetBrains Mono', monospace;
+
+    /* Theme Colors (Default Dark AMOLED / Cyberpunk Synth) */
+    --bg-color: #0d0f18;
+    --bg-surface: #141824;
+    --bg-panel: #1a2035;
+    
+    --text-main: #f0f4fc;
+    --text-muted: #8a99b5;
+    --text-dim: #54647f;
+
+    /* Accent & Glow Colors */
+    --accent-purple: #9d4edd;
+    --accent-cyan: #00f5d4;
+    --accent-pink: #ff007f;
+    --accent-yellow: #ffee32;
+
+    --accent-glow: rgba(157, 78, 221, 0.5);
+    --accent-cyan-glow: rgba(0, 245, 212, 0.4);
+
+    /* Pixel Borders & Cards */
+    --pixel-border-width: 2px;
+    --card-border: 2px dashed var(--accent-cyan);
+    --card-border-solid: 2px solid var(--text-muted);
+    --box-shadow-pixel: 4px 4px 0px #000000;
+    --box-shadow-glow: 0 0 12px var(--accent-glow);
+
+    /* Player Specific */
+    --player-bg: #05070c;
+    --status-active: #00f5d4;
+    --status-warning: #ffee32;
+    --status-danger: #ff007f;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-cyan) var(--bg-surface);
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: var(--terminal-font);
+    font-size: 1.25rem;
+    line-height: 1.4;
+    overflow-x: hidden;
+}
+
+/* CRT Scanline Overlay Effect */
+.crt-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.25) 50%
+    );
+    background-size: 100% 4px;
+    opacity: 0.6;
+}
+
+/* Pixel Box Containers */
+.pixel-box {
+    background-color: var(--bg-surface);
+    border: var(--pixel-border-width) solid var(--accent-purple);
+    box-shadow: var(--box-shadow-pixel);
+    padding: 1rem;
+    position: relative;
+}
+
+.pixel-box-dashed {
+    background-color: var(--bg-surface);
+    border: 2px dashed var(--accent-cyan);
+    padding: 1rem;
+}
+
+.pixel-header-title {
+    font-family: var(--pixel-font);
+    font-size: 1.1rem;
+    color: var(--accent-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 0px #000000;
+}
+
+/* Pixel Buttons */
+.pixel-btn {
+    font-family: var(--pixel-font);
+    font-size: 0.85rem;
+    background: var(--bg-panel);
+    color: var(--text-main);
+    border: 2px solid var(--accent-cyan);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    box-shadow: 3px 3px 0px #000;
+    transition: all 0.1s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.pixel-btn:hover {
+    background: var(--accent-cyan);
+    color: #000;
+    box-shadow: 1px 1px 0px #000;
+    transform: translate(2px, 2px);
+}
+
+.pixel-btn:hover select,
+.pixel-btn:hover i {
+    color: #000 !important;
+}
+
+.pixel-btn.primary {
+    border-color: var(--accent-purple);
+    color: var(--accent-cyan);
+}
+
+.pixel-btn.primary:hover {
+    background: var(--accent-purple);
+    color: #fff;
+}
+
+/* Floating Search Engine Box saat Mode CARI Aktif */
+.search-box-container.floating-search {
+    position: fixed !important;
+    top: 1rem !important;
+    right: 1rem !important;
+    z-index: 10000 !important;
+    background: var(--bg-panel) !important;
+    border-color: var(--accent-pink) !important;
+    box-shadow: 0 0 20px rgba(255, 0, 127, 0.6), 4px 4px 0px #000 !important;
+    transform: none !important;
+}
+
+/* Pixel Badge */
+.pixel-badge {
+    font-family: var(--pixel-font);
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    background: rgba(0, 245, 212, 0.1);
+    text-transform: uppercase;
+}
+/* Sembunyikan Tombol Mute & Tiga Titik (Overflow Menu) pada HTML5 Player */
+video::-webkit-media-controls-mute-button,
+video::-webkit-media-controls-volume-slider,
+video::-webkit-media-controls-overflow-button {
+    display: none !important;
+}
+.pixel-badge.purple {
+    border-color: var(--accent-purple);
+    color: var(--accent-purple);
+    background: rgba(157, 78, 221, 0.1);
+}
+
+/* Retro Pixel Flag Component */
+.pixel-flag {
+    width: 44px;
+    height: 32px;
+    border: 2px solid #000;
+    box-shadow: 2px 2px 0px #000;
+    margin-bottom: 0.75rem;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Jepang (Japan) */
+.jp-flag {
+    background-color: #ffffff;
+    justify-content: center;
+    align-items: center;
+}
+.jp-sun {
+    width: 18px;
+    height: 18px;
+    background-color: #bc002d;
+    border-radius: 50%;
+    border: 1px solid #900;
+}
+
+/* China (Donghua) */
+.cn-flag {
+    background-color: #de2910;
+    padding: 2px;
+    position: relative;
+}
+.cn-star-big {
+    color: #ffde00;
+    font-size: 0.8rem;
+    position: absolute;
+    top: 4px; left: 4px;
+}
+.cn-stars-small {
+    position: absolute;
+    top: 3px; left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 0.35rem;
+    color: #ffde00;
+}
+
+/* Indonesia */
+.id-flag {
+    display: flex;
+    flex-direction: column;
+}
+.id-red {
+    height: 50%;
+    background-color: #e70000;
+}
+.id-white {
+    height: 50%;
+    background-color: #ffffff;
+}
+
+/* Prancis (Série Animée / France) */
+.fr-flag {
+    display: flex;
+    flex-direction: row;
+}
+.fr-blue {
+    width: 33.33%;
+    height: 100%;
+    background-color: #002654;
+}
+.fr-white {
+    width: 33.34%;
+    height: 100%;
+    background-color: #ffffff;
+}
+.fr-red {
+    width: 33.33%;
+    height: 100%;
+    background-color: #ed2939;
+}
+/* Search Grouping Hierarchy Blocks */
+.search-group-block {
+    background: var(--bg-panel);
+    border: 2px solid var(--accent-purple);
+    box-shadow: 4px 4px 0px #000;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.search-group-header {
+    font-family: var(--code-font);
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: var(--accent-cyan);
+    background: var(--bg-surface);
+    border-left: 4px solid var(--accent-pink);
+    padding: 0.4rem 0.75rem;
+    margin-bottom: 0.75rem;
+    box-shadow: 2px 2px 0px #000;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+}
+
+/* Pixel Borders & Cards */
+.grid-card {
+    background: var(--bg-surface);
+    border: 2px solid var(--accent-purple);
+    box-shadow: 4px 4px 0px #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    padding: 1.5rem 0.6rem 0.8rem 0.6rem;
+    z-index: 1;
+}
+
+.grid-card.playing {
+    border-color: var(--accent-pink) !important;
+    background: rgba(255, 0, 127, 0.12) !important;
+    box-shadow: 0 0 12px rgba(255, 0, 127, 0.6), 4px 4px 0px #000 !important;
+}
+
+.now-playing-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-family: var(--pixel-font);
+    font-size: 0.5rem;
+    padding: 0.15rem 0.4rem;
+    background: var(--accent-pink);
+    color: #fff;
+    border: 1px solid #000;
+    box-shadow: 2px 2px 0px #000;
+    z-index: 2;
+}
+
+/* Tag Badge - Sudut Kiri Atas */
+.card-badge {
+    position: absolute !important;
+    top: 6px !important;
+    left: 6px !important;
+    right: auto !important;
+    font-size: 0.55rem;
+    z-index: 2;
+    margin: 0;
+}
+
+/* Retro Pixel Balloon Popup Tooltip - Sudut Kanan Atas */
+.info-btn-wrapper {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 999;
+}
+
+.info-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg-panel);
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    font-family: var(--pixel-font);
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.info-btn:hover {
+    background: var(--accent-cyan);
+    color: #000;
+    transform: scale(1.15);
+}
+
+/* Balloon Popup Container - Posisi Adaptif Pintar di Atas Segalanya */
+.pixel-balloon-popup {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    width: 210px;
+    max-width: calc(100vw - 24px);
+    box-sizing: border-box;
+    background: var(--bg-surface);
+    border: 2px solid var(--accent-cyan);
+    box-shadow: 4px 4px 0px #000;
+    padding: 0.6rem 0.8rem;
+    font-family: var(--code-font);
+    font-size: 0.75rem;
+    color: var(--text-main);
+    z-index: 1000;
+    pointer-events: none;
+    text-align: left;
+    word-break: break-word;
+}
+
+/* Opsi Alignment Kiri (jika kartu ada di paling kiri layar) */
+/* Opsi Alignment Kiri (jika kartu ada di paling kiri layar) */
+.pixel-balloon-popup.align-left {
+    left: 0;
+    right: auto;
+}
+.pixel-balloon-popup.align-left::after {
+    left: 6px;
+    right: auto;
+}
+
+/* Opsi Alignment Kanan (jika kartu ada di tengah/kanan layar) */
+.pixel-balloon-popup.align-right {
+    right: 0;
+    left: auto;
+}
+.pixel-balloon-popup.align-right::after {
+    right: 6px;
+    left: auto;
+}
+
+/* Mode Pop-Down (jika kartu berada dekat dengan batas atas layar) */
+.pixel-balloon-popup.pop-down {
+    bottom: auto;
+    top: calc(100% + 8px);
+}
+
+/* Panah Ekor Balloon Tooltip Retro Base (Pop-Up Atas Biasa) */
+.pixel-balloon-popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    border-width: 6px;
+    border-style: solid;
+    border-color: var(--accent-cyan) transparent transparent transparent;
+}
+
+/* Panah Ekor Balloon Tooltip Retro (Pop-Down Bawah) */
+.pixel-balloon-popup.pop-down::after {
+    top: -12px;
+    bottom: auto;
+    border-color: transparent transparent var(--accent-cyan) transparent;
+}
+
+/* Hanya tampilkan balloon popup saat class .active di-toggle lewat klik tombol */
+.info-btn-wrapper.active .pixel-balloon-popup {
+    display: block;
+}
+

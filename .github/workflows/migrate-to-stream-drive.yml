@@ -1,0 +1,72 @@
+name: Migrate Media HLS from stream to stream_drive
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-media:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout stream (Full Media Repository)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          path: stream_source
+
+      - name: Checkout stream_drive (Target Repository)
+        uses: actions/checkout@v4
+        with:
+          repository: krasyid822/stream_drive
+          token: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+          path: stream_drive_target
+
+      - name: Copy Media Folders to stream_drive
+        run: |
+          cd stream_source
+          echo "Memindai dan menyalin semua folder media ke stream_drive..."
+          for dir in */ ; do
+            dname="${dir%/}"
+            if [ "$dname" != "assets" ] && [ "$dname" != ".github" ] && [ "$dname" != "RAW" ] && [ "$dname" != "RAW_TEMP" ] && [ "$dname" != "release_downloads" ]; then
+              echo "Menyalin folder media: $dname ke stream_drive..."
+              cp -r "$dname" ../stream_drive_target/
+            fi
+          done
+
+      - name: Push All HLS Segments to stream_drive
+        env:
+          GH_TOKEN: ${{ secrets.DRIVE_PAT }}
+        run: |
+          cd stream_drive_target
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git"
+          
+          # Jalankan skrip smart push langsung dari stream_source tanpa mengotori stream_drive
+          python3 ../stream_source/git_smart_push.py
+
+      - name: Clean Media from stream Repository
+        run: |
+          cd stream_source
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          echo "Menghapus semua folder media dari repo stream secara dinamis..."
+          for dir in */ ; do
+            dname="${dir%/}"
+            if [ "$dname" != "assets" ] && [ "$dname" != ".github" ] && [ "$dname" != "RAW" ] && [ "$dname" != "RAW_TEMP" ] && [ "$dname" != "release_downloads" ]; then
+              echo "Membersihkan folder media dari git: $dname"
+              git rm -rf "$dname" || true
+            fi
+          done
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git commit -m "chore(cleanup): remove media files from stream repo (hosted in stream_drive)"
+            git push origin main
+            echo "[✓] Repo stream berhasil dibersihkan dari seluruh folder media!"
+          else
+            echo "[+] Repo stream sudah bersih."
+          fi
