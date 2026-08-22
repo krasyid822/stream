@@ -32,20 +32,17 @@ def smart_pull():
                 except Exception:
                     pass
 
-    # 2. Pastikan remote origin terarah ke repository stream utama & Blobless Filter aktif
+    # 2. Pastikan remote origin terarah ke repository stream utama
     try:
         if not os.path.exists(".git"):
-            print("[*] Menginisialisasi repositori Git lokal dengan Blobless Filter (blob:none)...")
+            print("[*] Menginisialisasi repositori Git lokal...")
             subprocess.run(["git", "init", "-b", "main"], check=True)
             subprocess.run(["git", "remote", "add", "origin", "git@github.com:krasyid822/stream.git"], check=True)
-
-        subprocess.run(["git", "config", "remote.origin.promisor", "true"], check=False)
-        subprocess.run(["git", "config", "remote.origin.partialclonefilter", "blob:none"], check=False)
     except Exception as e:
         print(f"[-] Peringatan inisialisasi git: {e}")
 
-    # 3. Tarik update terbaru dari GitHub main branch secara instan tanpa mengunduh blob lama
-    print("\n[1/3] Mengambil pembaruan terbaru dari GitHub (git pull blobless)...")
+    # 3. Tarik update terbaru dari GitHub main branch
+    print("\n[1/3] Mengambil pembaruan terbaru dari GitHub (git pull --rebase)...")
     pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", "main"], text=True)
     if pull_res.returncode != 0:
         print("[-] Rebase otomatis gagal, mencoba git fetch & merge standard...")
