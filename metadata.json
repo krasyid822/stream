@@ -1,18 +1,119 @@
 {
   "categories": [
-    "série_animée"
+    "anime",
+    "donghua"
   ],
   "media": [
     {
-      "id": "série_animée_minuscule_Minuscule - Compilation #1_hls",
-      "name": "Minuscule - Compilation #1",
-      "folder": "série_animée/minuscule",
-      "path": "série_animée/minuscule/Minuscule - Compilation #1_hls",
-      "master_url": "série_animée/minuscule/Minuscule - Compilation #1_hls/master.m3u8",
-      "poster_url": "série_animée/minuscule/Minuscule - Compilation #1_hls/poster.jpg",
+      "id": "anime_29dcbnn_Episode_29_hls_master_m3u8",
+      "name": "Episode 29",
+      "folder": "anime/29dcbnn",
+      "path": "anime/29dcbnn/Episode 29_hls",
+      "master_url": "anime/29dcbnn/Episode 29_hls/master.m3u8",
+      "poster_url": "anime/29dcbnn/Episode 29_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_1_hls_master_m3u8",
+      "name": "Episode 1",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 1_hls",
+      "master_url": "donghua/am/Episode 1_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 1_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_14_hls_master_m3u8",
+      "name": "Episode 14",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 14_hls",
+      "master_url": "donghua/am/Episode 14_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 14_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_2_hls_master_m3u8",
+      "name": "Episode 2",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 2_hls",
+      "master_url": "donghua/am/Episode 2_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 2_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_3_hls_master_m3u8",
+      "name": "Episode 3",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 3_hls",
+      "master_url": "donghua/am/Episode 3_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 3_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_4_hls_master_m3u8",
+      "name": "Episode 4",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 4_hls",
+      "master_url": "donghua/am/Episode 4_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 4_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_5_hls_master_m3u8",
+      "name": "Episode 5",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 5_hls",
+      "master_url": "donghua/am/Episode 5_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 5_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_6_hls_master_m3u8",
+      "name": "Episode 6",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 6_hls",
+      "master_url": "donghua/am/Episode 6_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 6_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_7_hls_master_m3u8",
+      "name": "Episode 7",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 7_hls",
+      "master_url": "donghua/am/Episode 7_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 7_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_8_hls_master_m3u8",
+      "name": "Episode 8",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 8_hls",
+      "master_url": "donghua/am/Episode 8_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 8_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "donghua_am_Episode_9_hls_master_m3u8",
+      "name": "Episode 9",
+      "folder": "donghua/am",
+      "path": "donghua/am/Episode 9_hls",
+      "master_url": "donghua/am/Episode 9_hls/master.m3u8",
+      "poster_url": "donghua/am/Episode 9_hls/poster.jpg",
       "subtitles": [],
       "type": "hls_stream"
     }
   ],
-  "updated_at": "1787313278.905042"
+  "updated_at": "1787382877.2568347"
 }

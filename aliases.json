@@ -1,9 +1,69 @@
 {
   "aliases": {
     "minuscule": [
-      "Minuscule - La vie privée des insectes",
+      "Minuscule",
+      "昆虫总动员",
+      "Chrząśkiewa 2",
       "Robaczki",
-      "昆虫总动员"
+      "Mrňouskové",
+      "小甲蟲歷險記",
+      "Minúscule",
+      "Hrabrí Malíšan",
+      "Minuscule: Mandibles from Far Away",
+      "Kukaiņi: Uz Tālo Krastu",
+      "Toloönvika",
+      "Komáříci",
+      "벌레들의 모험",
+      "Drobižki",
+      "Minuscule 2: Les Mandibules du Bout du Monde",
+      "Букашки"
+    ],
+    "29dcbnn": [
+      "29-sai Dokushin Chuuken Boukensha no Nichijou",
+      "An Adventurer's Daily Grind at Age 29",
+      "Rutinitas Sehari-hari Petualang di Usia 29 Tahun",
+      "29歳独身中堅冒険者の日常"
+    ],
+    "am": [
+      "Above Myriads",
+      "Wan Ren Zhi Shang",
+      "Di Atas Ribuan",
+      "万人之上"
+    ],
+    "zero_tskma": [
+      "Zero no Tsukaima",
+      "The Familiar of Zero",
+      "Sang Familiar dari Nol",
+      "ゼロの使い魔",
+      "– Zero no Tsukaima (Season 1)",
+      "– Zero no Tsukaima: Futatsuki no Kishi (Season 2)",
+      "– Zero no Tsukaima: Princesses no Rondo (Season 3)",
+      "– Zero no Tsukaima F (Season 4)"
+    ],
+    "nagatoro": [
+      "Ijiranaide, Nagatoro-san",
+      "Don't Toy with Me, Miss Nagatoro",
+      "Jangan Main-main Denganku, Nona Nagatoro",
+      "イジらないで、長瀞さん"
+    ],
+    "jctk": [
+      "Jaku-Chara Tomozaki-kun",
+      "Bottom-tier Character Tomozaki",
+      "The Low Tier character \"Tomozaki-kun\"",
+      "Karakter Tingkat Bawah Tomozaki",
+      "弱キャラ友崎くん"
+    ],
+    "fulldive_rpg": [
+      "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
+      "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
+      "Gim Kelewat Maju tuh Gim Ampas",
+      "究極進化したフルダイブRPGが現実よりもクソゲーだったら"
+    ],
+    "gsyos": [
+      "Genjitsushugi Yūsha no Ōkoku Saikenki",
+      "How a Realist Hero Rebuilt the Kingdom",
+      "Restorasi Kerajaan Sang Realis",
+      "現実主義勇者の王国再建記"
     ]
   },
   "folder_info": {
@@ -24,8 +84,20 @@
     "série_animée/minuscule": {
       "provider": "YouTube",
       "url": "https://youtube.com",
-      "icon": "https://www.youtube.com/s/desktop/f7beeeec/img/favicon.ico",
-      "note": "Serial animasi tanpa dialog asal Prancis karya Hélène Giraud & Thomas Szabo."
+      "icon": "https://www.youtube.com/s/desktop/6f290082/img/favicon.ico",
+      "note": "Sumber: Release [RAW] Minuscule (Tag: MINUSCULE)"
+    },
+    "anime/29dcbnn": {
+      "provider": "hidoristream.my.id",
+      "url": "https://hidoristream.my.id",
+      "icon": "",
+      "note": "Sumber: Release [RAW HARDSUB] 29-sai Dokushin Chuuken Boukensha no Nichijou (Tag: 29DCBNN)"
+    },
+    "donghua/am": {
+      "provider": "Release RAW HARDSUB",
+      "url": "https://github.com/krasyid822/stream/releases/tag/AM",
+      "icon": "",
+      "note": "Sumber: Release [RAW HARDSUB] Above Myriads (Tag: AM)"
     }
   }
 }
