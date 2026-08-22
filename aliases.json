@@ -98,6 +98,12 @@
       "url": "https://github.com/krasyid822/stream/releases/tag/AM",
       "icon": "",
       "note": "Sumber: Release [RAW HARDSUB] Above Myriads (Tag: AM)"
+    },
+    "anime/gsyos": {
+      "provider": "doronime.id",
+      "url": "https://doronime.id/",
+      "icon": "https://doronime.id/images/doronime.png?v=6",
+      "note": "Sumber: Release Genjitsushugi Yūsha no Ōkoku Saikenki (Tag: GSYOS)"
     }
   }
 }

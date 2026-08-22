@@ -173,3 +173,5 @@ Widget komentar retro terpasang tepat di bawah HLS Player Monitor. Widget ini me
 ---
 
 # Catatan
+
+ada masalah juga sepertinya untuk video dengan softsub tidak tampil/terdetect di aplikasi, subtitlenya

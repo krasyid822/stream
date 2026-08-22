@@ -49,37 +49,55 @@ def fetch_passwords_from_password_tag():
 
 def parse_release_body_lines(body_text):
     """
-    Parse baris release body:
-    1. Mencari pemetaan path berkas: misal 'anime/zero_tskma/1/Otakudesu_ZeroTskma_480p.7z'
-    2. Mengumpulkan judul alternatif / aliases (Zero no Tsukaima, The Familiar of Zero, dll)
+    Parse baris release body format multi-blok:
+    Blok 1: Header info (resolusi, episode)
+    Blok 2 (antara ===): Aliases judul
+    Blok 3: Pemetaan path folder berkas arsip (misal: anime/gsyos/2/Doronime.id.GSYOS.Part.2.480p.h265.zpaq)
+    Blok 4 (setelah === ketiga): Info sumber (Baris 1: Website URL, Baris 2: Icon/Logo URL)
     """
-    file_mapping = {}  # { 'Otakudesu_ZeroTskma_480p.7z': 'anime/zero_tskma/1' }
+    file_mapping = {}  # { 'doronime.id.gsyos.part.2.480p.h265.zpaq': 'anime/gsyos/2' }
     aliases = []
+    source_info = {}   # { 'url': '...', 'icon': '...', 'provider': '...' }
 
     if not body_text:
-        return file_mapping, aliases
+        return file_mapping, aliases, source_info
 
-    lines = [l.strip() for l in body_text.splitlines() if l.strip()]
+    # Pisahkan blok berdasarkan separator baris '===='
+    blocks = re.split(r'\r?\n\s*={3,}\s*\r?\n', body_text.strip())
 
-    for line in lines:
-        # Cek apakah baris berupa path folder + file: <kategori>/<judul>/[season]/<nama_file>
-        # Mendukung karakter Unicode aksen (série_animée), karakter mandarin, jepang, dsb.
-        m_path = re.search(r'^([^\s/]+/[^\s/]+(?:/[^\s/]+)?)/([^\s/]+\.[a-zA-Z0-9_\.]+)$', line)
-        if m_path:
-            folder_part = m_path.group(1).strip('/')
-            file_part = m_path.group(2).strip()
-            file_mapping[file_part.lower()] = folder_part
-            continue
+    # 1. Parse Aliases (biasanya ada di blok index 1 jika format standar)
+    for block in blocks:
+        lines = [l.strip() for l in block.splitlines() if l.strip()]
+        for line in lines:
+            # Cek path folder arsip
+            m_path = re.search(r'^([^\s/]+/[^\s/]+(?:/[^\s/]+)?)/([^\s/]+\.[a-zA-Z0-9_\.]+)$', line)
+            if m_path:
+                folder_part = m_path.group(1).strip('/')
+                file_part = m_path.group(2).strip()
+                file_mapping[file_part.lower()] = folder_part
+                continue
 
-        # Cek baris judul / alias (abaikan info resolusi, jumlah episode, atau markdown headers)
-        if re.match(r'^(?:\d+p|\d+\s*episodes?|#+)', line, re.IGNORECASE):
-            continue
+            # Cek URL website / logo
+            if line.startswith('http://') or line.startswith('https://'):
+                if 'url' not in source_info:
+                    source_info['url'] = line
+                    # Ekstrak nama domain sebagai nama provider (misal: doronime.id)
+                    domain_match = re.search(r'https?://(?:www\.)?([^/]+)', line)
+                    if domain_match:
+                        source_info['provider'] = domain_match.group(1)
+                elif 'icon' not in source_info:
+                    source_info['icon'] = line
+                continue
 
-        clean_title = re.sub(r'^[–\-\*•\s]+', '', line).strip()
-        if clean_title and clean_title not in aliases:
-            aliases.append(clean_title)
+            # Lewati baris resolusi / episode
+            if re.match(r'^(?:\d+p|\d+\s*episodes?|part\s*\d+|#+)', line, re.IGNORECASE):
+                continue
 
-    return file_mapping, aliases
+            clean_title = re.sub(r'^[–\-\*•\s]+', '', line).strip()
+            if clean_title and clean_title not in aliases:
+                aliases.append(clean_title)
+
+    return file_mapping, aliases, source_info
 
 def extract_archive_single(archive_path, output_dir, passwords):
     """Ekstrak arsip tunggal atau split dengan mencoba daftar password."""
@@ -166,27 +184,30 @@ def recursive_extract(archive_path, output_dir, passwords):
 
     return found_videos
 
-def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_archive_name):
-    """Perbarui aliases.json dengan aliases dan info provider."""
+def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_archive_name, source_info=None):
+    """Memperbarui aliases.json dengan aliases dan info sumber otentik (Website URL + Icon/Logo)."""
     aliases_path = os.path.join(workspace_root, "aliases.json")
-    data = {"aliases": {}, "sources": {}}
+    data = {"aliases": {}, "folder_info": {}, "sources": {}}
+    
     if os.path.exists(aliases_path):
         try:
             with open(aliases_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        except Exception as e:
-            print(f"[-] Gagal membaca aliases.json: {e}")
+        except Exception:
+            pass
 
     if "aliases" not in data:
         data["aliases"] = {}
     if "sources" not in data:
         data["sources"] = {}
 
-    folder_parts = folder_rel_path.split('/')
-    leaf_id = folder_parts[1] if len(folder_parts) > 1 else folder_rel_path
+    path_parts = folder_rel_path.strip("/").split("/")
+    leaf_id = path_parts[1] if len(path_parts) > 1 else path_parts[0]
 
     provider_name = ""
-    if first_archive_name:
+    if source_info and source_info.get("provider"):
+        provider_name = source_info["provider"]
+    elif first_archive_name:
         p_match = re.match(r'^([a-zA-Z0-9]+)_', first_archive_name)
         if p_match:
             provider_name = p_match.group(1)
@@ -203,17 +224,36 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
     if existing_aliases:
         data["aliases"][leaf_id] = existing_aliases
 
-    if folder_rel_path not in data["sources"] and provider_name:
-        data["sources"][folder_rel_path] = {
-            "provider": f"{provider_name}.id" if not provider_name.lower().endswith(('.id', '.com', '.org')) else provider_name,
-            "url": f"https://{provider_name.lower()}.id",
-            "icon": "",
-            "note": f"Sumber mentah dari Release {first_archive_name}"
-        }
+    # Simpan info source (URL, Icon, Provider)
+    source_entry = {
+        "provider": (source_info.get("provider") if source_info else None) or (f"{provider_name}.id" if provider_name and not provider_name.lower().endswith(('.id', '.com', '.org')) else provider_name) or "RAW Source",
+        "url": (source_info.get("url") if source_info else None) or (f"https://{provider_name.lower()}" if provider_name else ""),
+        "icon": (source_info.get("icon") if source_info else None) or "",
+        "note": f"Sumber mentah dari Release {first_archive_name}"
+    }
+
+    data["sources"][folder_rel_path] = source_entry
+    # Simpan juga pada root folder judul (misal: anime/gsyos) agar semua season mewarisi logo/sumbernya
+    title_folder = "/".join(path_parts[:2])
+    data["sources"][title_folder] = source_entry
 
     with open(aliases_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"[✓] aliases.json diperbarui untuk '{folder_rel_path}'.")
+    print(f"[✓] aliases.json diperbarui untuk '{folder_rel_path}' dengan sumber & icon logo!")
+
+def check_if_already_processed_in_drive(dest_folder):
+    """Mengecek apakah folder tujuan sudah memiliki master.m3u8 di repositori stream_drive."""
+    try:
+        url = f"https://api.github.com/repos/krasyid822/stream_drive/contents/{dest_folder}"
+        res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{dest_folder}"], capture_output=True, text=True)
+        if res.returncode == 0:
+            items = json.loads(res.stdout)
+            # Jika ada subfolder _hls yang berisi master.m3u8, artinya sudah diproses
+            if any(item.get("name", "").endswith("_hls") for item in items):
+                return True
+    except Exception:
+        pass
+    return False
 
 def main():
     if len(sys.argv) < 4:
@@ -250,10 +290,12 @@ def main():
     if "" not in passwords:
         passwords.append("")
 
-    # 3. Parse Pemetaan File & Aliases dari Release Body
-    file_mapping, aliases = parse_release_body_lines(body_text)
+    # 3. Parse Pemetaan File, Aliases, dan Info Sumber dari Release Body
+    file_mapping, aliases, source_info = parse_release_body_lines(body_text)
     print(f"[+] Pemetaan folder terdeteksi: {json.dumps(file_mapping, indent=2)}")
     print(f"[+] Daftar aliases judul terdeteksi: {aliases}")
+    if source_info:
+        print(f"[+] Info sumber penyedia terdeteksi: {json.dumps(source_info, indent=2)}")
 
     # 4. Kumpulkan Arsip yang Diunduh
     downloaded_files = glob.glob(os.path.join(download_dir, "*"))
@@ -286,6 +328,14 @@ def main():
             tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
             dest_folder = f"anime/{tag_slug}"
 
+        # Perbarui metadata aliases dan sources terlebih dahulu
+        update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info)
+
+        # Cek apakah folder konten media ini sudah pernah diproses dan ada di stream_drive
+        if check_if_already_processed_in_drive(dest_folder):
+            print(f"\n[⚡] SKIP: Konten '{dest_folder}' ({arch_name}) SUDAH SELESAI diproses sebelumnya di stream_drive. Melewati proses ekstraksi & transcode FFmpeg.")
+            continue
+
         raw_dest_dir = os.path.join(workspace_root, "RAW", dest_folder)
         os.makedirs(raw_dest_dir, exist_ok=True)
 
@@ -306,19 +356,18 @@ def main():
             print(f" -> Video dipindahkan: RAW/{dest_folder}/{v_name}")
 
         shutil.rmtree(temp_extract_dir, ignore_errors=True)
-        update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name)
 
     if not all_processed_videos:
-        print("[-] Tidak ditemukan video yang berhasil diekstrak dari arsip.")
-        sys.exit(1)
-
-    # 6. Jalankan generate_hls.py
-    print("\n==========================================================")
-    print("🎬 MENJALANKAN GENERATOR HLS ABR & SUBTITLE PIPELINE")
-    print("==========================================================")
-    generate_script = os.path.join(workspace_root, "generate_hls.py")
-    cmd_gen = [sys.executable, generate_script] + all_processed_videos
-    run_cmd(cmd_gen, check=True)
+        print("\n[✓] Semua video dalam rilis ini sudah selesai diproses dan di-host di stream_drive sebelumnya.")
+        print("[+] Metadata dan aliases.json telah diperbarui tanpa perlu transcode ulang.")
+    else:
+        # 6. Jalankan generate_hls.py
+        print("\n==========================================================")
+        print("🎬 MENJALANKAN GENERATOR HLS ABR & SUBTITLE PIPELINE")
+        print("==========================================================")
+        generate_script = os.path.join(workspace_root, "generate_hls.py")
+        cmd_gen = [sys.executable, generate_script] + all_processed_videos
+        run_cmd(cmd_gen, check=True)
 
     # 7. Bersihkan file arsip download & sementara agar tidak ter-push ke Git
     print("\n[🧹] Membersihkan file arsip dan berkas unduhan sementara...")
