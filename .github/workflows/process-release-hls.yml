@@ -83,7 +83,15 @@ jobs:
           TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
           python3 -u process_release_archive.py release_downloads "$TAG" release_body.txt
 
-      - name: Auto Chunk Push HLS to stream_drive & Metadata to stream
+      - name: Checkout Target stream_drive
+        uses: actions/checkout@v4
+        with:
+          repository: krasyid822/stream_drive
+          token: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+          path: stream_drive_target
+
+      - name: Push HLS Media to stream_drive & Metadata to stream
         env:
           GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
         run: |
@@ -91,31 +99,28 @@ jobs:
           
           # 1. Commit & Push update metadata dan aliases ke repo stream (Web UI)
           git add aliases.json metadata.json || true
-          git commit -m "chore(metadata): update library index & aliases [skip ci]" || true
-          ./push.sh || true
+          if [ -n "$(git status --porcelain aliases.json metadata.json)" ]; then
+            git commit -m "chore(metadata): update library index & aliases [skip ci]" || true
+            git push origin main || true
+          fi
 
-          # 2. Siapkan repositori stream_drive untuk menampung file media HLS
-          mkdir -p ../stream_drive_clone
-          cd ../stream_drive_clone
-          git init -b main
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote add origin https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git
-          git fetch --depth 1 origin main || true
-          git reset --soft origin/main || true
-          
-          # Pindahkan semua folder konten media dari workspace ke repo stream_drive
-          cd "$GITHUB_WORKSPACE"
+          # 2. Pindahkan folder konten media dari workspace ke stream_drive_target
+          echo "Memindahkan folder media ke stream_drive_target..."
           for dir in */ ; do
-            if [ "$dir" != "assets/" ] && [ "$dir" != ".github/" ] && [ "$dir" != "release_downloads/" ] && [ "$dir" != "RAW_TEMP/" ] && [ "$dir" != "RAW/" ]; then
-              echo "Memindahkan $dir ke stream_drive..."
-              cp -r "$dir" ../stream_drive_clone/
+            dname="${dir%/}"
+            if [ "$dname" != "assets" ] && [ "$dname" != ".github" ] && [ "$dname" != "release_downloads" ] && [ "$dname" != "RAW_TEMP" ] && [ "$dname" != "RAW" ] && [ "$dname" != "stream_drive_target" ]; then
+              echo "Memindahkan folder: $dname ke stream_drive..."
+              cp -r "$dname" stream_drive_target/
             fi
           done
 
-          # Jalankan push cerdas di repositori stream_drive langsung dari workspace
-          cd ../stream_drive_clone
-          python3 "$GITHUB_WORKSPACE/git_smart_push.py"
+          # 3. Jalankan smart push di dalam stream_drive_target
+          cd stream_drive_target
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git"
+          
+          python3 -u ../git_smart_push.py
 
       - name: Clean Up Workspace
         if: always()
