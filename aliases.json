@@ -1,15 +1,31 @@
 {
   "aliases": {
     "minuscule": [
-      "YouTube"
+      "Minuscule - La vie privée des insectes",
+      "Robaczki",
+      "昆虫总动员"
     ]
+  },
+  "folder_info": {
+    "série_animée": {
+      "title": "Série Animée (Animasi Prancis)",
+      "desc": "Istilah resmi dalam bahasa Prancis untuk serial animasi kartun / serial animasi televisi. Di Prancis, karya animasi sering disebut 'Dessin Animé' (gambar bergerak) atau 'Série d'Animation / Série Animée'."
+    },
+    "anime": {
+      "title": "Anime (Animasi Jepang)",
+      "desc": "Animasi yang diproduksi di Jepang atau bergaya khas visual animasi Jepang (Nihon Animation)."
+    },
+    "donghua": {
+      "title": "Donghua (Animasi Tiongkok)",
+      "desc": "Animasi yang diproduksi di Tiongkok / China, baik animasi 2D maupun 3D CGI."
+    }
   },
   "sources": {
     "série_animée/minuscule": {
       "provider": "YouTube",
       "url": "https://youtube.com",
       "icon": "https://www.youtube.com/s/desktop/f7beeeec/img/favicon.ico",
-      "note": "Sumber mentah dari Release YouTube_Minuscule_.1.7z"
+      "note": "Serial animasi tanpa dialog asal Prancis karya Hélène Giraud & Thomas Szabo."
     }
   }
 }

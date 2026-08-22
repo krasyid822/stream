@@ -90,6 +90,7 @@ function parseUrlHash() {
 
 let aliasesStore = {};
 let sourcesStore = {};
+let folderInfoStore = {};
 
 // Fetch Metadata & Aliases secara terpisah tanpa duplikasi data
 async function loadMetadata() {
@@ -107,6 +108,7 @@ async function loadMetadata() {
             const aliasData = await aliasRes.json();
             aliasesStore = aliasData.aliases || {};
             sourcesStore = aliasData.sources || {};
+            folderInfoStore = aliasData.folder_info || {};
 
             // Merge alias dan source ke item media secara dinamis di runtime (TANPA DUPLIKASI FILE)
             metadataStore.forEach(item => {
@@ -466,13 +468,17 @@ function renderDirectoryGrid() {
                 }
             }
 
+            const infoObj = folderInfoStore[folderName] || folderInfoStore[folderLower] || null;
+            const folderTitle = infoObj ? infoObj.title : folderName;
+            const folderDescHtml = infoObj ? `<div style="margin-top: 0.3rem; color: var(--text-muted); font-size: 0.7rem; line-height: 1.3;">${infoObj.desc}</div>` : "";
+
             folderCard.innerHTML = `
                 <div class="info-btn-wrapper">
                     <button class="info-btn">i</button>
                     <div class="pixel-balloon-popup">
-                        <div style="color: var(--accent-cyan); font-weight: bold; margin-bottom: 0.2rem;">FOLDER INFO</div>
-                        <div>NAME: ${folderName}</div>
+                        <div style="color: var(--accent-cyan); font-weight: bold; margin-bottom: 0.2rem;">${folderTitle}</div>
                         <div>PATH: ${folderPath}</div>
+                        ${folderDescHtml}
                     </div>
                 </div>
                 <span class="pixel-badge card-badge">DIR</span>
