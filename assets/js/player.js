@@ -123,6 +123,26 @@ function playMedia(media, cardElement) {
             video.play().catch(() => {});
         });
 
+        // Update info resolusi live saat mode Auto berpindah level (ABR Adaptive Bitrate)
+        hls.on(Hls.Events.LEVEL_SWITCHED, function (event, data) {
+            const badge = document.getElementById("realtimeQualityBadge");
+            const resSelect = document.getElementById("resSelect");
+            if (!badge) return;
+
+            const currentLevel = hls.levels[data.level];
+            if (currentLevel) {
+                const heightStr = `${currentLevel.height}p`;
+                badge.textContent = heightStr;
+
+                // Tampilkan badge hanya ketika dropdown berada di mode Auto (-1)
+                if (!resSelect || resSelect.value === "-1") {
+                    badge.style.display = "inline-block";
+                } else {
+                    badge.style.display = "none";
+                }
+            }
+        });
+
         hls.on(Hls.Events.ERROR, function (event, data) {
             if (data.fatal) {
                 switch (data.type) {
@@ -159,7 +179,23 @@ function playMedia(media, cardElement) {
 // Function ganti resolusi
 function changeResolution(levelIndex) {
     if (!currentPlayingHls) return;
-    currentPlayingHls.currentLevel = parseInt(levelIndex, 10);
+    const lvl = parseInt(levelIndex, 10);
+    currentPlayingHls.currentLevel = lvl;
+
+    const badge = document.getElementById("realtimeQualityBadge");
+    if (badge) {
+        if (lvl === -1) {
+            // Mode Auto: Tampilkan badge kualitas live saat ini
+            const activeLevel = currentPlayingHls.levels[currentPlayingHls.currentLevel] || currentPlayingHls.levels[currentPlayingHls.loadLevel];
+            if (activeLevel) {
+                badge.textContent = `${activeLevel.height}p`;
+            }
+            badge.style.display = "inline-block";
+        } else {
+            // Mode Manual: Sembunyikan badge realtime karena resolusi sudah fix
+            badge.style.display = "none";
+        }
+    }
 }
 
 // Function toggle subtitle (Menggunakan Blob URL agar 100% aman dari batasan Cross-Origin CORS)

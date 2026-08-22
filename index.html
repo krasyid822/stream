@@ -146,12 +146,15 @@
                         <i class="fa-solid fa-closed-captioning"></i> SUBTITLE: OFF
                     </button>
                     
-                    <!-- Retro Button Wrapper untuk Pemilih Resolusi -->
-                    <div class="pixel-btn" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; border-color: var(--accent-purple); color: var(--accent-cyan); display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
-                        <i class="fa-solid fa-sliders" style="color: var(--accent-cyan); font-size: 0.75rem;"></i>
-                        <select id="resSelect" onchange="changeResolution(this.value)" style="background: transparent; color: var(--accent-cyan); font-family: var(--pixel-font); font-size: 0.65rem; border: none; outline: none; cursor: pointer;">
-                            <option value="-1" style="background: var(--bg-panel); color: var(--text-main);">Auto</option>
-                        </select>
+                    <!-- Retro Button Wrapper untuk Pemilih Resolusi & Info Kualitas Realtime -->
+                    <div style="display: inline-flex; align-items: center; gap: 0.3rem;">
+                        <span id="realtimeQualityBadge" class="pixel-badge cyan" style="display: none; font-size: 0.55rem; padding: 0.2rem 0.4rem;" title="Kualitas Live Stream ABR">720p</span>
+                        <div class="pixel-btn" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; border-color: var(--accent-purple); color: var(--accent-cyan); display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
+                            <i class="fa-solid fa-sliders" style="color: var(--accent-cyan); font-size: 0.75rem;"></i>
+                            <select id="resSelect" onchange="changeResolution(this.value)" style="background: transparent; color: var(--accent-cyan); font-family: var(--pixel-font); font-size: 0.65rem; border: none; outline: none; cursor: pointer;">
+                                <option value="-1" style="background: var(--bg-panel); color: var(--text-main);">Auto</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
