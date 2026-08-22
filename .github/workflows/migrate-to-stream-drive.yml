@@ -24,6 +24,23 @@ jobs:
           fetch-depth: 1
           path: stream_drive_target
 
+      - name: Clean Non-Media Files from stream_drive
+        run: |
+          cd stream_drive_target
+          echo "Membersihkan file/folder non-media dari stream_drive..."
+          # Hapus skrip dan berkas yang tidak seharusnya ada di stream_drive
+          rm -f git_smart_push.py push.sh pull.sh generate_hls.py process_release_archive.py run.sh hls.sh release_body.txt
+          rm -rf .github assets RAW RAW_TEMP RAW_TEMP_EXTRACT release_downloads
+          
+          # Hapus file anime/minuscule lama yang salah kategori jika ada (karena sekarang di série_animée)
+          if [ -d "anime/minuscule" ]; then
+            echo "Membersihkan anime/minuscule lama..."
+            rm -rf "anime/minuscule"
+          fi
+
+          # Stage pembersihan
+          git add -u || true
+
       - name: Copy Media Folders to stream_drive
         run: |
           cd stream_source
