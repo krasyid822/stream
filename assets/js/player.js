@@ -162,8 +162,8 @@ function changeResolution(levelIndex) {
     currentPlayingHls.currentLevel = parseInt(levelIndex, 10);
 }
 
-// Function toggle subtitle
-function toggleSubtitle() {
+// Function toggle subtitle (Menggunakan Blob URL agar 100% aman dari batasan Cross-Origin CORS)
+async function toggleSubtitle() {
     const video = document.getElementById("hlsPlayer");
     const btn = document.getElementById("btnToggleSub");
     if (!video || !currentSubtitleTracks.length) return;
@@ -171,9 +171,9 @@ function toggleSubtitle() {
     isSubtitleActive = !isSubtitleActive;
 
     if (isSubtitleActive) {
-        // Tambahkan track subtitle jika belum ada
         if (!video.querySelector("track")) {
-            currentSubtitleTracks.forEach((sub, idx) => {
+            for (let idx = 0; idx < currentSubtitleTracks.length; idx++) {
+                const sub = currentSubtitleTracks[idx];
                 const track = document.createElement("track");
                 track.kind = "subtitles";
                 
@@ -181,7 +181,6 @@ function toggleSubtitle() {
                 let subLang = typeof sub === "object" && sub.lang ? sub.lang : "id";
                 let subTitle = typeof sub === "object" && sub.title ? sub.title : `Subtitle ${idx+1}`;
 
-                // Jika sub berupa string path (misal: ".../sub_0_ind.vtt")
                 if (typeof sub === "string") {
                     const match = sub.match(/sub_\d+_([a-zA-Z0-9]+)\.vtt/i);
                     if (match) {
@@ -192,10 +191,26 @@ function toggleSubtitle() {
 
                 track.label = subTitle;
                 track.srclang = subLang;
-                track.src = getHlsStreamUrl(subPath);
                 track.default = (idx === 0);
+
+                const directUrl = getHlsStreamUrl(subPath);
+                try {
+                    // Fetch WebVTT text lalu buat Local Blob URL untuk mem-bypass batasan CORS elemen <track>
+                    const resp = await fetch(directUrl);
+                    if (resp.ok) {
+                        const vttText = await resp.text();
+                        const blob = new Blob([vttText], { type: "text/vtt" });
+                        track.src = URL.createObjectURL(blob);
+                    } else {
+                        track.src = directUrl;
+                    }
+                } catch (e) {
+                    console.warn("Gagal fetch VTT sebagai Blob, fallback ke direct URL:", e);
+                    track.src = directUrl;
+                }
+
                 video.appendChild(track);
-            });
+            }
         }
         for (let i = 0; i < video.textTracks.length; i++) {
             video.textTracks[i].mode = "showing";
