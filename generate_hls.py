@@ -286,14 +286,39 @@ def update_library_metadata(workspace_dir):
             }
             media_library.append(item)
 
+    # Muat metadata.json yang sudah ada agar data episode lama tidak tertimpa/hilang
     metadata_path = os.path.join(workspace_dir, "metadata.json")
-    with open(metadata_path, "w") as f:
+    existing_media_map = {}
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                old_meta = json.load(f)
+                for m in old_meta.get("media", []):
+                    existing_media_map[m["id"]] = m
+                for c in old_meta.get("categories", []):
+                    if c not in category_folders:
+                        category_folders.append(c)
+        except Exception:
+            pass
+
+    # Masukkan media yang baru dipindai (akan menimpa versi lama jika id-nya sama)
+    for item in media_library:
+        existing_media_map[item["id"]] = item
+        cat_root = item["folder"].split("/")[0] if "/" in item["folder"] else item["folder"]
+        if cat_root and cat_root not in category_folders:
+            category_folders.append(cat_root)
+
+    # Urutkan berdasarkan folder dan nama
+    final_media_list = list(existing_media_map.values())
+    final_media_list.sort(key=lambda x: (x.get("folder", ""), x.get("name", "")))
+
+    with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump({
-            "categories": category_folders,
-            "media": media_library, 
+            "categories": sorted(category_folders),
+            "media": final_media_list, 
             "updated_at": str(os.path.getmtime(workspace_dir))
-        }, f, indent=2)
-    print(f"[+] Metadata perpustakaan diperbarui: {metadata_path}")
+        }, f, indent=2, ensure_ascii=False)
+    print(f"[+] Metadata perpustakaan diperbarui ({len(final_media_list)} total media): {metadata_path}")
 
 def find_existing_case_insensitive_dir(base_dir, relative_path):
     """Mencari direktori fisik secara case-insensitive agar tidak membuat folder ganda (misal: GSYOS vs gsyos)."""

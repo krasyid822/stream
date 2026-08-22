@@ -173,5 +173,4 @@ Widget komentar retro terpasang tepat di bawah HLS Player Monitor. Widget ini me
 ---
 
 # Catatan
-
-ada masalah juga sepertinya untuk video dengan softsub tidak tampil/terdetect di aplikasi, subtitlenya
+- **Dukungan Softsub WebVTT**: Softsub yang diekstrak menjadi file `.vtt` (misal: `sub_0_ind.vtt`) dari rilis softsub secara otomatis terdeteksi, tercatat di `metadata.json`, dan tombol toggle **SUBTITLE** pada pemutar video otomatis aktif.

@@ -10,7 +10,9 @@
       "path": "anime/gsyos/Episode 14_hls",
       "master_url": "anime/gsyos/Episode 14_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 14_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 14_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -20,7 +22,9 @@
       "path": "anime/gsyos/Episode 15_hls",
       "master_url": "anime/gsyos/Episode 15_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 15_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 15_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -30,7 +34,9 @@
       "path": "anime/gsyos/Episode 16_hls",
       "master_url": "anime/gsyos/Episode 16_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 16_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 16_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -40,7 +46,9 @@
       "path": "anime/gsyos/Episode 17_hls",
       "master_url": "anime/gsyos/Episode 17_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 17_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 17_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -50,7 +58,9 @@
       "path": "anime/gsyos/Episode 18_hls",
       "master_url": "anime/gsyos/Episode 18_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 18_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 18_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -60,7 +70,9 @@
       "path": "anime/gsyos/Episode 19_hls",
       "master_url": "anime/gsyos/Episode 19_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 19_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 19_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -70,7 +82,9 @@
       "path": "anime/gsyos/Episode 20_hls",
       "master_url": "anime/gsyos/Episode 20_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 20_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 20_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -80,7 +94,9 @@
       "path": "anime/gsyos/Episode 21_hls",
       "master_url": "anime/gsyos/Episode 21_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 21_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 21_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -90,7 +106,9 @@
       "path": "anime/gsyos/Episode 22_hls",
       "master_url": "anime/gsyos/Episode 22_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 22_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 22_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -100,7 +118,9 @@
       "path": "anime/gsyos/Episode 23_hls",
       "master_url": "anime/gsyos/Episode 23_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 23_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 23_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -110,7 +130,9 @@
       "path": "anime/gsyos/Episode 24_hls",
       "master_url": "anime/gsyos/Episode 24_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 24_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 24_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -120,7 +142,9 @@
       "path": "anime/gsyos/Episode 25_hls",
       "master_url": "anime/gsyos/Episode 25_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 25_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 25_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     },
     {
@@ -130,9 +154,11 @@
       "path": "anime/gsyos/Episode 26_hls",
       "master_url": "anime/gsyos/Episode 26_hls/master.m3u8",
       "poster_url": "anime/gsyos/Episode 26_hls/poster.jpg",
-      "subtitles": [],
+      "subtitles": [
+        "anime/gsyos/Episode 26_hls/sub_0_ind.vtt"
+      ],
       "type": "hls_stream"
     }
   ],
-  "updated_at": "1787410319.822951"
+  "updated_at": "1787417187.4549747"
 }

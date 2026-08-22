@@ -176,9 +176,23 @@ function toggleSubtitle() {
             currentSubtitleTracks.forEach((sub, idx) => {
                 const track = document.createElement("track");
                 track.kind = "subtitles";
-                track.label = sub.title || `Sub ${idx+1}`;
-                track.srclang = sub.lang || "id";
-                track.src = getHlsStreamUrl(sub.path);
+                
+                let subPath = typeof sub === "string" ? sub : (sub.path || "");
+                let subLang = typeof sub === "object" && sub.lang ? sub.lang : "id";
+                let subTitle = typeof sub === "object" && sub.title ? sub.title : `Subtitle ${idx+1}`;
+
+                // Jika sub berupa string path (misal: ".../sub_0_ind.vtt")
+                if (typeof sub === "string") {
+                    const match = sub.match(/sub_\d+_([a-zA-Z0-9]+)\.vtt/i);
+                    if (match) {
+                        subLang = match[1];
+                        subTitle = `Subtitle ${idx+1} (${match[1].toUpperCase()})`;
+                    }
+                }
+
+                track.label = subTitle;
+                track.srclang = subLang;
+                track.src = getHlsStreamUrl(subPath);
                 track.default = (idx === 0);
                 video.appendChild(track);
             });
@@ -188,12 +202,12 @@ function toggleSubtitle() {
         }
         if (btn) {
             btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: ON`;
-            btn.style.color = "var(--accent-pink)";
-            btn.style.borderColor = "var(--accent-pink)";
+            btn.style.color = "var(--accent-yellow)";
+            btn.style.borderColor = "var(--accent-yellow)";
         }
     } else {
         for (let i = 0; i < video.textTracks.length; i++) {
-            video.textTracks[i].mode = "disabled";
+            video.textTracks[i].mode = "hidden";
         }
         if (btn) {
             btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: OFF`;
