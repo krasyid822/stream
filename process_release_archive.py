@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import glob
+import time
 
 # Pastikan semua output print langsung tampil real-time di GitHub Actions
 if hasattr(sys.stdout, 'reconfigure'):
@@ -241,16 +242,93 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
         json.dump(data, f, indent=2, ensure_ascii=False)
     print(f"[✓] aliases.json diperbarui untuk '{folder_rel_path}' dengan sumber & icon logo!")
 
+def sync_metadata_from_stream_drive(workspace_root):
+    """Memperbarui metadata.json secara akurat berdasarkan pohon file sebenarnya di repositori stream_drive."""
+    try:
+        res = subprocess.run(["gh", "api", "repos/krasyid822/stream_drive/git/trees/main?recursive=1"], capture_output=True, text=True)
+        if res.returncode != 0:
+            return
+        tree_data = json.loads(res.stdout)
+        
+        vtt_by_folder = {}
+        for item in tree_data.get("tree", []):
+            p = item["path"]
+            if p.endswith(".vtt"):
+                folder_hls = "/".join(p.split("/")[:-1])
+                if folder_hls not in vtt_by_folder:
+                    vtt_by_folder[folder_hls] = []
+                vtt_by_folder[folder_hls].append(p)
+
+        categories = set()
+        media_items = []
+
+        for item in tree_data.get("tree", []):
+            path = item["path"]
+            if path.endswith("master.m3u8"):
+                parts = path.split("/")
+                if len(parts) >= 3:
+                    cat = parts[0]
+                    categories.add(cat)
+                    hls_folder = parts[-2]
+                    parent_folder = "/".join(parts[:-2])
+                    hls_path = "/".join(parts[:-1])
+                    
+                    ep_name = hls_folder
+                    if ep_name.endswith("_hls"):
+                        ep_name = ep_name[:-4]
+                    
+                    media_id = path.replace("/", "_").replace(" ", "_").replace(".", "_")
+                    poster_path = hls_path + "/poster.jpg"
+                    subtitles = vtt_by_folder.get(hls_path, [])
+                    
+                    media_items.append({
+                        "id": media_id,
+                        "name": ep_name,
+                        "folder": parent_folder,
+                        "path": hls_path,
+                        "master_url": path,
+                        "poster_url": poster_path,
+                        "subtitles": subtitles,
+                        "type": "hls_stream"
+                    })
+
+        def natural_sort_key(s):
+            return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s["name"])]
+
+        media_items.sort(key=lambda x: (x["folder"], natural_sort_key(x)))
+
+        metadata_path = os.path.join(workspace_root, "metadata.json")
+        output_metadata = {
+            "categories": sorted(list(categories)),
+            "media": media_items,
+            "updated_at": str(time.time() if 'time' in globals() else 0)
+        }
+
+        with open(metadata_path, "w", encoding="utf-8") as f:
+            json.dump(output_metadata, f, indent=2, ensure_ascii=False)
+        print(f"[✓] metadata.json disinkronkan dengan {len(media_items)} media dari stream_drive!")
+    except Exception as e:
+        print(f"[-] Catatan sinkronisasi metadata: {e}")
+
 def check_if_already_processed_in_drive(dest_folder):
     """Mengecek apakah folder tujuan sudah memiliki master.m3u8 di repositori stream_drive."""
     try:
-        url = f"https://api.github.com/repos/krasyid822/stream_drive/contents/{dest_folder}"
-        res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{dest_folder}"], capture_output=True, text=True)
+        # Coba cek path folder langsung atau parent
+        clean_f = dest_folder.strip("/")
+        res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{clean_f}"], capture_output=True, text=True)
         if res.returncode == 0:
             items = json.loads(res.stdout)
-            # Jika ada subfolder _hls yang berisi master.m3u8, artinya sudah diproses
-            if any(item.get("name", "").endswith("_hls") for item in items):
-                return True
+            if isinstance(items, list):
+                if any(item.get("name", "").endswith("_hls") for item in items):
+                    return True
+                # Cek jika sub-sub direktori (season)
+                for item in items:
+                    if item.get("type") == "dir":
+                        sub_res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{clean_f}/{item['name']}"], capture_output=True, text=True)
+                        if sub_res.returncode == 0:
+                            sub_items = json.loads(sub_res.stdout)
+                            if isinstance(sub_items, list) and any(si.get("name", "").endswith("_hls") for si in sub_items):
+                                return True
     except Exception:
         pass
     return False
@@ -287,7 +365,18 @@ def main():
     body_text = ""
     if os.path.exists(release_body_file):
         with open(release_body_file, "r", encoding="utf-8") as f:
-            body_text = f.read()
+            body_text = f.read().strip()
+
+    # Jika body_text kosong (misal trigger via workflow_dispatch), ambil langsung via gh cli
+    if not body_text:
+        try:
+            res_body = subprocess.run(["gh", "release", "view", release_tag, "--json", "body"], capture_output=True, text=True)
+            if res_body.returncode == 0:
+                data_b = json.loads(res_body.stdout)
+                body_text = data_b.get("body", "").strip()
+                print(f"[+] Berhasil mengambil release body untuk tag '{release_tag}' dari GitHub API.")
+        except Exception:
+            pass
 
     # 2. Parse Pemetaan File, Aliases, dan Info Sumber dari Release Body
     file_mapping, aliases, source_info = parse_release_body_lines(body_text)
@@ -310,6 +399,7 @@ def main():
 
     if all_already_in_drive:
         print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
+        sync_metadata_from_stream_drive(workspace_root)
         print("[+] Metadata & aliases.json telah diperbarui tanpa perlu mengunduh aset atau transcode.")
         sys.exit(100 if is_precheck else 0)
 

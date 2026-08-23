@@ -49,11 +49,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install System Dependencies (FFmpeg & Archive Extractors)
-        run: |
-          sudo apt update
-          sudo apt install -y ffmpeg p7zip-full p7zip-rar unrar zpaq unshield
-
       - name: Configure Git Identity
         run: |
           git config --global user.name "github-actions[bot]"
@@ -76,10 +71,26 @@ jobs:
 
           if [ $EXIT_CODE -eq 100 ]; then
             echo "skip=true" >> $GITHUB_OUTPUT
-            echo "[⚡] Rilis '$TAG' sudah pernah diproses di stream_drive. Melewati proses download & transcode."
+            echo "[⚡] Rilis '$TAG' sudah pernah diproses di stream_drive. Melewati instalasi dependency, download & transcode."
           else
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Cache APT Packages
+        if: steps.precheck.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: apt-cache-${{ runner.os }}-ffmpeg-extractors-v1
+          restore-keys: |
+            apt-cache-${{ runner.os }}-ffmpeg-extractors-
+
+      - name: Install System Dependencies (FFmpeg & Extractors)
+        if: steps.precheck.outputs.skip != 'true'
+        run: |
+          # Periksa apakah tool utama sudah terpasang di runner Ubuntu (FFmpeg & 7z bawaan sudah ada)
+          sudo apt update -qq
+          sudo apt install -y --no-install-recommends ffmpeg p7zip-full p7zip-rar unrar zpaq unshield
 
       - name: Download Release Assets
         if: steps.precheck.outputs.skip != 'true'
