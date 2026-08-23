@@ -92,19 +92,7 @@ jobs:
           sudo apt update -qq
           sudo apt install -y --no-install-recommends ffmpeg p7zip-full p7zip-rar unrar zpaq unshield
 
-      - name: Download Release Assets
-        if: steps.precheck.outputs.skip != 'true'
-        id: download_assets
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p release_downloads
-          TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
-          echo "Processing Release Tag: $TAG"
-          gh release download "$TAG" --dir release_downloads --clobber || true
-          ls -lh release_downloads/
-
-      - name: Extract Archive & Generate HLS Pipeline
+      - name: Process Release & Generate HLS Pipeline
         if: steps.precheck.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -416,40 +416,53 @@ def main():
     if "" not in passwords:
         passwords.append("")
 
-    # 5. Kumpulkan Arsip yang Diunduh
-    downloaded_files = glob.glob(os.path.join(download_dir, "*"))
-    if not downloaded_files:
-        print("[-] Tidak ada aset arsip yang ditemukan di folder download!")
-        sys.exit(0)
+    # 5. Dapatkan Daftar Aset yang Tersedia di Release
+    release_assets = []
+    try:
+        res_assets = subprocess.run(["gh", "release", "view", release_tag, "--json", "assets"], capture_output=True, text=True)
+        if res_assets.returncode == 0:
+            data_ast = json.loads(res_assets.stdout)
+            release_assets = [a["name"] for a in data_ast.get("assets", [])]
+    except Exception as e:
+        print(f"[-] Gagal mendapatkan daftar aset release: {e}")
 
-    # Filter primary archive (abaikan part split kedua dst)
-    primary_archives = []
-    for f in sorted(downloaded_files):
-        lf = os.path.basename(f).lower()
-        if re.search(r'\.part0*2\.rar$', lf) or re.search(r'\.00[2-9]$', lf) or re.search(r'\.0[1-9][0-9]$', lf):
+    # Identifikasi arsip mana saja yang PERLU diunduh (hanya jika target belum ada di stream_drive)
+    os.makedirs(download_dir, exist_ok=True)
+    archives_to_process = []
+
+    for item_name in (release_assets if release_assets else file_mapping.keys()):
+        item_lower = item_name.lower()
+        if re.search(r'\.part0*2\.rar$', item_lower) or re.search(r'\.00[2-9]$', item_lower) or re.search(r'\.0[1-9][0-9]$', item_lower):
             continue
-        if any(lf.endswith(ext) for ext in ARCHIVE_EXTENSIONS) or re.search(r'\.part0*1\.rar$', lf):
-            primary_archives.append(f)
+        if any(item_lower.endswith(ext) for ext in ARCHIVE_EXTENSIONS) or re.search(r'\.part0*1\.rar$', item_lower):
+            dest_f = file_mapping.get(item_lower)
+            if not dest_f:
+                tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
+                dest_f = f"anime/{tag_slug}"
 
-    print(f"[+] Ditemukan {len(primary_archives)} file arsip utama untuk diproses.")
+            # Cek apakah folder HLS tujuan sudah ada di stream_drive
+            if check_if_already_processed_in_drive(dest_f):
+                print(f"[⚡] SKIP DOWNLOAD: Arsip '{item_name}' dilewati karena HLS '{dest_f}' sudah ada di stream_drive.")
+                update_aliases_and_sources(workspace_root, dest_f, aliases, item_name, source_info)
+                continue
+
+            print(f"[📥] Mengunduh aset arsip: {item_name} (untuk target '{dest_f}')...")
+            # Unduh pattern file (termasuk part jika multi-part)
+            base_pattern = re.sub(r'(\.part\d+|\.001)\.rar$', '*', item_name, flags=re.I)
+            if base_pattern == item_name:
+                base_pattern = item_name
+            run_cmd(["gh", "release", "download", release_tag, "-p", base_pattern, "--dir", download_dir, "--clobber"], check=False)
+            
+            local_target_arch = os.path.join(download_dir, item_name)
+            if os.path.exists(local_target_arch):
+                archives_to_process.append((local_target_arch, dest_f))
 
     all_processed_videos = []
 
-    # 6. Ekstrak Setiap Arsip ke Folder RAW/<kategori>/<judul>/[season] yang Sesuai
-    for arch in primary_archives:
+    # 6. Ekstrak Setiap Arsip yang Berhasil Diunduh ke Folder RAW/<kategori>/<judul>/[season]
+    for arch, dest_folder in archives_to_process:
         arch_name = os.path.basename(arch)
-        arch_lower = arch_name.lower()
-        
-        dest_folder = file_mapping.get(arch_lower)
-        if not dest_folder:
-            tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
-            dest_folder = f"anime/{tag_slug}"
-
         update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info)
-
-        if check_if_already_processed_in_drive(dest_folder):
-            print(f"\n[⚡] SKIP: Konten '{dest_folder}' ({arch_name}) SUDAH SELESAI di stream_drive.")
-            continue
 
         raw_dest_dir = os.path.join(workspace_root, "RAW", dest_folder)
         os.makedirs(raw_dest_dir, exist_ok=True)
