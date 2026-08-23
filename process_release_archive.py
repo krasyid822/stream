@@ -230,17 +230,25 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
         "provider": (source_info.get("provider") if source_info else None) or (f"{provider_name}.id" if provider_name and not provider_name.lower().endswith(('.id', '.com', '.org')) else provider_name) or "RAW Source",
         "url": (source_info.get("url") if source_info else None) or (f"https://{provider_name.lower()}" if provider_name else ""),
         "icon": (source_info.get("icon") if source_info else None) or "",
-        "note": f"Sumber mentah dari Release {first_archive_name}"
+        "note": f"Sumber mentah dari Release {first_archive_name or ''}"
     }
 
-    data["sources"][folder_rel_path] = source_entry
+    # Cari apakah sudah ada key folder yang mirip di sources (normalisasi '-' vs '_')
+    norm_dest = re.sub(r'[^a-zA-Z0-9]', '', folder_rel_path).lower()
+    actual_source_key = folder_rel_path
+    for existing_k in list(data["sources"].keys()):
+        if re.sub(r'[^a-zA-Z0-9]', '', existing_k).lower() == norm_dest:
+            actual_source_key = existing_k
+            break
+
+    data["sources"][actual_source_key] = source_entry
     # Simpan juga pada root folder judul (misal: anime/gsyos) agar semua season mewarisi logo/sumbernya
     title_folder = "/".join(path_parts[:2])
     data["sources"][title_folder] = source_entry
 
     with open(aliases_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
-    print(f"[✓] aliases.json diperbarui untuk '{folder_rel_path}' dengan sumber & icon logo!")
+    print(f"[✓] aliases.json diperbarui untuk '{actual_source_key}' dengan sumber & icon logo!")
 
 def sync_metadata_from_stream_drive(workspace_root):
     """Memperbarui metadata.json secara akurat berdasarkan pohon file sebenarnya di repositori stream_drive."""
