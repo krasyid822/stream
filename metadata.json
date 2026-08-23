@@ -4,7 +4,7 @@
   ],
   "media": [
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 01_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_01_hls_master_m3u8",
       "name": "FullDive RPG 01",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 01_hls",
@@ -16,7 +16,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 02_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_02_hls_master_m3u8",
       "name": "FullDive RPG 02",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 02_hls",
@@ -28,7 +28,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 03_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_03_hls_master_m3u8",
       "name": "FullDive RPG 03",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 03_hls",
@@ -40,7 +40,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 04_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_04_hls_master_m3u8",
       "name": "FullDive RPG 04",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 04_hls",
@@ -52,7 +52,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 05_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_05_hls_master_m3u8",
       "name": "FullDive RPG 05",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 05_hls",
@@ -64,7 +64,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 06_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_06_hls_master_m3u8",
       "name": "FullDive RPG 06",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 06_hls",
@@ -76,7 +76,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 07_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_07_hls_master_m3u8",
       "name": "FullDive RPG 07",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 07_hls",
@@ -88,7 +88,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 08_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_08_hls_master_m3u8",
       "name": "FullDive RPG 08",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 08_hls",
@@ -100,7 +100,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 09_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_09_hls_master_m3u8",
       "name": "FullDive RPG 09",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 09_hls",
@@ -112,7 +112,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 10_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_10_hls_master_m3u8",
       "name": "FullDive RPG 10",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 10_hls",
@@ -124,7 +124,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 11_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_11_hls_master_m3u8",
       "name": "FullDive RPG 11",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 11_hls",
@@ -136,7 +136,7 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_fulldive-rpg_FullDive RPG 12_hls",
+      "id": "anime_fulldive-rpg_FullDive_RPG_12_hls_master_m3u8",
       "name": "FullDive RPG 12",
       "folder": "anime/fulldive-rpg",
       "path": "anime/fulldive-rpg/FullDive RPG 12_hls",
@@ -304,5 +304,5 @@
       "type": "hls_stream"
     }
   ],
-  "updated_at": "1787420129.0564795"
+  "updated_at": "1787446144.4772565"
 }
