@@ -149,31 +149,40 @@ def recursive_extract(archive_path, output_dir, passwords):
     if not extract_archive_single(archive_path, temp_stage, passwords):
         return []
 
-    # Periksa apakah ada arsip bersarang di dalam hasil ekstrak
+    # Periksa apakah ada arsip bersarang (nested) di dalam hasil ekstrak (hingga 5 lapis bersarang)
     depth = 0
-    while depth < 3:
+    while depth < 5:
         depth += 1
-        nested_archives = []
+        found_nested_work = False
+        
         for root, _, files in os.walk(temp_stage):
-            for f in sorted(files):
-                full_f = os.path.join(root, f)
-                lf = f.lower()
-                if re.search(r'\.part0*2\.rar$', lf) or re.search(r'\.00[2-9]$', lf) or re.search(r'\.0[1-9][0-9]$', lf):
-                    continue
-                if any(lf.endswith(ext) for ext in ARCHIVE_EXTENSIONS) or re.search(r'\.part0*1\.rar$', lf):
-                    nested_archives.append(full_f)
+            if not files:
+                continue
+            # Kelompokkan arsip bersarang (termasuk jika arsip di dalam adalah split archive lagi)
+            nested_groups = group_release_archives(files)
+            valid_nested_groups = [
+                g for g in nested_groups 
+                if any(g["base_name"].lower().endswith(ext) for ext in ARCHIVE_EXTENSIONS) or g["is_split"]
+            ]
 
-        if not nested_archives:
+            if valid_nested_groups:
+                found_nested_work = True
+                print(f"[🔄] Layer #{depth}: Ditemukan {len(valid_nested_groups)} grup arsip bersarang di '{os.path.basename(root)}'. Mengekstrak & mendekripsi...")
+                for ng in valid_nested_groups:
+                    primary_nested = os.path.join(root, ng["primary_file"])
+                    if os.path.exists(primary_nested):
+                        if extract_archive_single(primary_nested, root, passwords):
+                            # Hapus semua part arsip bersarang yang sudah selesai diekstrak
+                            for p_file in ng["all_parts"]:
+                                p_path = os.path.join(root, p_file)
+                                try:
+                                    if os.path.exists(p_path):
+                                        os.remove(p_path)
+                                except Exception:
+                                    pass
+
+        if not found_nested_work:
             break
-
-        print(f"[🔄] Ditemukan {len(nested_archives)} arsip bersarang. Mengekstrak kembali...")
-        for n_arch in nested_archives:
-            target_out = os.path.dirname(n_arch)
-            if extract_archive_single(n_arch, target_out, passwords):
-                try:
-                    os.remove(n_arch)
-                except Exception:
-                    pass
 
     # Kumpulkan semua file video
     found_videos = []
@@ -364,6 +373,98 @@ def check_if_already_processed_in_drive(dest_folder):
         print(f"[-] Catatan pengecekan stream_drive: {e}")
     return False
 
+def get_split_archive_info(filename):
+    """
+    Menganalisis apakah sebuah nama file merupakan bagian dari split archive.
+    Mengembalikan (base_stem, part_num, is_primary, is_split)
+    Mendukung format:
+      - .part1.rar / .part01.rar / .part001.rar
+      - .001 / .002 / ...
+      - .r00 / .r01 / ... (RAR lama)
+      - .z01 / .z02 / ... / .zip
+      - .7z.001 / .7z.002 / ...
+      - .tar.gz.aa / .tar.gz.ab / ...
+    """
+    fn = filename.strip()
+    
+    # 1. Format .part01.rar / .part1.rar / .part01.7z / .part01.zip
+    m1 = re.search(r'^(.*?)\.part0*([0-9]+)\.([a-zA-Z0-9]+)$', fn, re.IGNORECASE)
+    if m1:
+        base = f"{m1.group(1)}.{m1.group(3)}"
+        part_idx = int(m1.group(2))
+        return (base, part_idx, (part_idx == 1), True)
+
+    # 2. Format 7z/Generic chunk .001, .002, .003, ...
+    m2 = re.search(r'^(.*?)\.0*([0-9]+)$', fn, re.IGNORECASE)
+    if m2:
+        base = m2.group(1)
+        part_idx = int(m2.group(2))
+        return (base, part_idx, (part_idx == 1), True)
+
+    # 3. Format RAR lawas (.rar, .r00, .r01, .r02, ...)
+    m3 = re.search(r'^(.*?)\.(rar|r[0-9]{2,3})$', fn, re.IGNORECASE)
+    if m3:
+        base = f"{m3.group(1)}.rar"
+        ext = m3.group(2).lower()
+        if ext == "rar":
+            return (base, 1, True, True)
+        else:
+            p_num = int(ext[1:]) + 2
+            return (base, p_num, False, True)
+
+    # 4. Format Zip Split (.zip, .z01, .z02, ...)
+    m4 = re.search(r'^(.*?)\.(zip|z[0-9]{2,3})$', fn, re.IGNORECASE)
+    if m4:
+        base = f"{m4.group(1)}.zip"
+        ext = m4.group(2).lower()
+        if ext == "zip":
+            return (base, 9999, False, True) # file .zip di akhir pada multi-part zip
+        else:
+            p_num = int(ext[1:])
+            return (base, p_num, (p_num == 1), True)
+
+    # 5. Bukan split archive (arsip tunggal biasa)
+    return (fn, 1, True, False)
+
+def group_release_archives(asset_list):
+    """
+    Mengelompokkan daftar aset rilis menjadi grup arsip logis.
+    Format return: list of dict:
+      {
+        "base_name": "...",
+        "primary_file": "...", # File utama untuk diekstrak (part 1)
+        "all_parts": ["...", "..."], # Semua bagian yang harus diunduh
+        "is_split": True/False
+      }
+    """
+    groups = {}
+    for fn in sorted(asset_list):
+        base, part_idx, is_prim, is_split = get_split_archive_info(fn)
+        base_key = base.lower()
+        if base_key not in groups:
+            groups[base_key] = {
+                "base_name": base,
+                "primary_file": fn,
+                "parts": [],
+                "is_split": is_split
+            }
+        groups[base_key]["parts"].append((part_idx, fn))
+        if is_prim:
+            groups[base_key]["primary_file"] = fn
+
+    result = []
+    for base_key, g in groups.items():
+        sorted_parts = [p[1] for p in sorted(g["parts"], key=lambda x: x[0])]
+        # Jika is_split tapi primary_file belum tentu index 1, ambil index pertama
+        primary = g["primary_file"] if g["primary_file"] in sorted_parts else sorted_parts[0]
+        result.append({
+            "base_name": g["base_name"],
+            "primary_file": primary,
+            "all_parts": sorted_parts,
+            "is_split": len(sorted_parts) > 1 or g["is_split"]
+        })
+    return result
+
 def main():
     if len(sys.argv) < 3:
         print("Penggunaan: process_release_archive.py <download_dir> <release_tag> [release_body_file]")
@@ -457,40 +558,51 @@ def main():
     except Exception as e:
         print(f"[-] Gagal mendapatkan daftar aset release: {e}")
 
-    # Identifikasi arsip mana saja yang PERLU diunduh (hanya jika target belum ada di stream_drive)
+    raw_candidates = release_assets if release_assets else list(file_mapping.keys())
+    archive_groups = group_release_archives(raw_candidates)
+
+    print(f"\n[🔍] Terdeteksi {len(archive_groups)} grup arsip rilis:")
+    for ag in archive_groups:
+        print(f" -> Basis: '{ag['base_name']}' | Split: {ag['is_split']} ({len(ag['all_parts'])} bagian: {ag['all_parts']}) | Primary: '{ag['primary_file']}'")
+
     os.makedirs(download_dir, exist_ok=True)
     archives_to_process = []
 
-    for item_name in (release_assets if release_assets else file_mapping.keys()):
-        item_lower = item_name.lower()
-        if re.search(r'\.part0*2\.rar$', item_lower) or re.search(r'\.00[2-9]$', item_lower) or re.search(r'\.0[1-9][0-9]$', item_lower):
+    for ag in archive_groups:
+        primary_file = ag["primary_file"]
+        base_name = ag["base_name"]
+        
+        # Tentukan folder tujuan dari pemetaan
+        dest_f = file_mapping.get(primary_file.lower()) or file_mapping.get(base_name.lower())
+        if not dest_f:
+            tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
+            dest_f = f"anime/{tag_slug}"
+
+        # Cek apakah folder HLS tujuan sudah ada di stream_drive
+        if check_if_already_processed_in_drive(dest_f):
+            print(f"\n[⚡] SKIP DOWNLOAD: Arsip '{base_name}' dilewati karena HLS '{dest_f}' sudah ada di stream_drive.")
+            update_aliases_and_sources(workspace_root, dest_f, aliases, primary_file, source_info)
             continue
-        if any(item_lower.endswith(ext) for ext in ARCHIVE_EXTENSIONS) or re.search(r'\.part0*1\.rar$', item_lower):
-            dest_f = file_mapping.get(item_lower)
-            if not dest_f:
-                tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
-                dest_f = f"anime/{tag_slug}"
 
-            # Cek apakah folder HLS tujuan sudah ada di stream_drive
-            if check_if_already_processed_in_drive(dest_f):
-                print(f"[⚡] SKIP DOWNLOAD: Arsip '{item_name}' dilewati karena HLS '{dest_f}' sudah ada di stream_drive.")
-                update_aliases_and_sources(workspace_root, dest_f, aliases, item_name, source_info)
-                continue
+        print(f"\n[📥] Mengunduh seluruh bagian arsip untuk: '{base_name}' ({len(ag['all_parts'])} bagian) -> Target: '{dest_f}'...")
+        for part_file in ag["all_parts"]:
+            print(f"    -> Downloading part: {part_file}")
+            run_cmd(["gh", "release", "download", release_tag, "-p", part_file, "--dir", download_dir, "--clobber"], check=False)
 
-            print(f"[📥] Mengunduh aset arsip: {item_name} (untuk target '{dest_f}')...")
-            # Unduh pattern file (termasuk part jika multi-part)
-            base_pattern = re.sub(r'(\.part\d+|\.001)\.rar$', '*', item_name, flags=re.I)
-            if base_pattern == item_name:
-                base_pattern = item_name
-            run_cmd(["gh", "release", "download", release_tag, "-p", base_pattern, "--dir", download_dir, "--clobber"], check=False)
-            
-            local_target_arch = os.path.join(download_dir, item_name)
-            if os.path.exists(local_target_arch):
-                archives_to_process.append((local_target_arch, dest_f))
+        local_primary_arch = os.path.join(download_dir, primary_file)
+        if os.path.exists(local_primary_arch):
+            archives_to_process.append((local_primary_arch, dest_f))
+        else:
+            # Fallback jika nama file primary tidak cocok persis
+            for p in ag["all_parts"]:
+                candidate_p = os.path.join(download_dir, p)
+                if os.path.exists(candidate_p):
+                    archives_to_process.append((candidate_p, dest_f))
+                    break
 
     all_processed_videos = []
 
-    # 6. Ekstrak Setiap Arsip yang Berhasil Diunduh ke Folder RAW/<kategori>/<judul>/[season]
+    # 6. Ekstrak Setiap Arsip yang Berhasil Diunduh Lengkap ke Folder RAW/<kategori>/<judul>/[season]
     for arch, dest_folder in archives_to_process:
         arch_name = os.path.basename(arch)
         update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info)
