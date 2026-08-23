@@ -1,6 +1,7 @@
 {
   "categories": [
-    "anime"
+    "anime",
+    "série_animée"
   ],
   "media": [
     {
@@ -302,7 +303,17 @@
         "anime/gsyos/Episode 26_hls/sub_0_ind.vtt"
       ],
       "type": "hls_stream"
+    },
+    {
+      "id": "série_animée_minuscule_Minuscule - Compilation #1_hls",
+      "name": "Minuscule - Compilation #1",
+      "folder": "série_animée/minuscule",
+      "path": "série_animée/minuscule/Minuscule - Compilation #1_hls",
+      "master_url": "série_animée/minuscule/Minuscule - Compilation #1_hls/master.m3u8",
+      "poster_url": "série_animée/minuscule/Minuscule - Compilation #1_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
     }
   ],
-  "updated_at": "1787446144.4772565"
+  "updated_at": "1787481799.7677808"
 }

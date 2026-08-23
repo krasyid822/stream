@@ -16,7 +16,9 @@
       "벌레들의 모험",
       "Drobižki",
       "Minuscule 2: Les Mandibules du Bout du Monde",
-      "Букашки"
+      "Букашки",
+      "1 Compilation",
+      "youtube.com"
     ],
     "29dcbnn": [
       "29-sai Dokushin Chuuken Boukensha no Nichijou",
@@ -91,10 +93,10 @@
   },
   "sources": {
     "série_animée/minuscule": {
-      "provider": "YouTube",
-      "url": "https://youtube.com",
+      "provider": "youtube.com",
+      "url": "https://www.youtube.com/",
       "icon": "https://www.youtube.com/s/desktop/6f290082/img/favicon.ico",
-      "note": "Sumber: Release [RAW] Minuscule (Tag: MINUSCULE)"
+      "note": "Sumber mentah dari Release YouTube_Minuscule_.1.7z"
     },
     "anime/29dcbnn": {
       "provider": "hidoristream.my.id",
