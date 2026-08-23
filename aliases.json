@@ -28,7 +28,8 @@
       "Above Myriads",
       "Wan Ren Zhi Shang",
       "Di Atas Ribuan",
-      "万人之上"
+      "万人之上",
+      "v9.hidoristream.online"
     ],
     "zero_tskma": [
       "Zero no Tsukaima",
@@ -102,10 +103,10 @@
       "note": "Sumber: Release [RAW HARDSUB] 29-sai Dokushin Chuuken Boukensha no Nichijou (Tag: 29DCBNN)"
     },
     "donghua/am": {
-      "provider": "Release RAW HARDSUB",
-      "url": "https://github.com/krasyid822/stream/releases/tag/AM",
-      "icon": "",
-      "note": "Sumber: Release [RAW HARDSUB] Above Myriads (Tag: AM)"
+      "provider": "v9.hidoristream.online",
+      "url": "https://v9.hidoristream.online/",
+      "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+      "note": "Sumber mentah dari Release hidoristream.my.id_am.7z.001"
     },
     "anime/gsyos": {
       "provider": "doronime.id",
