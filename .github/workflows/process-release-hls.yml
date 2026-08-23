@@ -59,7 +59,30 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Pre-Check Existing HLS & Update Aliases
+        id: precheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
+          cat << 'EOF' > release_body.txt
+          ${{ github.event.release.body }}
+          EOF
+
+          set +e
+          python3 -u process_release_archive.py --check-skip "$TAG" release_body.txt
+          EXIT_CODE=$?
+          set -e
+
+          if [ $EXIT_CODE -eq 100 ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "[⚡] Rilis '$TAG' sudah pernah diproses di stream_drive. Melewati proses download & transcode."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download Release Assets
+        if: steps.precheck.outputs.skip != 'true'
         id: download_assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,15 +90,11 @@ jobs:
           mkdir -p release_downloads
           TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
           echo "Processing Release Tag: $TAG"
-          
-          cat << 'EOF' > release_body.txt
-          ${{ github.event.release.body }}
-          EOF
-
           gh release download "$TAG" --dir release_downloads --clobber || true
           ls -lh release_downloads/
 
       - name: Extract Archive & Generate HLS Pipeline
+        if: steps.precheck.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONUNBUFFERED: "1"
@@ -83,46 +102,47 @@ jobs:
           TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
           python3 -u process_release_archive.py release_downloads "$TAG" release_body.txt
 
-      - name: Checkout Target stream_drive
-        uses: actions/checkout@v4
-        with:
-          repository: krasyid822/stream_drive
-          token: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
-          fetch-depth: 1
-          path: stream_drive_target
-
-      - name: Push HLS Media to stream_drive & Metadata to stream
-        env:
-          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
+      - name: Push Metadata Updates to stream (Web UI)
         run: |
           chmod +x push.sh git_smart_push.py
-          
-          # 1. Commit & Push update metadata dan aliases ke repo stream (Web UI)
           git add aliases.json metadata.json || true
           if [ -n "$(git status --porcelain aliases.json metadata.json)" ]; then
             git commit -m "chore(metadata): update library index & aliases [skip ci]" || true
             git push origin main || true
           fi
 
-          # 2. Pindahkan folder konten media dari workspace ke stream_drive_target
+      - name: Push New HLS Media to stream_drive
+        if: steps.precheck.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Clone shallow repo stream_drive secara instan
+          mkdir -p stream_drive_target
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git" stream_drive_target
+
+          # 2. Pindahkan folder konten media yang baru dari workspace ke stream_drive_target
           echo "Memindahkan folder media ke stream_drive_target..."
+          HAS_MEDIA=false
           for dir in */ ; do
             dname="${dir%/}"
             if [ "$dname" != "assets" ] && [ "$dname" != ".github" ] && [ "$dname" != "release_downloads" ] && [ "$dname" != "RAW_TEMP" ] && [ "$dname" != "RAW" ] && [ "$dname" != "stream_drive_target" ]; then
               echo "Memindahkan folder: $dname ke stream_drive..."
               cp -r "$dname" stream_drive_target/
+              HAS_MEDIA=true
             fi
           done
 
-          # 3. Jalankan smart push di dalam stream_drive_target
-          cd stream_drive_target
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git"
-          
-          python3 -u ../git_smart_push.py
+          # 3. Jalankan smart push hanya jika ada media baru
+          if [ "$HAS_MEDIA" = true ]; then
+            cd stream_drive_target
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            python3 -u ../git_smart_push.py
+          else
+            echo "[+] Tidak ada folder media baru yang perlu di-push ke stream_drive."
+          fi
 
       - name: Clean Up Workspace
         if: always()
         run: |
-          rm -rf release_downloads release_body.txt RAW_TEMP RAW RAW_TEMP_EXTRACT ../stream_drive_clone
+          rm -rf release_downloads release_body.txt RAW_TEMP RAW RAW_TEMP_EXTRACT stream_drive_target

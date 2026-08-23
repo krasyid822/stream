@@ -256,13 +256,21 @@ def check_if_already_processed_in_drive(dest_folder):
     return False
 
 def main():
-    if len(sys.argv) < 4:
-        print("Penggunaan: process_release_archive.py <download_dir> <release_tag> <release_body_file>")
+    if len(sys.argv) < 3:
+        print("Penggunaan: process_release_archive.py <download_dir> <release_tag> [release_body_file]")
         sys.exit(1)
 
-    download_dir = sys.argv[1]
-    release_tag = sys.argv[2]
-    release_body_file = sys.argv[3]
+    # Mode pre-check sebelum download
+    is_precheck = False
+    if sys.argv[1] == "--check-skip":
+        is_precheck = True
+        release_tag = sys.argv[2]
+        release_body_file = sys.argv[3] if len(sys.argv) > 3 else "release_body.txt"
+        download_dir = "release_downloads"
+    else:
+        download_dir = sys.argv[1]
+        release_tag = sys.argv[2]
+        release_body_file = sys.argv[3] if len(sys.argv) > 3 else "release_body.txt"
 
     print("==========================================================")
     print(f"📦 PIPELINE RELEASE: {release_tag}")
@@ -271,8 +279,8 @@ def main():
     # 1. Cek apakah release tag termasuk dalam daftar yang diabaikan (sudah diproses sebelumnya)
     clean_tag_upper = release_tag.strip().upper()
     if clean_tag_upper in IGNORED_RELEASE_TAGS:
-        print(f"[!] Tag release '{release_tag}' sudah pernah diproses sebelumnya atau merupakan tag password. Melewati.")
-        sys.exit(0)
+        print(f"[!] Tag release '{release_tag}' adalah tag khusus (misal password). Melewati.")
+        sys.exit(100 if is_precheck else 0)
 
     workspace_root = os.path.abspath(os.path.dirname(__file__))
 
@@ -281,7 +289,35 @@ def main():
         with open(release_body_file, "r", encoding="utf-8") as f:
             body_text = f.read()
 
-    # 2. Ambil Kunci Password dari Tag 'password' & Release Body
+    # 2. Parse Pemetaan File, Aliases, dan Info Sumber dari Release Body
+    file_mapping, aliases, source_info = parse_release_body_lines(body_text)
+    print(f"[+] Pemetaan folder terdeteksi: {json.dumps(file_mapping, indent=2)}")
+    print(f"[+] Daftar aliases judul terdeteksi: {aliases}")
+    if source_info:
+        print(f"[+] Info sumber penyedia terdeteksi: {json.dumps(source_info, indent=2)}")
+
+    # 3. Periksa status apakah semua folder target rilis ini SUDAH ADA di stream_drive
+    target_folders = list(set(file_mapping.values()))
+    if not target_folders:
+        tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
+        target_folders = [f"anime/{tag_slug}"]
+
+    all_already_in_drive = True
+    for tf in target_folders:
+        update_aliases_and_sources(workspace_root, tf, aliases, "", source_info)
+        if not check_if_already_processed_in_drive(tf):
+            all_already_in_drive = False
+
+    if all_already_in_drive:
+        print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
+        print("[+] Metadata & aliases.json telah diperbarui tanpa perlu mengunduh aset atau transcode.")
+        sys.exit(100 if is_precheck else 0)
+
+    if is_precheck:
+        print("[+] Konten belum ada di stream_drive. Melanjutkan ke proses download & transcode...")
+        sys.exit(0)
+
+    # 4. Ambil Kunci Password dari Tag 'password' & Release Body
     passwords = fetch_passwords_from_password_tag()
     for line in body_text.splitlines():
         cl = line.strip().strip('"`')
@@ -290,14 +326,7 @@ def main():
     if "" not in passwords:
         passwords.append("")
 
-    # 3. Parse Pemetaan File, Aliases, dan Info Sumber dari Release Body
-    file_mapping, aliases, source_info = parse_release_body_lines(body_text)
-    print(f"[+] Pemetaan folder terdeteksi: {json.dumps(file_mapping, indent=2)}")
-    print(f"[+] Daftar aliases judul terdeteksi: {aliases}")
-    if source_info:
-        print(f"[+] Info sumber penyedia terdeteksi: {json.dumps(source_info, indent=2)}")
-
-    # 4. Kumpulkan Arsip yang Diunduh
+    # 5. Kumpulkan Arsip yang Diunduh
     downloaded_files = glob.glob(os.path.join(download_dir, "*"))
     if not downloaded_files:
         print("[-] Tidak ada aset arsip yang ditemukan di folder download!")
@@ -316,24 +345,20 @@ def main():
 
     all_processed_videos = []
 
-    # 5. Ekstrak Setiap Arsip ke Folder RAW/<kategori>/<judul>/[season] yang Sesuai
+    # 6. Ekstrak Setiap Arsip ke Folder RAW/<kategori>/<judul>/[season] yang Sesuai
     for arch in primary_archives:
         arch_name = os.path.basename(arch)
         arch_lower = arch_name.lower()
         
-        # Tentukan folder tujuan dari pemetaan release body
         dest_folder = file_mapping.get(arch_lower)
         if not dest_folder:
-            # Fallback jika tidak tertulis spesifik di mapping: anime/<tag_slug>/1
             tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
             dest_folder = f"anime/{tag_slug}"
 
-        # Perbarui metadata aliases dan sources terlebih dahulu
         update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info)
 
-        # Cek apakah folder konten media ini sudah pernah diproses dan ada di stream_drive
         if check_if_already_processed_in_drive(dest_folder):
-            print(f"\n[⚡] SKIP: Konten '{dest_folder}' ({arch_name}) SUDAH SELESAI diproses sebelumnya di stream_drive. Melewati proses ekstraksi & transcode FFmpeg.")
+            print(f"\n[⚡] SKIP: Konten '{dest_folder}' ({arch_name}) SUDAH SELESAI di stream_drive.")
             continue
 
         raw_dest_dir = os.path.join(workspace_root, "RAW", dest_folder)
@@ -358,10 +383,9 @@ def main():
         shutil.rmtree(temp_extract_dir, ignore_errors=True)
 
     if not all_processed_videos:
-        print("\n[✓] Semua video dalam rilis ini sudah selesai diproses dan di-host di stream_drive sebelumnya.")
-        print("[+] Metadata dan aliases.json telah diperbarui tanpa perlu transcode ulang.")
+        print("\n[✓] Semua video dalam rilis ini sudah selesai diproses dan di-host di stream_drive.")
     else:
-        # 6. Jalankan generate_hls.py
+        # 7. Jalankan generate_hls.py
         print("\n==========================================================")
         print("🎬 MENJALANKAN GENERATOR HLS ABR & SUBTITLE PIPELINE")
         print("==========================================================")
@@ -369,7 +393,7 @@ def main():
         cmd_gen = [sys.executable, generate_script] + all_processed_videos
         run_cmd(cmd_gen, check=True)
 
-    # 7. Bersihkan file arsip download & sementara agar tidak ter-push ke Git
+    # 8. Bersihkan file arsip download & sementara agar tidak ter-push ke Git
     print("\n[🧹] Membersihkan file arsip dan berkas unduhan sementara...")
     shutil.rmtree(download_dir, ignore_errors=True)
     if os.path.exists(release_body_file):
@@ -379,7 +403,7 @@ def main():
             pass
 
     print("\n==========================================================")
-    print("🎉 SEMUA VIDEO BERHASIL DIPROSES KE HLS!")
+    print("🎉 PIPELINE PROSES RELEASE SELESAI!")
     print("==========================================================")
 
 if __name__ == "__main__":
