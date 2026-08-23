@@ -57,7 +57,8 @@
       "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
       "Full Dive: The Ultimate Next-Gen Full Dive RPG Is Even Shittier than Real Life!",
       "Gim Kelewat Maju tuh Gim Ampas",
-      "究極進化したフルダイブRPGが現実よりもクソゲーだったら"
+      "究極進化したフルダイブRPGが現実よりもクソゲーだったら",
+      "doronime.id"
     ],
     "gsyos": [
       "Genjitsushugi Yūsha no Ōkoku Saikenki",
@@ -109,6 +110,12 @@
       "provider": "RAW Source",
       "url": "",
       "icon": "",
+      "note": "Sumber mentah dari Release "
+    },
+    "anime/fulldive_rpg": {
+      "provider": "doronime.id",
+      "url": "https://doronime.id/",
+      "icon": "https://doronime.id/images/doronime.png?v=6",
       "note": "Sumber mentah dari Release "
     }
   }

@@ -311,17 +311,23 @@ def sync_metadata_from_stream_drive(workspace_root):
         print(f"[-] Catatan sinkronisasi metadata: {e}")
 
 def check_if_already_processed_in_drive(dest_folder):
-    """Mengecek apakah folder tujuan sudah memiliki master.m3u8 di repositori stream_drive."""
+    """Mengecek apakah folder tujuan sudah memiliki master.m3u8 di repositori stream_drive (fleksibel terhadap '-' vs '_')."""
     try:
-        # Coba cek path folder langsung atau parent
         clean_f = dest_folder.strip("/")
+        parts = clean_f.split("/")
+        category = parts[0]
+        target_title = parts[1] if len(parts) > 1 else ""
+
+        # Normalisasi slug untuk pencocokan toleran ('fulldive_rpg' == 'fulldive-rpg')
+        norm_target = re.sub(r'[^a-zA-Z0-9]', '', target_title).lower()
+
+        # 1. Cek langsung path tepat
         res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{clean_f}"], capture_output=True, text=True)
         if res.returncode == 0:
             items = json.loads(res.stdout)
             if isinstance(items, list):
                 if any(item.get("name", "").endswith("_hls") for item in items):
                     return True
-                # Cek jika sub-sub direktori (season)
                 for item in items:
                     if item.get("type") == "dir":
                         sub_res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{clean_f}/{item['name']}"], capture_output=True, text=True)
@@ -329,8 +335,25 @@ def check_if_already_processed_in_drive(dest_folder):
                             sub_items = json.loads(sub_res.stdout)
                             if isinstance(sub_items, list) and any(si.get("name", "").endswith("_hls") for si in sub_items):
                                 return True
-    except Exception:
-        pass
+
+        # 2. Jika tidak ditemukan secara direct, cek seluruh subfolder di dalam kategori (misal: anime/)
+        res_cat = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{category}"], capture_output=True, text=True)
+        if res_cat.returncode == 0:
+            cat_items = json.loads(res_cat.stdout)
+            if isinstance(cat_items, list):
+                for c_item in cat_items:
+                    folder_name = c_item.get("name", "")
+                    norm_folder = re.sub(r'[^a-zA-Z0-9]', '', folder_name).lower()
+                    if norm_target and norm_target == norm_folder:
+                        # Ditemukan kecocokan nama folder (misal: fulldive-rpg vs fulldive_rpg)
+                        matched_path = f"{category}/{folder_name}"
+                        sub_res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{matched_path}"], capture_output=True, text=True)
+                        if sub_res.returncode == 0:
+                            sub_items = json.loads(sub_res.stdout)
+                            if isinstance(sub_items, list) and any(si.get("name", "").endswith("_hls") for si in sub_items):
+                                return True
+    except Exception as e:
+        print(f"[-] Catatan pengecekan stream_drive: {e}")
     return False
 
 def main():
