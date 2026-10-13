@@ -76,7 +76,7 @@ jobs:
       - name: Build Chunk Plan
         id: plan
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
         run: |
           cat << 'EOF' > release_body.txt
@@ -152,7 +152,7 @@ jobs:
 
       - name: Download, Extract & Encode Chunk
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
           PYTHONUNBUFFERED: "1"
           RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
           CHUNK_JSON: ${{ toJSON(matrix.chunk) }}
@@ -312,7 +312,7 @@ jobs:
       - name: Sync Metadata from stream_drive
         if: needs.encode.result != 'skipped' && needs.encode.result != 'cancelled'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
         run: |
           python3 -u process_release_archive.py --sync-metadata
 

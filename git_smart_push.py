@@ -34,12 +34,22 @@ def is_ignored_file(path):
 
 def get_untracked_and_modified_files():
     """Mengambil daftar semua file yang belum dikomit (untracked & modified), termasuk ekspansi folder."""
-    res = subprocess.run(["git", "status", "--porcelain", "-uall"], check=True, text=True, capture_output=True)
+    # WAJIB pakai -z (NUL-separated & tanpa quoting). Tanpa -z, git meng-escape path yang
+    # mengandung karakter khusus menjadi oktal (mis. 'série_animée' -> 's\303\251rie_anim\303\251e')
+    # sehingga os.path.exists() selalu False dan SELURUH media ikut ter-skip diam-diam.
+    res = subprocess.run(["git", "status", "--porcelain", "-uall", "-z"], check=True, text=True, capture_output=True)
+    entries = res.stdout.split("\0")
     files = []
-    for line in res.stdout.splitlines():
-        if len(line) < 4:
+    i = 0
+    while i < len(entries):
+        entry = entries[i]
+        i += 1
+        if len(entry) < 4:
             continue
-        filepath = line[3:].strip().strip('"')
+        # Pada mode -z, entri rename/copy diikuti 1 field lagi berisi path LAMA
+        if entry[0] in ("R", "C"):
+            i += 1
+        filepath = entry[3:]
         if filepath and os.path.exists(filepath) and not is_ignored_file(filepath):
             if os.path.isdir(filepath):
                 for root, _, filenames in os.walk(filepath):

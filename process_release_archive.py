@@ -7,6 +7,7 @@ import subprocess
 import sys
 import glob
 import time
+import urllib.parse
 
 # Pastikan semua output print langsung tampil real-time di GitHub Actions
 if hasattr(sys.stdout, 'reconfigure'):
@@ -18,6 +19,24 @@ if hasattr(sys.stderr, 'reconfigure'):
 IGNORED_RELEASE_TAGS = {"PASSWORD"}
 
 DRIVE_REPO = "krasyid822/stream_drive"
+
+def gh_api(path, params=""):
+    """
+    Wrapper gh api ke repo stream_drive yang melaporkan kegagalan dengan jelas.
+    Kegagalan diam-diam sangat berbahaya: hasil kosong akan disalahartikan sebagai
+    'folder belum ada di drive' sehingga pipeline meng-encode ulang semuanya.
+    """
+    cmd = ["gh", "api", f"repos/{DRIVE_REPO}/{path}{params}"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    if res.returncode != 0:
+        err = (res.stderr or res.stdout or "").strip().splitlines()
+        err_msg = err[0] if err else "tidak diketahui"
+        # 404 = memang belum ada (wajar), selain itu = masalah akses/permission
+        if "404" not in err_msg and "Not Found" not in err_msg:
+            print(f"[!] Gagal mengakses stream_drive ({path}): {err_msg}")
+            print("[!] Pastikan secret DRIVE_PAT tersedia & punya akses ke repo stream_drive.")
+        return None, err_msg
+    return res.stdout, None
 
 ARCHIVE_EXTENSIONS = (
     ".zip", ".rar", ".7z", ".7z.001", ".zpaq", ".tar", ".tar.gz", ".tgz",
@@ -291,10 +310,11 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
 def sync_metadata_from_stream_drive(workspace_root):
     """Memperbarui metadata.json secara akurat berdasarkan pohon file sebenarnya di repositori stream_drive."""
     try:
-        res = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/git/trees/main?recursive=1"], capture_output=True, text=True)
-        if res.returncode != 0:
+        out, err = gh_api("git/trees/main", "?recursive=1")
+        if out is None:
+            print("[-] Gagal sync metadata: tidak bisa membaca tree stream_drive (lihat pesan di atas).")
             return
-        tree_data = json.loads(res.stdout)
+        tree_data = json.loads(out)
         if tree_data.get("truncated"):
             print("[-] Peringatan: pohon stream_drive terpotong (GitHub Tree API batas 100.000 entri). "
                   "metadata mungkin tidak lengkap.")
@@ -365,8 +385,8 @@ def resolve_drive_folder(dest_folder):
     Toleran terhadap perbedaan penulisan ('fulldive-rpg' vs 'fulldive_rpg', case, dsb).
     """
     clean_f = dest_folder.strip("/")
-    res = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/contents/{clean_f}"], capture_output=True, text=True)
-    if res.returncode == 0:
+    out, _ = gh_api(f"contents/{urllib.parse.quote(clean_f)}")
+    if out is not None:
         return clean_f
 
     parts = clean_f.split("/")
@@ -374,10 +394,10 @@ def resolve_drive_folder(dest_folder):
         category = parts[0]
         target_title = parts[1]
         norm_target = re.sub(r'[^a-zA-Z0-9]', '', target_title).lower()
-        res_cat = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/contents/{category}"], capture_output=True, text=True)
-        if res_cat.returncode == 0:
+        out_cat, _ = gh_api(f"contents/{urllib.parse.quote(category)}")
+        if out_cat is not None:
             try:
-                cat_items = json.loads(res_cat.stdout)
+                cat_items = json.loads(out_cat)
                 for c_item in cat_items:
                     norm_folder = re.sub(r'[^a-zA-Z0-9]', '', c_item.get("name", "")).lower()
                     if norm_target and norm_target == norm_folder:
@@ -389,14 +409,11 @@ def resolve_drive_folder(dest_folder):
 
 def _query_drive_tree(path):
     """Memanggil Git Tree API pada sebuah subtree; None bila path tidak ada / gagal."""
-    res = subprocess.run(
-        ["gh", "api", f"repos/{DRIVE_REPO}/git/trees/main:{path}?recursive=1"],
-        capture_output=True, text=True
-    )
-    if res.returncode != 0:
+    out, err = gh_api(f"git/trees/main:{path}", "?recursive=1")
+    if out is None:
         return None
     try:
-        return json.loads(res.stdout)
+        return json.loads(out)
     except Exception:
         return None
 
@@ -448,19 +465,18 @@ def fetch_drive_folder_index(dest_folder):
         break  # memakai subtree paling spesifik yang ada
 
     if not masters:
-        # Fallback: AXI contents API per episode (folder mungkin belum ada sama sekali)
+        # Fallback: contents API per episode (folder mungkin belum ada sama sekali)
         resolved = drive_folder_candidates(clean_f)[0]
-        res2 = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/contents/{resolved}"], capture_output=True, text=True)
-        if res2.returncode == 0:
+        out2, _ = gh_api(f"contents/{urllib.parse.quote(resolved)}")
+        if out2 is not None:
             try:
-                for item in json.loads(res2.stdout):
-                    if item.get("name", "").endswith("_hls") and item.get("type") == "dir":
-                        sub = subprocess.run(
-                            ["gh", "api", f"repos/{DRIVE_REPO}/contents/{resolved}/{item['name']}/master.m3u8"],
-                            capture_output=True, text=True
-                        )
-                        if sub.returncode == 0:
-                            masters.add(normalize_rel_path(f"{item['name']}/master.m3u8"))
+                for item in json.loads(out2):
+                    ep_name = item.get("name", "")
+                    if ep_name.endswith("_hls") and item.get("type") == "dir":
+                        probe = urllib.parse.quote(f"{resolved}/{ep_name}/master.m3u8")
+                        out3, _ = gh_api(f"contents/{probe}")
+                        if out3 is not None:
+                            masters.add(normalize_rel_path(f"{ep_name}/master.m3u8"))
             except Exception:
                 pass
 
