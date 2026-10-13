@@ -24,3 +24,13 @@ RAW/**/*.flv
 *.zip
 *.zpaq
 *.tar.*
+
+# Berkas sementara pipeline GitHub Actions
+release_downloads/
+release_body.txt
+HLS_OUT/
+plan.json
+chunk.json
+drive_skip_list.txt
+stream_drive_target/
+hls_artifacts/
