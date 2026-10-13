@@ -17,6 +17,8 @@ if hasattr(sys.stderr, 'reconfigure'):
 # Tag release yang diabaikan (tag 'password' menyimpan kunci enkripsi, bukan arsip video)
 IGNORED_RELEASE_TAGS = {"PASSWORD"}
 
+DRIVE_REPO = "krasyid822/stream_drive"
+
 ARCHIVE_EXTENSIONS = (
     ".zip", ".rar", ".7z", ".7z.001", ".zpaq", ".tar", ".tar.gz", ".tgz",
     ".tar.bz2", ".tbz2", ".tar.xz", ".txz", ".part01.rar", ".part1.rar",
@@ -25,9 +27,35 @@ ARCHIVE_EXTENSIONS = (
 
 VIDEO_EXTENSIONS = (".mp4", ".mkv", ".mov", ".avi", ".webm", ".flv", ".ts", ".m4v")
 
+# Folder kerja
+STAGING_DIR = "HLS_OUT"
+
+def _env_float(name, default):
+    try:
+        return float(os.environ.get(name) or default)
+    except (TypeError, ValueError):
+        return default
+
+def _env_int(name, default):
+    try:
+        return int(float(os.environ.get(name) or default))
+    except (TypeError, ValueError):
+        return default
+
+# Ukuran arsip target per shard encode (dapat di-override dari workflow_dispatch)
+CHUNK_SIZE_GB = _env_float("HLS_CHUNK_SIZE_GB", 1.2)
+MAX_SHARDS = _env_int("HLS_MAX_SHARDS", 6)
+
+# Cache index folder stream_drive (menghemat panggilan API GitHub)
+_DRIVE_INDEX_CACHE = {}
+
 def run_cmd(cmd, check=True, cwd=None):
     print(f"[CMD] {' '.join(cmd)}")
     return subprocess.run(cmd, check=check, text=True, cwd=cwd)
+
+def normalize_rel_path(path):
+    """Normalisasi path relatif (slash '/', huruf kecil) untuk perbandingan lintas platform."""
+    return str(path).replace(os.sep, "/").strip("/").lower()
 
 def fetch_passwords_from_password_tag():
     """Mengambil kunci/password enkripsi dari release tag 'password' via gh cli."""
@@ -109,7 +137,7 @@ def extract_archive_single(archive_path, output_dir, passwords):
     for pwd in passwords:
         success = False
         print(f"[*] Ekstrak '{os.path.basename(archive_path)}' (Password: {'(tanpa password)' if not pwd else '***'})...")
-        
+
         if is_zpaq:
             cmd = ["zpaq", "x", archive_path, "-to", output_dir, "-force"]
             if pwd:
@@ -154,14 +182,14 @@ def recursive_extract(archive_path, output_dir, passwords):
     while depth < 5:
         depth += 1
         found_nested_work = False
-        
+
         for root, _, files in os.walk(temp_stage):
             if not files:
                 continue
             # Kelompokkan arsip bersarang (termasuk jika arsip di dalam adalah split archive lagi)
             nested_groups = group_release_archives(files)
             valid_nested_groups = [
-                g for g in nested_groups 
+                g for g in nested_groups
                 if any(g["base_name"].lower().endswith(ext) for ext in ARCHIVE_EXTENSIONS) or g["is_split"]
             ]
 
@@ -192,13 +220,14 @@ def recursive_extract(archive_path, output_dir, passwords):
             if ext in VIDEO_EXTENSIONS:
                 found_videos.append(os.path.join(root, f))
 
-    return found_videos
+    # Urutan deterministik (penting untuk sharding antar-job: semua shard harus memilih episode yang sama)
+    return sorted(found_videos)
 
 def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_archive_name, source_info=None):
     """Memperbarui aliases.json dengan aliases dan info sumber otentik (Website URL + Icon/Logo)."""
     aliases_path = os.path.join(workspace_root, "aliases.json")
     data = {"aliases": {}, "folder_info": {}, "sources": {}}
-    
+
     if os.path.exists(aliases_path):
         try:
             with open(aliases_path, "r", encoding="utf-8") as f:
@@ -223,7 +252,7 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
             provider_name = p_match.group(1)
 
     existing_aliases = data["aliases"].get(leaf_id, [])
-    
+
     if provider_name and provider_name not in aliases and provider_name not in existing_aliases:
         aliases.append(provider_name)
 
@@ -262,11 +291,14 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
 def sync_metadata_from_stream_drive(workspace_root):
     """Memperbarui metadata.json secara akurat berdasarkan pohon file sebenarnya di repositori stream_drive."""
     try:
-        res = subprocess.run(["gh", "api", "repos/krasyid822/stream_drive/git/trees/main?recursive=1"], capture_output=True, text=True)
+        res = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/git/trees/main?recursive=1"], capture_output=True, text=True)
         if res.returncode != 0:
             return
         tree_data = json.loads(res.stdout)
-        
+        if tree_data.get("truncated"):
+            print("[-] Peringatan: pohon stream_drive terpotong (GitHub Tree API batas 100.000 entri). "
+                  "metadata mungkin tidak lengkap.")
+
         vtt_by_folder = {}
         for item in tree_data.get("tree", []):
             p = item["path"]
@@ -289,15 +321,15 @@ def sync_metadata_from_stream_drive(workspace_root):
                     hls_folder = parts[-2]
                     parent_folder = "/".join(parts[:-2])
                     hls_path = "/".join(parts[:-1])
-                    
+
                     ep_name = hls_folder
                     if ep_name.endswith("_hls"):
                         ep_name = ep_name[:-4]
-                    
+
                     media_id = path.replace("/", "_").replace(" ", "_").replace(".", "_")
                     poster_path = hls_path + "/poster.jpg"
                     subtitles = vtt_by_folder.get(hls_path, [])
-                    
+
                     media_items.append({
                         "id": media_id,
                         "name": ep_name,
@@ -327,51 +359,117 @@ def sync_metadata_from_stream_drive(workspace_root):
     except Exception as e:
         print(f"[-] Catatan sinkronisasi metadata: {e}")
 
-def check_if_already_processed_in_drive(dest_folder):
-    """Mengecek apakah folder tujuan sudah memiliki master.m3u8 di repositori stream_drive (fleksibel terhadap '-' vs '_')."""
-    try:
-        clean_f = dest_folder.strip("/")
-        parts = clean_f.split("/")
+def resolve_drive_folder(dest_folder):
+    """
+    Menentukan path folder yang benar-benar ada di stream_drive.
+    Toleran terhadap perbedaan penulisan ('fulldive-rpg' vs 'fulldive_rpg', case, dsb).
+    """
+    clean_f = dest_folder.strip("/")
+    res = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/contents/{clean_f}"], capture_output=True, text=True)
+    if res.returncode == 0:
+        return clean_f
+
+    parts = clean_f.split("/")
+    if len(parts) >= 2:
         category = parts[0]
-        target_title = parts[1] if len(parts) > 1 else ""
-
-        # Normalisasi slug untuk pencocokan toleran ('fulldive_rpg' == 'fulldive-rpg')
+        target_title = parts[1]
         norm_target = re.sub(r'[^a-zA-Z0-9]', '', target_title).lower()
-
-        # 1. Cek langsung path tepat
-        res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{clean_f}"], capture_output=True, text=True)
-        if res.returncode == 0:
-            items = json.loads(res.stdout)
-            if isinstance(items, list):
-                if any(item.get("name", "").endswith("_hls") for item in items):
-                    return True
-                for item in items:
-                    if item.get("type") == "dir":
-                        sub_res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{clean_f}/{item['name']}"], capture_output=True, text=True)
-                        if sub_res.returncode == 0:
-                            sub_items = json.loads(sub_res.stdout)
-                            if isinstance(sub_items, list) and any(si.get("name", "").endswith("_hls") for si in sub_items):
-                                return True
-
-        # 2. Jika tidak ditemukan secara direct, cek seluruh subfolder di dalam kategori (misal: anime/)
-        res_cat = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{category}"], capture_output=True, text=True)
+        res_cat = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/contents/{category}"], capture_output=True, text=True)
         if res_cat.returncode == 0:
-            cat_items = json.loads(res_cat.stdout)
-            if isinstance(cat_items, list):
+            try:
+                cat_items = json.loads(res_cat.stdout)
                 for c_item in cat_items:
-                    folder_name = c_item.get("name", "")
-                    norm_folder = re.sub(r'[^a-zA-Z0-9]', '', folder_name).lower()
+                    norm_folder = re.sub(r'[^a-zA-Z0-9]', '', c_item.get("name", "")).lower()
                     if norm_target and norm_target == norm_folder:
-                        # Ditemukan kecocokan nama folder (misal: fulldive-rpg vs fulldive_rpg)
-                        matched_path = f"{category}/{folder_name}"
-                        sub_res = subprocess.run(["gh", "api", f"repos/krasyid822/stream_drive/contents/{matched_path}"], capture_output=True, text=True)
-                        if sub_res.returncode == 0:
-                            sub_items = json.loads(sub_res.stdout)
-                            if isinstance(sub_items, list) and any(si.get("name", "").endswith("_hls") for si in sub_items):
-                                return True
-    except Exception as e:
-        print(f"[-] Catatan pengecekan stream_drive: {e}")
-    return False
+                        # Pertahankan segmen di bawahnya (misal season), hanya ganti nama judulnya
+                        return "/".join([category, c_item["name"]] + parts[2:])
+            except Exception:
+                pass
+    return clean_f
+
+def _query_drive_tree(path):
+    """Memanggil Git Tree API pada sebuah subtree; None bila path tidak ada / gagal."""
+    res = subprocess.run(
+        ["gh", "api", f"repos/{DRIVE_REPO}/git/trees/main:{path}?recursive=1"],
+        capture_output=True, text=True
+    )
+    if res.returncode != 0:
+        return None
+    try:
+        return json.loads(res.stdout)
+    except Exception:
+        return None
+
+def drive_folder_candidates(dest_folder):
+    """
+    Daftar path folder di stream_drive yang mungkin mewakili folder tujuan ini, urut dari yang
+    paling spesifik. Menutup kasus penulisan folder berbeda antara release body dan drive,
+    misal body: 'anime/gsyos/2' sedangkan drive: 'anime/gsyos'.
+    """
+    clean_f = dest_folder.strip("/")
+    candidates = [clean_f]
+
+    resolved = resolve_drive_folder(clean_f)
+    if resolved not in candidates:
+        candidates.append(resolved)
+
+    # Coba versi lebih pendek (buang segmen paling bawah, minimal kategori/judul)
+    parts = resolved.split("/")
+    while len(parts) > 2:
+        parts = parts[:-1]
+        cand = "/".join(parts)
+        if cand not in candidates:
+            candidates.append(cand)
+
+    return candidates
+
+def fetch_drive_folder_index(dest_folder):
+    """
+    Mengambil daftar master.m3u8 yang sudah ada di stream_drive untuk satu folder tujuan.
+    Mengembalikan himpunan path relatif terhadap subtree yang cocok (huruf kecil).
+    Dipakai untuk: (1) deteksi folder sudah terproses, (2) resume per-episode.
+    """
+    clean_f = dest_folder.strip("/")
+    if clean_f in _DRIVE_INDEX_CACHE:
+        return _DRIVE_INDEX_CACHE[clean_f]
+
+    masters = set()
+
+    # Pakai Git Tree API pada subtree folder tujuan (1 panggilan API, bukan satu per episode)
+    for cand in drive_folder_candidates(clean_f):
+        tree_data = _query_drive_tree(cand)
+        if tree_data is None:
+            continue
+        for item in tree_data.get("tree", []):
+            p = item.get("path", "")
+            # Git Tree API pada subtree (main:<path>) mengembalikan path RELATIF terhadap subtree tersebut
+            if p.endswith("master.m3u8"):
+                masters.add(normalize_rel_path(p))
+        break  # memakai subtree paling spesifik yang ada
+
+    if not masters:
+        # Fallback: AXI contents API per episode (folder mungkin belum ada sama sekali)
+        resolved = drive_folder_candidates(clean_f)[0]
+        res2 = subprocess.run(["gh", "api", f"repos/{DRIVE_REPO}/contents/{resolved}"], capture_output=True, text=True)
+        if res2.returncode == 0:
+            try:
+                for item in json.loads(res2.stdout):
+                    if item.get("name", "").endswith("_hls") and item.get("type") == "dir":
+                        sub = subprocess.run(
+                            ["gh", "api", f"repos/{DRIVE_REPO}/contents/{resolved}/{item['name']}/master.m3u8"],
+                            capture_output=True, text=True
+                        )
+                        if sub.returncode == 0:
+                            masters.add(normalize_rel_path(f"{item['name']}/master.m3u8"))
+            except Exception:
+                pass
+
+    _DRIVE_INDEX_CACHE[clean_f] = masters
+    return masters
+
+def check_if_already_processed_in_drive(dest_folder):
+    """True bila folder tujuan sudah punya minimal satu episode HLS di stream_drive."""
+    return bool(fetch_drive_folder_index(dest_folder))
 
 def get_split_archive_info(filename):
     """
@@ -386,7 +484,7 @@ def get_split_archive_info(filename):
       - .tar.gz.aa / .tar.gz.ab / ...
     """
     fn = filename.strip()
-    
+
     # 1. Format .part01.rar / .part1.rar / .part01.7z / .part01.zip
     m1 = re.search(r'^(.*?)\.part0*([0-9]+)\.([a-zA-Z0-9]+)$', fn, re.IGNORECASE)
     if m1:
@@ -465,41 +563,17 @@ def group_release_archives(asset_list):
         })
     return result
 
-def main():
-    if len(sys.argv) < 3:
-        print("Penggunaan: process_release_archive.py <download_dir> <release_tag> [release_body_file]")
-        sys.exit(1)
+# ---------------------------------------------------------------------------
+# Helper bersama untuk semua mode
+# ---------------------------------------------------------------------------
 
-    # Mode pre-check sebelum download
-    is_precheck = False
-    if sys.argv[1] == "--check-skip":
-        is_precheck = True
-        release_tag = sys.argv[2]
-        release_body_file = sys.argv[3] if len(sys.argv) > 3 else "release_body.txt"
-        download_dir = "release_downloads"
-    else:
-        download_dir = sys.argv[1]
-        release_tag = sys.argv[2]
-        release_body_file = sys.argv[3] if len(sys.argv) > 3 else "release_body.txt"
-
-    print("==========================================================")
-    print(f"📦 PIPELINE RELEASE: {release_tag}")
-    print("==========================================================")
-
-    # 1. Cek apakah release tag termasuk dalam daftar yang diabaikan (sudah diproses sebelumnya)
-    clean_tag_upper = release_tag.strip().upper()
-    if clean_tag_upper in IGNORED_RELEASE_TAGS:
-        print(f"[!] Tag release '{release_tag}' adalah tag khusus (misal password). Melewati.")
-        sys.exit(100 if is_precheck else 0)
-
-    workspace_root = os.path.abspath(os.path.dirname(__file__))
-
+def load_release_body(release_body_file, release_tag):
+    """Membaca release body dari file; jika kosong ambil langsung via gh cli."""
     body_text = ""
-    if os.path.exists(release_body_file):
+    if release_body_file and os.path.exists(release_body_file):
         with open(release_body_file, "r", encoding="utf-8") as f:
             body_text = f.read().strip()
 
-    # Jika body_text kosong (misal trigger via workflow_dispatch), ambil langsung via gh cli
     if not body_text:
         try:
             res_body = subprocess.run(["gh", "release", "view", release_tag, "--json", "body"], capture_output=True, text=True)
@@ -509,15 +583,443 @@ def main():
                 print(f"[+] Berhasil mengambil release body untuk tag '{release_tag}' dari GitHub API.")
         except Exception:
             pass
+    return body_text
 
-    # 2. Parse Pemetaan File, Aliases, dan Info Sumber dari Release Body
+def collect_passwords(body_text):
+    """Menyusun daftar password enkripsi dari tag 'password' + release body."""
+    passwords = fetch_passwords_from_password_tag()
+    for line in body_text.splitlines():
+        cl = line.strip().strip('"`')
+        if cl and cl not in passwords and not cl.startswith('#') and not cl.startswith('http') and '/' not in cl:
+            passwords.append(cl)
+    if "" not in passwords:
+        passwords.append("")
+    return passwords
+
+def fetch_release_assets(release_tag):
+    """Mengambil daftar aset release (nama + ukuran dalam byte)."""
+    assets = []
+    try:
+        res = subprocess.run(["gh", "release", "view", release_tag, "--json", "assets"], capture_output=True, text=True)
+        if res.returncode == 0:
+            data = json.loads(res.stdout)
+            assets = [{"name": a["name"], "size": a.get("size", 0)} for a in data.get("assets", [])]
+    except Exception as e:
+        print(f"[-] Gagal mendapatkan daftar aset release: {e}")
+    return assets
+
+def build_work_groups(release_tag, file_mapping, aliases, source_info, body_text):
+    """
+    Mengelompokkan aset rilis menjadi unit kerja (satu grup arsip = satu folder tujuan),
+    lengkap dengan jumlah byte untuk menghitung kebutuhan sharding.
+    """
+    assets = fetch_release_assets(release_tag)
+    raw_candidates = [a["name"] for a in assets] or list(file_mapping.keys())
+    size_by_name = {a["name"]: a.get("size", 0) for a in assets}
+    archive_groups = group_release_archives(raw_candidates)
+
+    tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
+    work_groups = []
+
+    for gi, ag in enumerate(archive_groups):
+        primary_file = ag["primary_file"]
+        base_name = ag["base_name"]
+        dest_f = file_mapping.get(primary_file.lower()) or file_mapping.get(base_name.lower()) or f"anime/{tag_slug}"
+        total_bytes = sum(size_by_name.get(p, 0) for p in ag["all_parts"])
+        work_groups.append({
+            "group": gi,
+            "base_name": base_name,
+            "primary": primary_file,
+            "parts": ag["all_parts"],
+            "is_split": ag["is_split"],
+            "dest": dest_f,
+            "bytes": total_bytes,
+        })
+    return work_groups
+
+def compute_shards(group_bytes, chunk_size_gb=CHUNK_SIZE_GB, max_shards=MAX_SHARDS):
+    """
+    Menentukan jumlah shard untuk satu grup arsip berdasarkan ukuran arsip.
+    Contoh: arsip 3 GB dengan chunk 1.2 GB -> 3 shard (~1 episode 1080p per shard).
+    """
+    chunk_bytes = max(0.1, chunk_size_gb) * (1024 ** 3)
+    if group_bytes <= 0:
+        return 1
+    shards = int(round(group_bytes / chunk_bytes))
+    return max(1, min(max_shards, shards))
+
+def download_release_parts(release_tag, parts, download_dir):
+    """Mengunduh seluruh bagian arsip satu grup."""
+    os.makedirs(download_dir, exist_ok=True)
+    for part_file in parts:
+        print(f"    -> Downloading part: {part_file}")
+        run_cmd(["gh", "release", "download", release_tag, "-p", part_file, "--dir", download_dir, "--clobber"], check=False)
+
+def find_primary_downloaded(download_dir, primary_file, parts):
+    """Menentukan file arsip utama yang benar-benar ada di disk."""
+    candidate = os.path.join(download_dir, primary_file)
+    if os.path.exists(candidate):
+        return candidate
+    for p in parts:
+        candidate = os.path.join(download_dir, p)
+        if os.path.exists(candidate):
+            return candidate
+    return None
+
+def write_skip_list(workspace_root, dest_folder, skip_file):
+    """Menulis daftar episode yang sudah ada di stream_drive untuk dipakai generate_hls.py --skip-list."""
+    masters = fetch_drive_folder_index(dest_folder)
+    if not masters:
+        return 0
+    with open(skip_file, "a", encoding="utf-8") as f:
+        for m in sorted(masters):
+            f.write(f"{normalize_rel_path(dest_folder)}/{m}\n")
+    return len(masters)
+
+def stage_hls_output(workspace_root, dest_folder, staging_dir):
+    """
+    Memindahkan folder hasil HLS dari folder produksi ke folder staging (untuk di-upload sebagai artifact).
+    Struktur path relatif dipertahankan supaya bisa langsung di-merge di repo stream_drive.
+    """
+    parts = [p for p in dest_folder.strip("/").split("/") if p]
+    current = workspace_root
+    for part in parts:
+        if not os.path.isdir(current):
+            return 0
+        next_dir = None
+        for existing in os.listdir(current):
+            if existing.lower() == part.lower() and os.path.isdir(os.path.join(current, existing)):
+                next_dir = os.path.join(current, existing)
+                break
+        current = next_dir if next_dir else os.path.join(current, part.lower())
+
+    if not os.path.isdir(current):
+        return 0
+
+    moved = 0
+    rel_dest = os.path.relpath(current, start=workspace_root)
+    stage_target = os.path.join(staging_dir, rel_dest)
+    os.makedirs(stage_target, exist_ok=True)
+
+    for name in os.listdir(current):
+        if name.endswith("_hls"):
+            src = os.path.join(current, name)
+            dst = os.path.join(stage_target, name)
+            if os.path.exists(dst):
+                shutil.rmtree(dst, ignore_errors=True)
+            shutil.move(src, dst)
+            moved += 1
+    return moved
+
+def emit_github_outputs(payload):
+    """Menulis output ke $GITHUB_OUTPUT (dipakai job plan)."""
+    chunks = payload.get("chunks", [])
+    gh_out = os.environ.get("GITHUB_OUTPUT")
+    lines = [
+        f"skip={'true' if payload.get('skip') else 'false'}",
+        f"chunks_count={len(chunks)}",
+        f"release_tag={payload.get('release_tag', '')}",
+        "chunks=" + json.dumps(chunks),
+    ]
+    if gh_out:
+        with open(gh_out, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+    for ln in lines:
+        if ln.startswith("chunks="):
+            continue
+        print(f"[OUT] {ln}")
+    print(f"[OUT] chunks={json.dumps(chunks, indent=2)}")
+
+# ---------------------------------------------------------------------------
+# MODE: --plan (job plan) -> menghasilkan daftar chunk untuk matrix job encode
+# ---------------------------------------------------------------------------
+
+def cmd_plan(release_body_file, plan_out_file):
+    print("==========================================================")
+    print("🗺️  MODE PLAN: menyusun manifest chunk encode")
+    print("==========================================================")
+
+    release_tag = os.environ.get("RELEASE_TAG", "").strip()
+    if not release_tag:
+        release_tag = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True, text=True).stdout.strip()
+
+    clean_tag_upper = release_tag.strip().upper()
+    if clean_tag_upper in IGNORED_RELEASE_TAGS:
+        print(f"[!] Tag release '{release_tag}' adalah tag khusus. Melewati.")
+        emit_github_outputs({"skip": True, "release_tag": release_tag, "chunks": []})
+        return 0
+
+    workspace_root = os.path.abspath(os.path.dirname(__file__))
+    body_text = load_release_body(release_body_file, release_tag)
     file_mapping, aliases, source_info = parse_release_body_lines(body_text)
+
     print(f"[+] Pemetaan folder terdeteksi: {json.dumps(file_mapping, indent=2)}")
     print(f"[+] Daftar aliases judul terdeteksi: {aliases}")
     if source_info:
         print(f"[+] Info sumber penyedia terdeteksi: {json.dumps(source_info, indent=2)}")
 
-    # 3. Periksa status apakah semua folder target rilis ini SUDAH ADA di stream_drive
+    work_groups = build_work_groups(release_tag, file_mapping, aliases, source_info, body_text)
+    if not work_groups:
+        print("[-] Tidak ada grup arsip yang bisa diproses.")
+        emit_github_outputs({"skip": False, "release_tag": release_tag, "chunks": []})
+        return 0
+
+    # Perbarui aliases.json (akan di-commit oleh job publish)
+    for wg in work_groups:
+        update_aliases_and_sources(workspace_root, wg["dest"], aliases, wg["base_name"], source_info)
+
+    # Deteksi folder tujuan yang sudah terproces di stream_drive
+    all_done = True
+    for wg in work_groups:
+        wg["done"] = check_if_already_processed_in_drive(wg["dest"])
+        if not wg["done"]:
+            all_done = False
+        print(f"[+] Folder '{wg['dest']}' -> {'SUDAH ada di stream_drive' if wg['done'] else 'belum ada'}")
+
+    if all_done:
+        print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
+        sync_metadata_from_stream_drive(workspace_root)
+        emit_github_outputs({"skip": True, "release_tag": release_tag, "chunks": []})
+        return 0
+
+    # Susun chunk (unit kerja paralel) dari setiap grup arsip
+    chunks = []
+    for wg in work_groups:
+        shards = compute_shards(wg["bytes"])
+        for s in range(shards):
+            chunks.append({
+                "id": f"g{wg['group']}s{s}",
+                "group": wg["group"],
+                "shard": s,
+                "shards": shards,
+                "dest": wg["dest"],
+                "primary": wg["primary"],
+                "parts": wg["parts"],
+                "bytes": wg["bytes"],
+            })
+        print(f"[+] Grup '{wg['base_name']}' ({wg['bytes'] / (1024**3):.2f} GB) -> {shards} shard")
+
+    payload = {
+        "skip": False,
+        "release_tag": release_tag,
+        "chunk_size_gb": CHUNK_SIZE_GB,
+        "max_shards": MAX_SHARDS,
+        "chunks": chunks,
+    }
+
+    with open(plan_out_file, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+    print(f"[✓] Manifest plan ditulis: {plan_out_file} ({len(chunks)} chunk)")
+    emit_github_outputs(payload)
+    return 0
+
+# ---------------------------------------------------------------------------
+# MODE: --encode-chunk (job encode matrix) -> download + extract + encode 1 chunk
+# ---------------------------------------------------------------------------
+
+def cmd_encode_chunk(release_body_file, chunk_file, download_dir="release_downloads"):
+    print("==========================================================")
+    print("🎬 MODE ENCODE CHUNK")
+    print("==========================================================")
+
+    with open(chunk_file, "r", encoding="utf-8") as f:
+        chunk = json.load(f)
+
+    workspace_root = os.path.abspath(os.path.dirname(__file__))
+    release_tag = os.environ.get("RELEASE_TAG", "").strip()
+    shard = int(chunk.get("shard", 0))
+    shards = int(chunk.get("shards", 1))
+    dest_folder = chunk["dest"]
+    parts = chunk["parts"]
+
+    print(f"[+] Chunk: {chunk.get('id')} | shard {shard + 1}/{shards} | tujuan: {dest_folder}")
+    print(f"[+] Bagian arsip ({len(parts)}): {parts}")
+
+    body_text = load_release_body(release_body_file, release_tag)
+    passwords = collect_passwords(body_text)
+
+    # 1. Unduh bagian arsip milik chunk ini saja
+    download_release_parts(release_tag, parts, download_dir)
+
+    # 2. Ekstrak (semua episode ikut terbaca, tapi hanya milik shard ini yang diproses)
+    raw_dest_dir = os.path.join(workspace_root, "RAW", dest_folder)
+    os.makedirs(raw_dest_dir, exist_ok=True)
+
+    temp_extract_dir = os.path.join(workspace_root, "RAW_TEMP")
+    shutil.rmtree(temp_extract_dir, ignore_errors=True)
+
+    primary_arch = find_primary_downloaded(download_dir, chunk.get("primary", ""), parts)
+    if not primary_arch:
+        print(f"[-] File arsip utama tidak ditemukan setelah download: {chunk.get('primary')}")
+        return 1
+
+    extracted_videos = recursive_extract(primary_arch, temp_extract_dir, passwords)
+
+    # 3. Pindahkan seluruh video ke RAW/<dest> lalu ambil hanya episode milik shard ini
+    all_videos = []
+    for v_path in extracted_videos:
+        v_final = os.path.join(raw_dest_dir, os.path.basename(v_path))
+        shutil.move(v_path, v_final)
+        all_videos.append(v_final)
+
+    # Bersihkan area ekstrak setelah semua video dipindahkan keluar
+    shutil.rmtree(temp_extract_dir, ignore_errors=True)
+
+    all_videos.sort()
+    my_videos = all_videos[shard::shards] if shards > 1 else all_videos
+
+    print(f"\n[📋] Total episode dalam arsip: {len(all_videos)}")
+    print(f"[📋] Dimiliki shard {shard + 1}/{shards}: {len(my_videos)} episode")
+    for v in my_videos:
+        print(f"    -> {os.path.basename(v)}")
+
+    # 4. Hapus arsip SEGERA setelah ekstrak (hemat disk runner)
+    shutil.rmtree(download_dir, ignore_errors=True)
+
+    if not my_videos:
+        print("[✓] Tidak ada episode milik shard ini. Selesai.")
+        return 0
+
+    # 5. Siapkan daftar episode yang sudah ada di stream_drive (resume / idempotent)
+    skip_file = os.path.join(workspace_root, "drive_skip_list.txt")
+    if os.path.exists(skip_file):
+        os.remove(skip_file)
+    existing_count = write_skip_list(workspace_root, dest_folder, skip_file)
+    if existing_count:
+        print(f"[↩️] Resume: {existing_count} episode di '{dest_folder}' sudah ada di stream_drive.")
+
+    # 6. Jalankan generator HLS
+    generate_script = os.path.join(workspace_root, "generate_hls.py")
+    cmd_gen = [sys.executable, "-u", generate_script] + my_videos
+    if existing_count:
+        cmd_gen += ["--skip-list", skip_file]
+
+    print(f"\n[🚀] Menjalankan: {' '.join(cmd_gen)}")
+    res = subprocess.run(cmd_gen)
+    had_failures = (res.returncode == 2)
+    if had_failures:
+        print("[!] Ada episode yang gagal di-encode, tetapi hasil parsial tetap dilanjutkan ke publish.")
+    elif res.returncode != 0:
+        print(f"[-] Generator HLS berhenti dengan kode {res.returncode}.")
+
+    # 7. Pindahkan hasil HLS ke folder staging untuk di-upload sebagai artifact
+    moved = stage_hls_output(workspace_root, dest_folder, os.path.join(workspace_root, STAGING_DIR))
+    print(f"[📦] {moved} folder HLS siap di-upload ke stream_drive.")
+
+    # 8. Bersihkan ruang kerja
+    shutil.rmtree(os.path.join(workspace_root, "RAW"), ignore_errors=True)
+    if os.path.exists(skip_file):
+        try:
+            os.remove(skip_file)
+        except Exception:
+            pass
+
+    # Kode 2 = ada episode gagal (job ditandai merah, tapi hasil parsial tetap dipublish).
+    # Kode 0 termasuk ketika semua episode shard ini sudah ada di stream_drive (resume).
+    return 2 if had_failures else 0
+
+# ---------------------------------------------------------------------------
+# MODE LAMA: proses seluruh rilis dalam satu proses (dipakai untuk penggunaan lokal/debug)
+# ---------------------------------------------------------------------------
+
+def cmd_legacy(download_dir, release_tag, release_body_file):
+    workspace_root = os.path.abspath(os.path.dirname(__file__))
+
+    body_text = load_release_body(release_body_file, release_tag)
+    file_mapping, aliases, source_info = parse_release_body_lines(body_text)
+    print(f"[+] Pemetaan folder terdeteksi: {json.dumps(file_mapping, indent=2)}")
+    print(f"[+] Daftar aliases judul terdeteksi: {aliases}")
+
+    passwords = collect_passwords(body_text)
+    work_groups = build_work_groups(release_tag, file_mapping, aliases, source_info, body_text)
+
+    all_processed_videos = []
+
+    for wg in work_groups:
+        arch_name = wg["base_name"]
+        dest_folder = wg["dest"]
+        update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info)
+
+        raw_dest_dir = os.path.join(workspace_root, "RAW", dest_folder)
+        os.makedirs(raw_dest_dir, exist_ok=True)
+
+        print(f"\n==================================================")
+        print(f"📂 Memproses: {arch_name} -> RAW/{dest_folder}")
+        print(f"==================================================")
+
+        download_release_parts(release_tag, wg["parts"], download_dir)
+        primary_arch = find_primary_downloaded(download_dir, wg["primary"], wg["parts"])
+        if not primary_arch:
+            print(f"[-] Arsip utama tidak ditemukan: {wg['primary']}")
+            continue
+
+        temp_extract_dir = os.path.join(workspace_root, "RAW_TEMP")
+        shutil.rmtree(temp_extract_dir, ignore_errors=True)
+        extracted_videos = recursive_extract(primary_arch, temp_extract_dir, passwords)
+        shutil.rmtree(temp_extract_dir, ignore_errors=True)
+
+        for v_path in extracted_videos:
+            v_final = os.path.join(raw_dest_dir, os.path.basename(v_path))
+            shutil.move(v_path, v_final)
+            all_processed_videos.append(v_final)
+            print(f" -> Video dipindahkan: RAW/{dest_folder}/{os.path.basename(v_path)}")
+
+        # Hapus arsip grup ini segera setelah ekstrak (hemat disk)
+        shutil.rmtree(download_dir, ignore_errors=True)
+
+    if not all_processed_videos:
+        print("\n[✓] Semua video dalam rilis ini sudah selesai diproses dan di-host di stream_drive.")
+    else:
+        print("\n==========================================================")
+        print("🎬 MENJALANKAN GENERATOR HLS ABR & SUBTITLE PIPELINE")
+        print("==========================================================")
+        # Resume: lewati episode yang sudah ada di stream_drive
+        skip_file = os.path.join(workspace_root, "drive_skip_list.txt")
+        if os.path.exists(skip_file):
+            os.remove(skip_file)
+        dest_folders = sorted({
+            os.path.dirname(v).replace(os.sep, "/").replace("RAW/", "", 1)
+            for v in all_processed_videos
+        })
+        existing_total = sum(write_skip_list(workspace_root, d, skip_file) for d in dest_folders)
+        if existing_total:
+            print(f"[↩️] Resume: {existing_total} episode sudah ada di stream_drive dan akan dilewati.")
+
+        generate_script = os.path.join(workspace_root, "generate_hls.py")
+        cmd_gen = [sys.executable, "-u", generate_script] + all_processed_videos
+        if os.path.exists(skip_file) and os.path.getsize(skip_file) > 0:
+            cmd_gen += ["--skip-list", skip_file]
+        res = subprocess.run(cmd_gen)
+        if res.returncode not in (0, 2):
+            print(f"[-] Generator HLS berhenti dengan kode {res.returncode}.")
+
+    print("\n[🧹] Membersihkan file arsip dan berkas unduhan sementara...")
+    shutil.rmtree(download_dir, ignore_errors=True)
+    if release_body_file and os.path.exists(release_body_file):
+        try:
+            os.remove(release_body_file)
+        except Exception:
+            pass
+
+    print("\n==========================================================")
+    print("🎉 PIPELINE PROSES RELEASE SELESAI!")
+    print("==========================================================")
+    return 0
+
+# ---------------------------------------------------------------------------
+# MODE: --check-skip (pre-check cepat sebelum job lain berjalan)
+# ---------------------------------------------------------------------------
+
+def cmd_check_skip(release_tag, release_body_file):
+    clean_tag_upper = release_tag.strip().upper()
+    if clean_tag_upper in IGNORED_RELEASE_TAGS:
+        print(f"[!] Tag release '{release_tag}' adalah tag khusus (misal password). Melewati.")
+        return 100
+
+    workspace_root = os.path.abspath(os.path.dirname(__file__))
+    body_text = load_release_body(release_body_file, release_tag)
+    file_mapping, aliases, source_info = parse_release_body_lines(body_text)
+
     target_folders = list(set(file_mapping.values()))
     if not target_folders:
         tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
@@ -532,125 +1034,67 @@ def main():
     if all_already_in_drive:
         print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
         sync_metadata_from_stream_drive(workspace_root)
-        print("[+] Metadata & aliases.json telah diperbarui tanpa perlu mengunduh aset atau transcode.")
-        sys.exit(100 if is_precheck else 0)
+        return 100
 
-    if is_precheck:
-        print("[+] Konten belum ada di stream_drive. Melanjutkan ke proses download & transcode...")
+    print("[+] Konten belum ada di stream_drive. Melanjutkan ke proses download & transcode...")
+    return 0
+
+def main():
+    if len(sys.argv) < 2:
+        print("Penggunaan:")
+        print("  process_release_archive.py <download_dir> <release_tag> [release_body_file]")
+        print("  process_release_archive.py --plan <release_body_file> <plan_out.json>")
+        print("  process_release_archive.py --encode-chunk <release_body_file> <chunk.json> [download_dir]")
+        print("  process_release_archive.py --check-skip <release_tag> [release_body_file]")
+        print("  process_release_archive.py --sync-metadata")
+        sys.exit(1)
+
+    mode = sys.argv[1]
+
+    if mode == "--plan":
+        if len(sys.argv) < 4:
+            print("Penggunaan: process_release_archive.py --plan <release_body_file> <plan_out.json>")
+            sys.exit(1)
+        sys.exit(cmd_plan(sys.argv[2], sys.argv[3]))
+
+    if mode == "--encode-chunk":
+        if len(sys.argv) < 4:
+            print("Penggunaan: process_release_archive.py --encode-chunk <release_body_file> <chunk.json> [download_dir]")
+            sys.exit(1)
+        download_dir = sys.argv[4] if len(sys.argv) > 4 else "release_downloads"
+        sys.exit(cmd_encode_chunk(sys.argv[2], sys.argv[3], download_dir))
+
+    if mode == "--check-skip":
+        if len(sys.argv) < 3:
+            print("Penggunaan: process_release_archive.py --check-skip <release_tag> [release_body_file]")
+            sys.exit(1)
+        release_tag = sys.argv[2]
+        release_body_file = sys.argv[3] if len(sys.argv) > 3 else "release_body.txt"
+        sys.exit(cmd_check_skip(release_tag, release_body_file))
+
+    if mode == "--sync-metadata":
+        workspace_root = os.path.abspath(os.path.dirname(__file__))
+        sync_metadata_from_stream_drive(workspace_root)
         sys.exit(0)
 
-    # 4. Ambil Kunci Password dari Tag 'password' & Release Body
-    passwords = fetch_passwords_from_password_tag()
-    for line in body_text.splitlines():
-        cl = line.strip().strip('"`')
-        if cl and cl not in passwords and not cl.startswith('#') and not cl.startswith('http') and '/' not in cl:
-            passwords.append(cl)
-    if "" not in passwords:
-        passwords.append("")
+    # Mode lama (semua rilis dalam satu proses)
+    if len(sys.argv) < 3:
+        print("Penggunaan: process_release_archive.py <download_dir> <release_tag> [release_body_file]")
+        sys.exit(1)
+    download_dir = sys.argv[1]
+    release_tag = sys.argv[2]
+    release_body_file = sys.argv[3] if len(sys.argv) > 3 else "release_body.txt"
 
-    # 5. Dapatkan Daftar Aset yang Tersedia di Release
-    release_assets = []
-    try:
-        res_assets = subprocess.run(["gh", "release", "view", release_tag, "--json", "assets"], capture_output=True, text=True)
-        if res_assets.returncode == 0:
-            data_ast = json.loads(res_assets.stdout)
-            release_assets = [a["name"] for a in data_ast.get("assets", [])]
-    except Exception as e:
-        print(f"[-] Gagal mendapatkan daftar aset release: {e}")
-
-    raw_candidates = release_assets if release_assets else list(file_mapping.keys())
-    archive_groups = group_release_archives(raw_candidates)
-
-    print(f"\n[🔍] Terdeteksi {len(archive_groups)} grup arsip rilis:")
-    for ag in archive_groups:
-        print(f" -> Basis: '{ag['base_name']}' | Split: {ag['is_split']} ({len(ag['all_parts'])} bagian: {ag['all_parts']}) | Primary: '{ag['primary_file']}'")
-
-    os.makedirs(download_dir, exist_ok=True)
-    archives_to_process = []
-
-    for ag in archive_groups:
-        primary_file = ag["primary_file"]
-        base_name = ag["base_name"]
-        
-        # Tentukan folder tujuan dari pemetaan
-        dest_f = file_mapping.get(primary_file.lower()) or file_mapping.get(base_name.lower())
-        if not dest_f:
-            tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
-            dest_f = f"anime/{tag_slug}"
-
-        # Cek apakah folder HLS tujuan sudah ada di stream_drive
-        if check_if_already_processed_in_drive(dest_f):
-            print(f"\n[⚡] SKIP DOWNLOAD: Arsip '{base_name}' dilewati karena HLS '{dest_f}' sudah ada di stream_drive.")
-            update_aliases_and_sources(workspace_root, dest_f, aliases, primary_file, source_info)
-            continue
-
-        print(f"\n[📥] Mengunduh seluruh bagian arsip untuk: '{base_name}' ({len(ag['all_parts'])} bagian) -> Target: '{dest_f}'...")
-        for part_file in ag["all_parts"]:
-            print(f"    -> Downloading part: {part_file}")
-            run_cmd(["gh", "release", "download", release_tag, "-p", part_file, "--dir", download_dir, "--clobber"], check=False)
-
-        local_primary_arch = os.path.join(download_dir, primary_file)
-        if os.path.exists(local_primary_arch):
-            archives_to_process.append((local_primary_arch, dest_f))
-        else:
-            # Fallback jika nama file primary tidak cocok persis
-            for p in ag["all_parts"]:
-                candidate_p = os.path.join(download_dir, p)
-                if os.path.exists(candidate_p):
-                    archives_to_process.append((candidate_p, dest_f))
-                    break
-
-    all_processed_videos = []
-
-    # 6. Ekstrak Setiap Arsip yang Berhasil Diunduh Lengkap ke Folder RAW/<kategori>/<judul>/[season]
-    for arch, dest_folder in archives_to_process:
-        arch_name = os.path.basename(arch)
-        update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info)
-
-        raw_dest_dir = os.path.join(workspace_root, "RAW", dest_folder)
-        os.makedirs(raw_dest_dir, exist_ok=True)
-
-        print(f"\n==================================================")
-        print(f"📂 Memproses: {arch_name} -> RAW/{dest_folder}")
-        print(f"==================================================")
-
-        temp_extract_dir = os.path.join(workspace_root, "RAW_TEMP")
-        shutil.rmtree(temp_extract_dir, ignore_errors=True)
-
-        extracted_videos = recursive_extract(arch, temp_extract_dir, passwords)
-        
-        for v_path in extracted_videos:
-            v_name = os.path.basename(v_path)
-            v_final = os.path.join(raw_dest_dir, v_name)
-            shutil.move(v_path, v_final)
-            all_processed_videos.append(v_final)
-            print(f" -> Video dipindahkan: RAW/{dest_folder}/{v_name}")
-
-        shutil.rmtree(temp_extract_dir, ignore_errors=True)
-
-    if not all_processed_videos:
-        print("\n[✓] Semua video dalam rilis ini sudah selesai diproses dan di-host di stream_drive.")
-    else:
-        # 7. Jalankan generate_hls.py
-        print("\n==========================================================")
-        print("🎬 MENJALANKAN GENERATOR HLS ABR & SUBTITLE PIPELINE")
-        print("==========================================================")
-        generate_script = os.path.join(workspace_root, "generate_hls.py")
-        cmd_gen = [sys.executable, generate_script] + all_processed_videos
-        run_cmd(cmd_gen, check=True)
-
-    # 8. Bersihkan file arsip download & sementara agar tidak ter-push ke Git
-    print("\n[🧹] Membersihkan file arsip dan berkas unduhan sementara...")
-    shutil.rmtree(download_dir, ignore_errors=True)
-    if os.path.exists(release_body_file):
-        try:
-            os.remove(release_body_file)
-        except Exception:
-            pass
-
-    print("\n==========================================================")
-    print("🎉 PIPELINE PROSES RELEASE SELESAI!")
     print("==========================================================")
+    print(f"📦 PIPELINE RELEASE: {release_tag}")
+    print("==========================================================")
+
+    clean_tag_upper = release_tag.strip().upper()
+    if clean_tag_upper in IGNORED_RELEASE_TAGS:
+        print(f"[!] Tag release '{release_tag}' adalah tag khusus (misal password). Melewati.")
+        sys.exit(0)
+
+    sys.exit(cmd_legacy(download_dir, release_tag, release_body_file))
 
 if __name__ == "__main__":
     main()

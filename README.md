@@ -174,3 +174,89 @@ Widget komentar retro terpasang tepat di bawah HLS Player Monitor. Widget ini me
 
 # Catatan
 - **Dukungan Softsub WebVTT**: Softsub yang diekstrak menjadi file `.vtt` (misal: `sub_0_ind.vtt`) dari rilis softsub secara otomatis terdeteksi, tercatat di `metadata.json`, dan tombol toggle **SUBTITLE** pada pemutar video otomatis aktif.
+
+---
+
+# ⚙️ Pipeline Otomatis Rilis → HLS (GitHub Actions)
+
+Rilis baru otomatis diproses oleh workflow `Process Release Archive & Auto HLS Stream Pipeline`
+(`.github/workflows/process-release-hls.yml`) menjadi HLS ABR, lalu di-push ke repo `stream_drive`.
+
+## Arsitektur 3 Job ( agar tidak kena limit 6 jam GitHub Actions )
+
+| Job | Tugas | Output |
+|-----|-------|--------|
+| **1. Plan** | Membaca release body, memetakan folder tujuan, mengecek mana yang sudah ada di `stream_drive`, lalu menyusun **manifest chunk encode**. Tidak mengunduh file apa pun. | `plan.json` + output job |
+| **2. Encode** | **Matrix job**: tiap job mengunduh arsipnya sendiri → ekstrak → memproses episode miliknya → upload hasilnya sebagai *artifact*. `fail-fast: false`, `max-parallel: 4`. | Artifact `hls_<id>` |
+| **3. Publish** | Merge semua artifact → smart push ke `stream_drive` → sinkron `metadata.json` → push ke repo `stream`. Jalan **walaupun** sebagian shard gagal. | Media di `stream_drive` |
+
+### Pembagian kerja antar job encode
+- Satu grup arsip dipecah menjadi beberapa *shard* berdasarkan ukuran arsip
+  (`shards = ukuran_arsip / HLS_CHUNK_SIZE_GB`, dibatasi `HLS_MAX_SHARDS`).
+- Episode di dalam arsip dibagi **berdesar (stride)**: shard 0 mengambil episode 1, 3, 5, …,
+  shard 1 mengambil episode 2, 4, 6, … sehingga beban kerja terbagi rata.
+- Shader bisa diatur lewat input manual `workflow_dispatch`: `shard_size_gb` (default `1.2`) dan `max_shards` (default `6`).
+
+## 🔄 Resume / Anti-Mulai-Ulang dari Nol
+Sebelum encode, tiap episode dicek terhadap isi `stream_drive`. Episode yang `master.m3u8`-nya
+sudah ada **dilewati**, bukan di-encode ulang. Artinya:
+- Menjalankan ulang workflow setelah job kena limit / gagal → **melanjutkan**, bukan mengulang.
+- Rilis yang hanya terisi sebagian (folder sudah ada tapi episode kurang) tetap bisa dilanjuti.
+
+## 🎚️ Konfigurasi Encoding
+
+| Environment Variable / Input | Default | Keterangan |
+|------------------------------|---------|------------|
+| `HLS_NATIVE_MODE` | `auto` | `auto` = stream-copy bila aman, `copy` = paksa, `encode` = tanpa stream-copy |
+| `HLS_NATIVE_PRESET` | `medium` | Preset x264 untuk rendition **resolusi asli** (tidak diturunkan kualitasnya) |
+| `HLS_DERIVED_PRESET` | `veryfast` | Preset x264 untuk rendition **turunan** (720p/480p/360p dari sumber yang lebih besar) |
+| `HLS_CORES` | jumlah core runner | Jumlah core yang dibagi ke seluruh encoder (mencegah thread berebut) |
+| `HLS_COPY_MAX_KEY_INTERVAL` | `10` | Batas interval keyframe sumber agar segmen HLS tetap rapi |
+
+> Ketiga variabel preset dapat diatur lewat **repository variables** (`HLS_NATIVE_MODE`,
+> `HLS_NATIVE_PRESET`, `HLS_DERIVED_PRESET`) tanpa mengubah kode.
+
+### Stream-Copy pada Rendition Resolusi Asli
+Agar hemat waktu **tanpa menurunkan kualitas**, rendition yang resolusinya sama persis dengan
+sumber akan dilewati proses encode (`-c copy`) sehingga **100% identik dengan file asli**.
+Syaratnya (dicek otomatis tiap video):
+1. Kodek sumber **H.264** — kalau sumber HEVC/H.265, hasil stream-copy tidak akan bisa diputar
+   browser, sehingga otomatis fallback ke encode.
+2. Resolusi sumber persis sama dengan profil pada ladder (misal sumber 1080p → stream 1080p di-copy,
+   720p/480p/360p di-encode).
+3. Keyframe sumber seragam dan cukup rapat (default ≤ 10 detik).
+
+Tersedia juga mode manual per perintah:
+```bash
+# paksa stream-copy (otomatis fallback ke encode bila tidak aman)
+./hls.sh "RAW/anime/series/1/video.mkv" --native-mode copy
+
+# atur preset
+./hls.sh "RAW/anime/series/1/video.mkv" --native-preset medium --derived-preset veryfast
+```
+
+## 🧹 Penghematan Disk
+Arsip yang sudah diekstrak langsung dihapus, `RAW_TEMP` dibersihkan per grup arsip, dan folder
+`RAW/` dibersihkan di akhir job — agar runner 14 GB tidak penuh.
+
+## 📤 Cara Job Publish Mendorong ke `stream_drive`
+Repo `stream_drive` sudah **~15 GB / 19.000+ file `.ts`**, sehingga job publish memakai cara khusus:
+
+1. **Clone ringkas (blobless + sparse tanpa `.ts`)**
+   ```
+   git clone --filter=blob:none --no-checkout --depth 1 <url> stream_drive_target
+   git sparse-checkout init --no-cone
+   git sparse-checkout set "/*" "!*.ts"
+   git read-tree -mu HEAD
+   ```
+   File `.ts` lama tidak pernah diubah (hanya ditambahkan), jadi tidak perlu diunduh/materiilisasi.
+   Yang dimuat hanya playlist, subtitle, dan poster (ratusan file kecil).
+   *Aman untuk `git add`*: entri `.ts` lama berstatus *skip-worktree*, sehingga `git status` tetap
+   bersih dan tidak pernah meng-commit penghapusan media lama.
+2. **Push per artifact** — tiap artifact di-merge → langsung di-push → lalu artifact-nya dihapus.
+   Episode bisa ditonton sebelum semua shard selesai, dan disk runner tidak menumpuk.
+   Push yang gagal tidak menghentikan artifact berikutnya: file tetap tertahan di working tree
+   dan ikut ter-push pada batch berikutnya.
+3. **Timeout dinamis** — durasi push dihitung dari ukuran total artifact
+   (`menit = ukuran_MB / 400 + 30`, dibatasi 60–330 menit), bukan angka statis.
+4. Pengelompokan commit tetap memakai `git_smart_push.py` (batch ~500 MB per push).

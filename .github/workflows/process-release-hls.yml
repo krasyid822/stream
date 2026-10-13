@@ -9,6 +9,14 @@ on:
         description: 'Tag GitHub Release yang ingin diproses secara manual'
         required: true
         default: ''
+      shard_size_gb:
+        description: 'Target ukuran arsip per shard encode (GB). Makin kecil = makin banyak job paralel'
+        required: false
+        default: '1.2'
+      max_shards:
+        description: 'Batas maksimum shard per grup arsip'
+        required: false
+        default: '6'
 
 permissions:
   contents: write
@@ -18,12 +26,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  process-archive-hls:
+  # ==========================================================================
+  # 1. PLAN — menyusun manifest chunk encode (tidak mengunduh file apa pun)
+  # ==========================================================================
+  plan:
+    name: "1) Plan Chunk"
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      skip: ${{ steps.plan.outputs.skip }}
+      chunks_count: ${{ steps.plan.outputs.chunks_count }}
+      chunks: ${{ steps.plan.outputs.chunks }}
     steps:
       - name: Checkout Code Repository (Instant Sparse Checkout)
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 1
           sparse-checkout: |
             .github
@@ -54,30 +72,73 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Pre-Check Existing HLS & Update Aliases
-        id: precheck
+      - name: Build Chunk Plan
+        id: plan
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+          HLS_CHUNK_SIZE_GB: ${{ inputs.shard_size_gb || '1.2' }}
+          HLS_MAX_SHARDS: ${{ inputs.max_shards || '6' }}
         run: |
-          TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
           cat << 'EOF' > release_body.txt
           ${{ github.event.release.body }}
           EOF
 
-          set +e
-          python3 -u process_release_archive.py --check-skip "$TAG" release_body.txt
-          EXIT_CODE=$?
-          set -e
+          python3 -u process_release_archive.py --plan release_body.txt plan.json
 
-          if [ $EXIT_CODE -eq 100 ]; then
-            echo "skip=true" >> $GITHUB_OUTPUT
-            echo "[⚡] Rilis '$TAG' sudah pernah diproses di stream_drive. Melewati instalasi dependency, download & transcode."
-          else
-            echo "skip=false" >> $GITHUB_OUTPUT
+      - name: Commit Updated Aliases (Web UI)
+        if: steps.plan.outputs.skip != 'true'
+        run: |
+          git add aliases.json || true
+          if [ -n "$(git status --porcelain aliases.json)" ]; then
+            git commit -m "chore(metadata): update aliases & sources [skip ci]" || true
+            git push origin HEAD:main || true
           fi
 
+  # ==========================================================================
+  # 2. ENCODE — matrix: tiap job mengunduh arsipnya sendiri & memproses 1 shard
+  # ==========================================================================
+  encode:
+    name: "2) Encode ${{ matrix.chunk.id }}"
+    needs: plan
+    if: needs.plan.outputs.skip != 'true' && needs.plan.outputs.chunks_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        chunk: ${{ fromJson(needs.plan.outputs.chunks) }}
+    steps:
+      - name: Checkout Code Repository (Instant Sparse Checkout)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            .github
+            assets
+            aliases.json
+            metadata.json
+            generate_hls.py
+            process_release_archive.py
+            git_smart_push.py
+            git_smart_pull.py
+            push.sh
+            pull.sh
+            hls.sh
+            run.sh
+            README.md
+            index.html
+            favicon.ico
+            .gitignore
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Cache APT Packages
-        if: steps.precheck.outputs.skip != 'true'
         uses: actions/cache@v4
         with:
           path: /var/cache/apt/archives
@@ -86,62 +147,187 @@ jobs:
             apt-cache-${{ runner.os }}-ffmpeg-extractors-
 
       - name: Install System Dependencies (FFmpeg & Extractors)
-        if: steps.precheck.outputs.skip != 'true'
         run: |
-          # Periksa apakah tool utama sudah terpasang di runner Ubuntu (FFmpeg & 7z bawaan sudah ada)
           sudo apt update -qq
           sudo apt install -y --no-install-recommends ffmpeg p7zip-full p7zip-rar unrar zpaq unshield
 
-      - name: Process Release & Generate HLS Pipeline
-        if: steps.precheck.outputs.skip != 'true'
+      - name: Download, Extract & Encode Chunk
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PYTHONUNBUFFERED: "1"
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+          CHUNK_JSON: ${{ toJSON(matrix.chunk) }}
+          # Konfigurasi encode (bisa diubah lewat repository variables)
+          HLS_NATIVE_MODE: ${{ vars.HLS_NATIVE_MODE || 'auto' }}
+          HLS_NATIVE_PRESET: ${{ vars.HLS_NATIVE_PRESET || 'medium' }}
+          HLS_DERIVED_PRESET: ${{ vars.HLS_DERIVED_PRESET || 'veryfast' }}
         run: |
-          TAG="${{ github.event.release.tag_name || github.event.inputs.release_tag }}"
-          python3 -u process_release_archive.py release_downloads "$TAG" release_body.txt
+          cat << 'EOF' > release_body.txt
+          ${{ github.event.release.body }}
+          EOF
 
-      - name: Push Metadata Updates to stream (Web UI)
+          echo "$CHUNK_JSON" > chunk.json
+          python3 -u process_release_archive.py --encode-chunk release_body.txt chunk.json
+
+      - name: Upload HLS Output (Artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hls_${{ matrix.chunk.id }}
+          path: HLS_OUT
+          retention-days: 1
+          compression-level: 1
+          if-no-files-found: ignore
+
+  # ==========================================================================
+  # 3. PUBLISH — gabungkan semua hasil encode & push ke stream_drive
+  # ==========================================================================
+  publish:
+    name: "3) Publish ke stream_drive"
+    needs: [plan, encode]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout Code Repository (Instant Sparse Checkout)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          sparse-checkout: |
+            .github
+            assets
+            aliases.json
+            metadata.json
+            generate_hls.py
+            process_release_archive.py
+            git_smart_push.py
+            git_smart_pull.py
+            push.sh
+            pull.sh
+            hls.sh
+            run.sh
+            README.md
+            index.html
+            favicon.ico
+            .gitignore
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure Git Identity
         run: |
-          chmod +x push.sh git_smart_push.py
-          git add aliases.json metadata.json || true
-          if [ -n "$(git status --porcelain aliases.json metadata.json)" ]; then
-            git commit -m "chore(metadata): update library index & aliases [skip ci]" || true
-            git push origin main || true
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Download All HLS Artifacts
+        if: needs.encode.result != 'skipped' && needs.encode.result != 'cancelled'
+        uses: actions/download-artifact@v4
+        with:
+          pattern: hls_*
+          path: hls_artifacts
+          merge-multiple: false
+
+      - name: Measure Artifact Size (untuk timeout dinamis)
+        id: measure
+        run: |
+          MB=0
+          if [ -d hls_artifacts ]; then
+            MB=$(du -sm hls_artifacts | cut -f1)
           fi
+          # Asumsi konservatif ~400 MB/menit untuk upload git + overhead git add/commit
+          MIN=$(( MB / 400 + 30 ))
+          [ "$MIN" -lt 60 ] && MIN=60
+          [ "$MIN" -gt 330 ] && MIN=330
+          echo "Total artifact HLS: ${MB} MB -> timeout push: ${MIN} menit"
+          echo "push_minutes=${MIN}" >> "$GITHUB_OUTPUT"
 
       - name: Push New HLS Media to stream_drive
-        if: steps.precheck.outputs.skip != 'true'
+        if: needs.encode.result != 'skipped' && needs.encode.result != 'cancelled'
+        shell: bash
+        timeout-minutes: ${{ fromJSON(steps.measure.outputs.push_minutes) }}
         env:
           GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
         run: |
-          # 1. Clone shallow repo stream_drive secara instan
-          mkdir -p stream_drive_target
-          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git" stream_drive_target
-
-          # 2. Pindahkan folder konten media yang baru dari workspace ke stream_drive_target
-          echo "Memindahkan folder media ke stream_drive_target..."
-          HAS_MEDIA=false
-          for dir in */ ; do
-            dname="${dir%/}"
-            if [ "$dname" != "assets" ] && [ "$dname" != ".github" ] && [ "$dname" != "release_downloads" ] && [ "$dname" != "RAW_TEMP" ] && [ "$dname" != "RAW" ] && [ "$dname" != "stream_drive_target" ]; then
-              echo "Memindahkan folder: $dname ke stream_drive..."
-              cp -r "$dname" stream_drive_target/
-              HAS_MEDIA=true
-            fi
-          done
-
-          # 3. Jalankan smart push hanya jika ada media baru
-          if [ "$HAS_MEDIA" = true ]; then
+          if [ -d hls_artifacts ] && [ -n "$(ls -A hls_artifacts 2>/dev/null)" ]; then
+            # 1. Clone RINGKAS: blobless + sparse TANPA file .ts
+            #    Repo stream_drive sudah ~15 GB / 19.000+ file .ts, sedangkan file .ts lama
+            #    tidak pernah diubah (hanya ditambahkan) -> tidak perlu diunduh sama sekali.
+            #    Yang di-materialisasi hanya playlist/subtitle/poster (ratusan file kecil).
+            git clone --filter=blob:none --no-checkout --depth 1 \
+              "https://x-access-token:${GH_TOKEN}@github.com/krasyid822/stream_drive.git" stream_drive_target
             cd stream_drive_target
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            python3 -u ../git_smart_push.py
+            git sparse-checkout init --no-cone
+            git sparse-checkout set "/*" "!*.ts"
+            git read-tree -mu HEAD
+            cd ..
+
+            echo "Ukuran working tree stream_drive: $(du -sh stream_drive_target | cut -f1) (repo aslinya ~15 GB)"
+            echo "Disk sebelum merge:"
+            df -h . | tail -1
+
+            PUSH_OK=0
+            PUSH_FAIL=0
+            for art in hls_artifacts/hls_*/ ; do
+              [ -d "$art" ] || continue
+              ART_NAME="$(basename "$art")"
+              HAS_MEDIA=false
+
+              while IFS= read -r -d '' topdir; do
+                echo "  [${ART_NAME}] Merging: $(basename "$topdir")"
+                cp -r "$topdir" stream_drive_target/
+                HAS_MEDIA=true
+              done < <(find "$art" -mindepth 1 -maxdepth 1 -type d -print0)
+
+              # Sudah tersalin ke working tree -> artifact tidak lagi dibutuhkan (hemat disk)
+              rm -rf "$art"
+
+              if [ "$HAS_MEDIA" = true ]; then
+                echo "  [${ART_NAME}] Mendorong ke stream_drive..."
+                if ( cd stream_drive_target && python3 -u ../git_smart_push.py ); then
+                  PUSH_OK=$((PUSH_OK + 1))
+                else
+                  PUSH_FAIL=$((PUSH_FAIL + 1))
+                  echo "  [${ART_NAME}] Push gagal. File tetap ada di working tree & akan dicoba lagi di batch berikutnya."
+                fi
+              else
+                echo "  [${ART_NAME}] Tidak ada folder media di artifact ini."
+              fi
+            done
+
+            echo "Ringkasan push: ${PUSH_OK} batch sukses, ${PUSH_FAIL} batch gagal."
+            echo "Disk sesudah merge:"
+            df -h . | tail -1
+
+            if [ "$PUSH_FAIL" -gt 0 ]; then
+              echo "::error::${PUSH_FAIL} batch artifact gagal di-push ke stream_drive."
+              exit 1
+            fi
           else
-            echo "[+] Tidak ada folder media baru yang perlu di-push ke stream_drive."
+            echo "[i] Tidak ada artifact HLS untuk dipush (semua episode sudah ada?)."
           fi
 
-      - name: Clean Up Workspace
+      - name: Sync Metadata from stream_drive
+        if: needs.encode.result != 'skipped' && needs.encode.result != 'cancelled'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 -u process_release_archive.py --sync-metadata
+
+      - name: Push Metadata Updates to stream (Web UI)
         if: always()
         run: |
-          rm -rf release_downloads release_body.txt RAW_TEMP RAW RAW_TEMP_EXTRACT stream_drive_target
+          git add metadata.json aliases.json || true
+          if [ -n "$(git status --porcelain metadata.json aliases.json)" ]; then
+            git commit -m "chore(metadata): update library index & aliases [skip ci]" || true
+            git push origin HEAD:main || true
+          fi
+
+      - name: Report Failed Chunks
+        if: needs.encode.result == 'failure' || needs.encode.result == 'cancelled'
+        run: |
+          echo "::error::Sebagian shard encode gagal (status: ${{ needs.encode.result }}). Hasil parsial tetap dipublish. Jalankan ulang workflow ini — episode yang sudah jadi akan otomatis dilewati (resume)."
+          exit 1
