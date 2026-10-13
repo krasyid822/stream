@@ -80,6 +80,13 @@
       "How a Realist Hero Rebuilt the Kingdom",
       "Restorasi Kerajaan Sang Realis",
       "現実主義勇者の王国再建記"
+    ],
+    "oregairu": [
+      "Yahari Ore no Seishun Love Comedy wa Machigatteiru",
+      "My Teen Romantic Comedy SNAFU",
+      "Kisah Komedi Romantis Masa Remajaku yang Salah",
+      "やはり俺の青春ラブコメはまちがっている",
+      "otakudesu.io"
     ]
   },
   "folder_info": {
@@ -138,6 +145,12 @@
       "url": "https://otakudesu.io/",
       "icon": "https://otakudesu.io/otakudesu.png",
       "note": "Sumber mentah dari Release Otakudesu.io_TSKB_480p.7z"
+    },
+    "anime/oregairu": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_Oregairu--08_480p.7z"
     }
   }
 }
