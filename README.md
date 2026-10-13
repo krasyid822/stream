@@ -195,7 +195,18 @@ Rilis baru otomatis diproses oleh workflow `Process Release Archive & Auto HLS S
   (`shards = ukuran_arsip / HLS_CHUNK_SIZE_GB`, dibatasi `HLS_MAX_SHARDS`).
 - Episode di dalam arsip dibagi **berdesar (stride)**: shard 0 mengambil episode 1, 3, 5, …,
   shard 1 mengambil episode 2, 4, 6, … sehingga beban kerja terbagi rata.
-- Shader bisa diatur lewat input manual `workflow_dispatch`: `shard_size_gb` (default `1.2`) dan `max_shards` (default `6`).
+- Tidak ada yang perlu diisi manual: form `workflow_dispatch` hanya meminta `release_tag`,
+  jumlah shard **dihitung otomatis** dari ukuran arsip.
+- Kalau ingin menajamkan tuning, buat **repository variable**
+  (*Settings → Secrets and variables → Actions → Variables → New repository variable*):
+
+  | Variable | Default | Arti |
+  |---|---|---|
+  | `HLS_CHUNK_SIZE_GB` | `1.2` | Makin kecil = makin banyak job paralel |
+  | `HLS_MAX_SHARDS` | `6` | Plafon shard per grup arsip |
+  | `HLS_NATIVE_MODE` | `auto` | `auto` / `copy` / `encode` (lihat tabel di bawah) |
+  | `HLS_NATIVE_PRESET` | `medium` | Preset rendition resolusi asli |
+  | `HLS_DERIVED_PRESET` | `veryfast` | Preset rendition turunan |
 
 ## 🔄 Resume / Anti-Mulai-Ulang dari Nol
 Sebelum encode, tiap episode dicek terhadap isi `stream_drive`. Episode yang `master.m3u8`-nya
@@ -212,9 +223,11 @@ sudah ada **dilewati**, bukan di-encode ulang. Artinya:
 | `HLS_DERIVED_PRESET` | `veryfast` | Preset x264 untuk rendition **turunan** (720p/480p/360p dari sumber yang lebih besar) |
 | `HLS_CORES` | jumlah core runner | Jumlah core yang dibagi ke seluruh encoder (mencegah thread berebut) |
 | `HLS_COPY_MAX_KEY_INTERVAL` | `10` | Batas interval keyframe sumber agar segmen HLS tetap rapi |
+| `HLS_CHUNK_SIZE_GB` | `1.2` | Ukaran arsip target per shard encode (sharding otomatis) |
+| `HLS_MAX_SHARDS` | `6` | Plafon jumlah shard per grup arsip |
 
-> Ketiga variabel preset dapat diatur lewat **repository variables** (`HLS_NATIVE_MODE`,
-> `HLS_NATIVE_PRESET`, `HLS_DERIVED_PRESET`) tanpa mengubah kode.
+> Semuanya diatur lewat **repository variables** (`Settings → Secrets and variables → Actions →
+> Variables`), bukan lewat form `workflow_dispatch` yang hanya meminta `release_tag`.
 
 ### Stream-Copy pada Rendition Resolusi Asli
 Agar hemat waktu **tanpa menurunkan kualitas**, rendition yang resolusinya sama persis dengan

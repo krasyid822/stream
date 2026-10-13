@@ -9,17 +9,18 @@ on:
         description: 'Tag GitHub Release yang ingin diproses secara manual'
         required: true
         default: ''
-      shard_size_gb:
-        description: 'Target ukuran arsip per shard encode (GB). Makin kecil = makin banyak job paralel'
-        required: false
-        default: '1.2'
-      max_shards:
-        description: 'Batas maksimum shard per grup arsip'
-        required: false
-        default: '6'
 
 permissions:
   contents: write
+
+# Konfigurasi pipeline (dapat diubah lewat repository variables:
+# Settings > Secrets and variables > Actions > Variables > New repository variable)
+# Tidak perlu diisi di form — semua nilai dihitung otomatis dari ukuran arsip.
+env:
+  # Target ukuran arsip per shard encode (GB). Makin kecil = makin banyak job paralel.
+  HLS_CHUNK_SIZE_GB: ${{ vars.HLS_CHUNK_SIZE_GB || '1.2' }}
+  # Batas maksimum shard per grup arsip
+  HLS_MAX_SHARDS: ${{ vars.HLS_MAX_SHARDS || '6' }}
 
 concurrency:
   group: "hls-release-processing"
@@ -77,8 +78,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
-          HLS_CHUNK_SIZE_GB: ${{ inputs.shard_size_gb || '1.2' }}
-          HLS_MAX_SHARDS: ${{ inputs.max_shards || '6' }}
         run: |
           cat << 'EOF' > release_body.txt
           ${{ github.event.release.body }}
