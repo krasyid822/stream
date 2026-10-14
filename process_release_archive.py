@@ -20,23 +20,34 @@ IGNORED_RELEASE_TAGS = {"PASSWORD"}
 
 DRIVE_REPO = "krasyid822/stream_drive"
 
-def gh_api(path, params=""):
+def gh_api(path, params="", retries=3):
     """
     Wrapper gh api ke repo stream_drive yang melaporkan kegagalan dengan jelas.
     Kegagalan diam-diam sangat berbahaya: hasil kosong akan disalahartikan sebagai
     'folder belum ada di drive' sehingga pipeline meng-encode ulang semuanya.
+    Endpoint tree besar kadang membalas HTTP 500 sementara, jadi dicoba ulang.
     """
     cmd = ["gh", "api", f"repos/{DRIVE_REPO}/{path}{params}"]
-    res = subprocess.run(cmd, capture_output=True, text=True)
-    if res.returncode != 0:
-        err = (res.stderr or res.stdout or "").strip().splitlines()
-        err_msg = err[0] if err else "tidak diketahui"
-        # 404 = memang belum ada (wajar), selain itu = masalah akses/permission
-        if "404" not in err_msg and "Not Found" not in err_msg:
-            print(f"[!] Gagal mengakses stream_drive ({path}): {err_msg}")
-            print("[!] Pastikan secret DRIVE_PAT tersedia & punya akses ke repo stream_drive.")
-        return None, err_msg
-    return res.stdout, None
+    last_err = None
+    for attempt in range(max(1, retries)):
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout, None
+
+        err_lines = (res.stderr or res.stdout or "").strip().splitlines()
+        last_err = err_lines[0] if err_lines else "respons kosong dari GitHub"
+
+        # 404 = memang belum ada (wajar) -> tidak perlu dicoba lagi
+        if "404" in last_err or "Not Found" in last_err:
+            return None, last_err
+
+        if attempt < max(1, retries) - 1:
+            time.sleep(2 * (attempt + 1))
+            continue
+
+    print(f"[!] Gagal mengakses stream_drive ({path}): {last_err} (setelah {retries} percobaan)")
+    print("[!] Pastikan secret DRIVE_PAT tersedia & punya akses ke repo stream_drive.")
+    return None, last_err
 
 ARCHIVE_EXTENSIONS = (
     ".zip", ".rar", ".7z", ".7z.001", ".zpaq", ".tar", ".tar.gz", ".tgz",
@@ -308,76 +319,143 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
     print(f"[✓] aliases.json diperbarui untuk '{actual_source_key}' dengan sumber & icon logo!")
 
 def sync_metadata_from_stream_drive(workspace_root):
-    """Memperbarui metadata.json secara akurat berdasarkan pohon file sebenarnya di repositori stream_drive."""
+    """
+    Memperbarui metadata.json berdasarkan isi sebenarnya repo stream_drive.
+
+    Dua strategi:
+      1) Tree API penuh (1 panggilan, cepat) — tapi responsnya ~7 MB dan GitHub
+         kadang membalas HTTP 500 secara acak, jadi selalu ada risiko gagal.
+      2) Jelajah per folder (payload kecil, andal) — dipakai bila strategi 1 gagal.
+    Mengembalikan True bila metadata berhasil ditulis.
+    """
+    media_items, categories = None, None
     try:
         out, err = gh_api("git/trees/main", "?recursive=1")
-        if out is None:
-            print("[-] Gagal sync metadata: tidak bisa membaca tree stream_drive (lihat pesan di atas).")
-            return
-        tree_data = json.loads(out)
-        if tree_data.get("truncated"):
-            print("[-] Peringatan: pohon stream_drive terpotong (GitHub Tree API batas 100.000 entri). "
-                  "metadata mungkin tidak lengkap.")
+        if out is not None:
+            tree_data = json.loads(out)
+            if tree_data.get("truncated"):
+                print("[-] Peringatan: pohon stream_drive terpotong (batas 100.000 entri).")
+            vtt_by_folder = {}
+            for item in tree_data.get("tree", []):
+                p = item["path"]
+                if p.endswith(".vtt"):
+                    folder_hls = "/".join(p.split("/")[:-1])
+                    vtt_by_folder.setdefault(folder_hls, []).append(p)
 
-        vtt_by_folder = {}
-        for item in tree_data.get("tree", []):
-            p = item["path"]
-            if p.endswith(".vtt"):
-                folder_hls = "/".join(p.split("/")[:-1])
-                if folder_hls not in vtt_by_folder:
-                    vtt_by_folder[folder_hls] = []
-                vtt_by_folder[folder_hls].append(p)
-
-        categories = set()
-        media_items = []
-
-        for item in tree_data.get("tree", []):
-            path = item["path"]
-            if path.endswith("master.m3u8"):
+            categories = set()
+            media_items = []
+            for item in tree_data.get("tree", []):
+                path = item["path"]
+                if not path.endswith("master.m3u8"):
+                    continue
                 parts = path.split("/")
-                if len(parts) >= 3:
-                    cat = parts[0]
-                    categories.add(cat)
-                    hls_folder = parts[-2]
-                    parent_folder = "/".join(parts[:-2])
-                    hls_path = "/".join(parts[:-1])
-
-                    ep_name = hls_folder
-                    if ep_name.endswith("_hls"):
-                        ep_name = ep_name[:-4]
-
-                    media_id = path.replace("/", "_").replace(" ", "_").replace(".", "_")
-                    poster_path = hls_path + "/poster.jpg"
-                    subtitles = vtt_by_folder.get(hls_path, [])
-
-                    media_items.append({
-                        "id": media_id,
-                        "name": ep_name,
-                        "folder": parent_folder,
-                        "path": hls_path,
-                        "master_url": path,
-                        "poster_url": poster_path,
-                        "subtitles": subtitles,
-                        "type": "hls_stream"
-                    })
-
-        def natural_sort_key(s):
-            return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s["name"])]
-
-        media_items.sort(key=lambda x: (x["folder"], natural_sort_key(x)))
-
-        metadata_path = os.path.join(workspace_root, "metadata.json")
-        output_metadata = {
-            "categories": sorted(list(categories)),
-            "media": media_items,
-            "updated_at": str(time.time() if 'time' in globals() else 0)
-        }
-
-        with open(metadata_path, "w", encoding="utf-8") as f:
-            json.dump(output_metadata, f, indent=2, ensure_ascii=False)
-        print(f"[✓] metadata.json disinkronkan dengan {len(media_items)} media dari stream_drive!")
+                if len(parts) < 3:
+                    continue
+                categories.add(parts[0])
+                hls_path = "/".join(parts[:-1])
+                ep_name = parts[-2][:-4] if parts[-2].endswith("_hls") else parts[-2]
+                media_items.append({
+                    "id": path.replace("/", "_").replace(" ", "_").replace(".", "_"),
+                    "name": ep_name,
+                    "folder": "/".join(parts[:-2]),
+                    "path": hls_path,
+                    "master_url": path,
+                    "poster_url": hls_path + "/poster.jpg",
+                    "subtitles": vtt_by_folder.get(hls_path, []),
+                    "type": "hls_stream"
+                })
     except Exception as e:
-        print(f"[-] Catatan sinkronisasi metadata: {e}")
+        print(f"[-] Tree penuh gagal dibaca: {e}")
+
+    if not media_items:
+        print("[i] Tree penuh tidak terbaca -> beralih ke mode jelajah per folder...")
+        try:
+            media_items, categories = _collect_media_by_walk()
+        except Exception as e:
+            print(f"[-] Mode jelajah gagal: {e}")
+
+    if not media_items:
+        print("[-] Gagal sync metadata: isi stream_drive tidak bisa dibaca. "
+              "metadata.json TIDAK diubah.")
+        return False
+
+    def natural_sort_key(s):
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', s["name"])]
+
+    media_items.sort(key=lambda x: (x["folder"], natural_sort_key(x)))
+
+    metadata_path = os.path.join(workspace_root, "metadata.json")
+    output_metadata = {
+        "categories": sorted(list(categories)),
+        "media": media_items,
+        "updated_at": str(time.time())
+    }
+    with open(metadata_path, "w", encoding="utf-8") as f:
+        json.dump(output_metadata, f, indent=2, ensure_ascii=False)
+    print(f"[✓] metadata.json disinkronkan dengan {len(media_items)} media dari stream_drive!")
+    return True
+
+
+def _list_dir_contents(path):
+    """Isi satu folder di stream_drive (payload kecil), None bila gagal."""
+    endpoint = f"contents/{urllib.parse.quote(path)}" if path else "contents/"
+    out, _ = gh_api(endpoint)
+    if out is None:
+        return None
+    try:
+        return json.loads(out)
+    except Exception:
+        return None
+
+
+def _walk_hls_dirs(prefix="", depth=0, max_depth=5):
+    """Menelusuri folder sampai menemukan folder episode (*_hls)."""
+    if depth > max_depth:
+        return
+    items = _list_dir_contents(prefix)
+    if not items:
+        return
+    for it in items:
+        if it.get("type") != "dir":
+            continue
+        p = (it.get("path") or "").rstrip("/")
+        if p.endswith("_hls"):
+            yield p
+        else:
+            yield from _walk_hls_dirs(p, depth + 1, max_depth)
+
+
+def _collect_media_by_walk():
+    """Menyusun daftar media dengan menelusuri folder satu per satu."""
+    folders = list(_walk_hls_dirs())
+    print(f"[i] Menjelajah {len(folders)} folder episode di stream_drive...")
+    media_items = []
+    categories = set()
+
+    for hls_path in folders:
+        items = _list_dir_contents(hls_path)
+        if not items:
+            continue
+        files = [it for it in items if it.get("type") == "file"]
+        if "master.m3u8" not in {it.get("name", "") for it in files}:
+            continue
+        parts = hls_path.split("/")
+        if len(parts) < 2:
+            continue
+        categories.add(parts[0])
+        master_path = hls_path + "/master.m3u8"
+        media_items.append({
+            "id": master_path.replace("/", "_").replace(" ", "_").replace(".", "_"),
+            "name": parts[-1][:-4] if parts[-1].endswith("_hls") else parts[-1],
+            "folder": "/".join(parts[:-1]),
+            "path": hls_path,
+            "master_url": master_path,
+            "poster_url": hls_path + "/poster.jpg",
+            "subtitles": sorted(it["path"] for it in files if it.get("name", "").endswith(".vtt")),
+            "type": "hls_stream"
+        })
+
+    return media_items, categories
 
 def resolve_drive_folder(dest_folder):
     """
@@ -1090,8 +1168,8 @@ def main():
 
     if mode == "--sync-metadata":
         workspace_root = os.path.abspath(os.path.dirname(__file__))
-        sync_metadata_from_stream_drive(workspace_root)
-        sys.exit(0)
+        # Exit non-zero bila gagal supaya job publish jadi merah, bukan hijau diam-diam
+        sys.exit(0 if sync_metadata_from_stream_drive(workspace_root) else 1)
 
     # Mode lama (semua rilis dalam satu proses)
     if len(sys.argv) < 3:

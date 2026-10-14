@@ -248,6 +248,60 @@ Tersedia juga mode manual per perintah:
 ./hls.sh "RAW/anime/series/1/video.mkv" --native-preset medium --derived-preset veryfast
 ```
 
+## 🔎 Checkup Rilis Otomatis (`checkups.py` + workflow `checkups.yml`)
+
+Mengecek apakah arsip RAW pada setiap GitHub Release **benar-benar sudah terkonversi** menjadi HLS
+di `stream_drive`, lalu **memberi tanda pada judul release**:
+
+| Tanda | Arti |
+|---|---|
+| `✅` | Sudah lengkap & tidak ada masalah integritas |
+| `⚠️ 13/26` | Belum lengkap (13 episode jadi dari total 26) |
+| `❌ 0/12` | Belum ada sama sekali di `stream_drive` |
+
+Contoh: `⚠️ 16/49 [RAW HARDSUB] Zero no Tsukaima`
+
+**Kenapa tanda ditaruh di *judul*, bukan body?**
+Body release dibaca `parse_release_body_lines()` untuk memetakan folder tujuan. Menempelkan tabel
+status ke body akan membuat setiap barisnya terbaca sebagai **alias baru** dan mencemari `aliases.json`.
+Nama release sendiri tidak pernah diparse, jadi menandainya di situ 100% aman.
+
+Tanda bersifat **idempotent**: prefix lama (✅/⚠️/❌ + angka) dilepas dulu sebelum yang baru
+ditempelkan, dan prefix bawaan seperti `[RAW]` / `[RAW HARDSUB]` tidak tersentuh.
+
+### Cara menjalankan
+```bash
+# cek semua release, tanpa mengubah apa pun (aman)
+python3 checkups.py --dry-run --no-mark
+
+# cek satu tag saja
+python3 checkups.py --tag ZERO-TSKMA --dry-run
+
+# benar-benar menandai judul release + simpan laporan JSON
+python3 checkups.py --json checkup_report.json
+
+# verifikasi berat: pastikan semua segmen yang dirujuk playlist benar-benar ada
+python3 checkups.py --tag FULLDIVE-RPG --deep --dry-run
+```
+
+Workflow-nya berjalan otomatis **harian (03:17 UTC)** dan bisa dipicu manual lewat
+*Actions → Checkup Rilis RAW -> HLS → Run workflow* dengan opsi:
+`release_tag`, `deep_check`, `mark_releases`, `dry_run`, `fail_on_incomplete`.
+
+### Apa saja yang dicek
+- Folder tujuan tiap release ada atau belum di `stream_drive` (toleran `anime/gsyos/2` vs
+  `anime/gsyos`, `fulldive_rpg` vs `fulldive-rpg`).
+- Jumlah episode vs jumlah yang dideklarasikan di body (`12 Episodes`).
+- Integritas: `master.m3u8`, `poster.jpg`, `playlist.m3u8` per rendition, file `.ts` 0-byte,
+  dan keselarasan jumlah segmen antar rendition.
+- Penamaan episode: nomor melompat / kembar / episode tunggal tapi bukan `01`
+  (gejala file sumber bernama `S2 01` yang ikut membawa nomor season).
+- `--deep`: setiap segmen yang dirujuk playlist benar-benar ada di repo.
+
+Hasil lengkap ditampilkan di **Job Summary** GitHub dan disimpan sebagai artifact `checkup-report`.
+
+---
+
 ## 🧹 Penghematan Disk
 Arsip yang sudah diekstrak langsung dihapus, `RAW_TEMP` dibersihkan per grup arsip, dan folder
 `RAW/` dibersihkan di akhir job — agar runner 14 GB tidak penuh.
@@ -273,3 +327,8 @@ Repo `stream_drive` sudah **~15 GB / 19.000+ file `.ts`**, sehingga job publish 
 3. **Timeout dinamis** — durasi push dihitung dari ukuran total artifact
    (`menit = ukuran_MB / 400 + 30`, dibatasi 60–330 menit), bukan angka statis.
 4. Pengelompokan commit tetap memakai `git_smart_push.py` (batch ~500 MB per push).
+
+
+## Sesi opencode
+  Session   Perbaiki algoritma runner ffmpeg agar konversi be…
+  Continue  opencode -s ses_eccba703cffek4irHS0Dtm1wrc

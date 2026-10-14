@@ -9,6 +9,11 @@ on:
         description: 'Tag GitHub Release yang ingin diproses secara manual'
         required: true
         default: ''
+      sync_only:
+        description: 'Hanya sinkronkan metadata.json dari stream_drive (lewati download/encode/push media)'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -28,10 +33,87 @@ concurrency:
 
 jobs:
   # ==========================================================================
+  # 0. SYNC METADATA SAJA — rebuild metadata.json dari isi stream_drive
+  #    Dipakai saat media sudah ada di stream_drive tapi metadata.json basi.
+  # ==========================================================================
+  sync-metadata:
+    name: "0) Sinkron Metadata (saja)"
+    if: inputs.sync_only == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout Code Repository (Instant Sparse Checkout)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          sparse-checkout: |
+            .github
+            aliases.json
+            metadata.json
+            process_release_archive.py
+            generate_hls.py
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure Git Identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sinkronkan metadata.json dari stream_drive
+        env:
+          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python3 -u process_release_archive.py --sync-metadata
+
+      - name: Push Metadata Updates to stream (Web UI)
+        run: |
+          git add metadata.json aliases.json || true
+          if [ -n "$(git status --porcelain metadata.json aliases.json)" ]; then
+            git commit -m "chore(metadata): sync library index from stream_drive [skip ci]" || true
+            git push origin HEAD:main || true
+            echo "[✓] metadata.json berhasil diperbarui & di-push."
+          else
+            echo "[i] metadata.json sudah paling baru, tidak ada yang di-push."
+          fi
+
+      - name: Ringkasan Hasil Sinkron
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          p = "metadata.json"
+          if not os.path.exists(p):
+              print("### Sinkron Metadata\n\nmetadata.json tidak ditemukan.")
+              raise SystemExit(0)
+          d = json.load(open(p))
+          cats = d.get("categories", [])
+          media = d.get("media", [])
+          print("## 🗂️ Sinkron Metadata dari stream_drive\n")
+          print(f"- Total media: **{len(media)}**\n- Kategori: **{', '.join(cats) or '-'}**\n")
+          from collections import Counter
+          c = Counter(m.get("folder", "").split("/")[0] for m in media)
+          print("| Kategori | Jumlah |\n|---|---|")
+          for k, v in sorted(c.items()):
+              print(f"| {k} | {v} |")
+          print("\n<details><summary>Daftar episode</summary>\n")
+          for m in media:
+              print(f"- `{m['path']}`")
+          print("\n</details>")
+          PY
+
+  # ==========================================================================
   # 1. PLAN — menyusun manifest chunk encode (tidak mengunduh file apa pun)
   # ==========================================================================
   plan:
     name: "1) Plan Chunk"
+    if: inputs.sync_only != true
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -100,7 +182,7 @@ jobs:
   encode:
     name: "2) Encode ${{ matrix.chunk.id }}"
     needs: plan
-    if: needs.plan.outputs.skip != 'true' && needs.plan.outputs.chunks_count != '0'
+    if: inputs.sync_only != true && needs.plan.outputs.skip != 'true' && needs.plan.outputs.chunks_count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:

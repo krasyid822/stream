@@ -1,0 +1,138 @@
+name: Checkup Rilis RAW -> HLS
+
+# Memeriksa apakah arsip video pada setiap GitHub Release sudah benar-benar terkonversi
+# menjadi HLS di repo stream_drive, lalu memberi TANDA pada judul release tersebut.
+#
+# Tanda (prefix idempotent, tidak merusak prefix bawaan seperti "[RAW]"):
+#   ✅            -> sudah lengkap & tidak ada masalah integritas
+#   ⚠️ <a>/<b>    -> belum lengkap (a episode jadi dari total b)
+#   ❌ 0/<b>      -> belum ada sama sekali
+#
+# Body release TIDAK diubah karena parser pipeline bergantung pada isi body tersebut.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag release yang ingin dicek (kosong = semua release)'
+        required: false
+        default: ''
+      deep_check:
+        description: 'Verifikasi semua segmen yang dirujuk playlist (lebih lambat)'
+        type: boolean
+        required: false
+        default: false
+      mark_releases:
+        description: 'Ubah judul release sesuai hasil checkup'
+        type: boolean
+        required: false
+        default: true
+      dry_run:
+        description: 'Hanya tampilkan hasil, jangan ubah judul release'
+        type: boolean
+        required: false
+        default: true
+      fail_on_incomplete:
+        description: 'Gagalkan job bila ada rilis yang belum lengkap (berguna untuk notifikasi)'
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    # Audit otomatis harian pukul 03:17 UTC (10:17 WIB) — sekalian menandai judul release
+    - cron: '17 3 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'checkups.py'
+      - '.github/workflows/checkups.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "hls-release-checkup"
+  cancel-in-progress: false
+
+jobs:
+  checkup:
+    name: "Cek Rilis RAW -> HLS"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout (Instant Sparse Checkout)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            checkups.py
+            process_release_archive.py
+            generate_hls.py
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Jalankan Checkup
+        env:
+          # DRIVE_PAT wajib: GITHUB_TOKEN hanya berlaku untuk repo ini, bukan stream_drive
+          GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
+          PYTHONUNBUFFERED: "1"
+          TAG: ${{ inputs.release_tag || '' }}
+          DEEP: ${{ inputs.deep_check && '--deep' || '' }}
+          NOMARK: ${{ inputs.mark_releases == false && '--no-mark' || '' }}
+          DRYRUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+          FAILINCOMPLETE: ${{ inputs.fail_on_incomplete && '--fail-on-incomplete' || '' }}
+        run: |
+          python3 -u checkups.py \
+            --repo krasyid822/stream \
+            --tag "$TAG" \
+            --json checkup_report.json \
+            $DEEP $NOMARK $DRYRUN $FAILINCOMPLETE
+
+      - name: Ringkasan (Job Summary)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          path = "checkup_report.json"
+          if not os.path.exists(path):
+              print("### Checkup\n\nLaporan tidak terbentuk (kemungkinan gagal diakses).")
+              raise SystemExit(0)
+          d = json.load(open(path))
+          s = d["summary"]
+          print("## 🔎 Checkup Rilis RAW → HLS")
+          print(f"\n_Diperiksa: {d['checked_at']}_\n")
+          print(f"- ✅ Selesai: **{s['done']}**\n- ⚠️ Sebagian: **{s['partial']}**\n"
+                f"- ❌ Belum ada: **{s['missing']}**\n")
+          print(f"- Episode di `stream_drive`: **{s['episodes']}**\n"
+                f"- Episode belum ada: **{s['episodes_missing']}**\n")
+          print("| Tanda | Tag | Judul | Episode | Masalah |")
+          print("|---|---|---|---|---|")
+          for r in d["releases"]:
+              exp = f"{r['found']}/{r['expected']}" if r["expected"] else str(r["found"])
+              title = r["title"].lstrip("✅⚠️❌ ")
+              print(f"| {r['badge']} | `{r['tag']}` | {title} | {exp} | {len(r['issues'])} |")
+          detail = [(r["tag"], iss) for r in d["releases"] for iss in r["issues"]]
+          if detail:
+              print("\n### ⛔ Detail masalah\n")
+              for tag, iss in detail:
+                  print(f"- `{tag}`: {iss}")
+          notes = [(r["tag"], n) for r in d["releases"] for n in r["notes"]
+                   if "subtitle" not in n]
+          if notes:
+              print("\n### · Catatan\n")
+              for tag, n in notes:
+                  print(f"- `{tag}`: {n}")
+          PY
+
+      - name: Unggah Laporan JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkup-report
+          path: checkup_report.json
+          retention-days: 14
+          compression-level: 6
+          if-no-files-found: ignore
