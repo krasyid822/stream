@@ -266,7 +266,7 @@ jobs:
   publish:
     name: "3) Publish ke stream_drive"
     needs: [plan, encode]
-    if: always() && needs.plan.result == 'success' && needs.plan.outputs.skip != 'true'
+    if: always() && inputs.sync_only != true && needs.plan.result == 'success' && needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
