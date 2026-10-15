@@ -87,6 +87,11 @@
       "Kisah Komedi Romantis Masa Remajaku yang Salah",
       "やはり俺の青春ラブコメはまちがっている",
       "otakudesu.io"
+    ],
+    "hyouka": [
+      "Hyouka",
+      "氷菓",
+      "otakudesu.io"
     ]
   },
   "folder_info": {
@@ -151,6 +156,12 @@
       "url": "https://otakudesu.io/",
       "icon": "https://otakudesu.io/otakudesu.png",
       "note": "Sumber mentah dari Release Otakudesu_Oregairu--08_480p.7z"
+    },
+    "anime/hyouka": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_Hyouka--4-7-20_480p.7z"
     }
   }
 }
