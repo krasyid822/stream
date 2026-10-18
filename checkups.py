@@ -123,7 +123,33 @@ def check_episode_numbering(episodes):
     return None
 
 
-def analyze_folder(drive_path, tree):
+def declared_sub_mode(title):
+    """
+    Baca konvensi penandaan pada judul release:
+
+      "[RAW HARDSUB]" -> subtitle sudah terpiksel di dalam video, jadi TIDAK diharapkan
+                         ada file .vtt terpisah.
+      "[RAW]"         -> video ini diharapkan punya data subtitle (.vtt terpisah).
+
+    Mengembalikan "hardsub", "softsub", atau None bila tidak ada tag sama sekali.
+    """
+    # Judul bisa sudah diberi tanda (✅ / ⚠️ 13/26) oleh run sebelumnya, dan tanda itu
+    # menempel di depan tag [RAW]. Kalau tidak dilepas dulu, tag tidak akan pernah
+    # terdeteksi lagi setelah penandaan pertama.
+    teks = strip_badge(title or "").upper()
+    m = re.match(r"^\s*\[([^\]]{1,40})\]", teks)
+    if not m:
+        return None
+    tag = m.group(1).strip()
+    # Urutan penting: "HARDSUB" sendiri mengandung kata "SUB".
+    if "HARDSUB" in tag or "HARD SUB" in tag or "BAKED" in tag:
+        return "hardsub"
+    if "SOFTSUB" in tag or "SOFT SUB" in tag or "SUB" in tag or "RAW" in tag:
+        return "softsub"
+    return None
+
+
+def analyze_folder(drive_path, tree, declared_subs=None):
     """
     Memeriksa kelengkapan & integritas satu folder episode di stream_drive.
     Dipisah menjadi:
@@ -156,15 +182,24 @@ def analyze_folder(drive_path, tree):
         ep_prefix = prefix + ep + "/"
         ep_files_map[ep] = {p[len(ep_prefix):] for p in sizes if p.startswith(ep_prefix)}
 
-    # Hardsub vs softsub ditentukan dari ISI drive, bukan dari tag di judul release.
-    # Alasannya: tag "[RAW HARDSUB]" tidak konsisten (GSYOS & MINUSCULE hardsub tapi
-    # tidak diberi tag, dan tag yang ada belum tentu selalu berarti apa-apa).
-    # Yang jujur: kalau release punya .vtt di episode MANYAKAL, berarti softsub dan
-    # episode lain yang kosong itu masalah. Kalau TIDAK SATU PUN episode punya .vtt,
-    # subtitle sudah menyatu ke gambar (hardsub) sehingga tidak ada yang hilang.
+    # Sumber utama: konvensi tag di judul release ("[RAW]" = ada subtitle terpisah,
+    # "[RAW HARDSUB]" = subtitle sudah terpiksel di video). Itu yang paling bisa
+    # diandalkan, karena memang release itu sendiri yang menandainya.
+    # Isi drive dipakai sebagai PEMERIKSA SILANG, bukan sebagai penentu.
     ep_punya_sub = {ep for ep, files in ep_files_map.items()
                     if any(f.endswith(".vtt") for f in files)}
-    softsub = bool(ep_punya_sub)
+    dari_data = "softsub" if ep_punya_sub else "hardsub"
+    subs = declared_subs or dari_data
+    softsub = (subs == "softsub")
+
+    # Kalau tag dan isi drive bertentangan, itu masalah nyata yang harus terlihat.
+    if episodes:
+        if declared_subs == "softsub" and not ep_punya_sub:
+            issues.append(f"{drive_path}: ditandai [RAW] (diharapkan ada subtitle) "
+                          f"tapi tidak ada .vtt sama sekali")
+        elif declared_subs == "hardsub" and ep_punya_sub:
+            notes.append(f"{drive_path}: ditandai hardsub tapi {len(ep_punya_sub)} "
+                         f"episode punya .vtt (subtitle terpisah tersedia)")
 
     for ep in episodes:
         ep_files = ep_files_map[ep]
@@ -210,7 +245,7 @@ def analyze_folder(drive_path, tree):
 
     return {"folder": drive_path, "episode": episodes,
             "issues": issues, "notes": notes, "detail": detail,
-            "subs": "softsub" if softsub else "hardsub"}
+            "subs": subs, "subs_source": "tag" if declared_subs else "data"}
 
 
 def deep_check_folder(drive_path, tree):
@@ -359,7 +394,7 @@ def check_release(repo, tag, tree, deep=False):
             continue
         seen_drive_folders[drive_path] = dest
 
-        res = analyze_folder(drive_path, tree)
+        res = analyze_folder(drive_path, tree, declared_subs=declared_sub_mode(title))
         found_total += len(res["episode"])
         issues.extend(res["issues"])
         notes.extend(res["notes"])
@@ -371,7 +406,8 @@ def check_release(repo, tag, tree, deep=False):
         rows.append({"folder": dest, "drive_folder": drive_path,
                      "found": len(res["episode"]), "issues": res["issues"],
                      "notes": res["notes"], "episodes": res["episode"],
-                     "subs": res.get("subs", "")})
+                     "subs": res.get("subs", ""),
+                     "subs_source": res.get("subs_source", "data")})
 
     expected = declared_episode_count(body)
     if found_total == 0:
@@ -439,6 +475,8 @@ def main():
         for row in res["rows"]:
             dup = " (duplikat, tidak dihitung)" if row.get("duplicate_of") else ""
             tag_sub = f"  [{row['subs']}]" if row.get("subs") else ""
+            if row.get("subs_source") == "data":
+                tag_sub += "?"  # tidak ada tag di judul, jadi ditebak dari isi drive
             print(f"     - {row['folder']} -> {row.get('drive_folder', '(tidak ada)')} : "
                   f"{row['found']} episode{dup}{tag_sub}")
             for iss in row.get("issues", [])[:4]:

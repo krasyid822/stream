@@ -348,10 +348,32 @@ Nama release sendiri tidak pernah diparse, jadi menandainya di situ 100% aman.
 Tanda bersifat **idempotent**: prefix lama (✅/⚠️/❌ + angka) dilepas dulu sebelum yang baru
 ditempelkan, dan prefix bawaan seperti `[RAW]` / `[RAW HARDSUB]` tidak tersentuh.
 
+### Konvensi subtitle: `[RAW]` vs `[RAW HARDSUB]`
+
+| Tag di judul | Arti | Yang diharapkan |
+|---|---|---|
+| `[RAW HARDSUB]` | subtitle sudah **terpiksel** di dalam video | **tidak** ada `.vtt` terpisah |
+| `[RAW]` | video punya data subtitle sendiri | **harus** ada `.vtt` |
+
+`analyze_folder()` memakai **tag sebagai sumber utama** (mengingat release itu sendiri yang
+menandainya), lalu isi `stream_drive` sebagai **pemeriksa silang**:
+
+- Tag `[RAW HARDSUB]` dan memang tanpa `.vtt` → **wajar, diam** (tidak jadi derau).
+- Tag `[RAW]` dan `.vtt` hilang di sebagian episode → **masalah** (`✅` → `⚠️`).
+- Tag `[RAW]` tapi **nol** `.vtt` sama sekali → **masalah**: subtitle belum pernah di-encode.
+- Tag `[RAW HARDSUB]` tapi ada `.vtt` → **catatan**: ternyata subtitle terpisah tersedia.
+- Tanpa tag sama sekali → ditebak dari isi drive, ditandai `[hardsub]?` / `[softsub]?`.
+
+Tanda `✅`/`⚠️ a/b` yang menempel di depan tag selalu dilepas dulu saat membaca tag, supaya
+deteksi tetap bekerja setelah judul.release ditandai pada run sebelumnya.
+
 ### Cara menjalankan
 ```bash
-# cek semua release, tanpa mengubah apa pun (aman)
-python3 checkups.py --dry-run --no-mark
+# pratinjau semua release: aman, dan menampilkan judul baru yang akan dipakai
+python3 checkups.py --dry-run
+
+# laporan murni: tidak menyentuh judul, tidak menampilkan pratinjau pun
+python3 checkups.py --no-mark
 
 # cek satu tag saja
 python3 checkups.py --tag ZERO-TSKMA --dry-run
@@ -375,6 +397,7 @@ Workflow-nya berjalan otomatis **harian (03:17 UTC)** dan bisa dipicu manual lew
   dan keselarasan jumlah segmen antar rendition.
 - Penamaan episode: nomor melompat / kembar / episode tunggal tapi bukan `01`
   (gejala file sumber bernama `S2 01` yang ikut membawa nomor season).
+- Subtitle: apakah `.vtt` sesuai tag judul `[RAW]` / `[RAW HARDSUB]` (lihat di atas).
 - `--deep`: setiap segmen yang dirujuk playlist benar-benar ada di repo.
 
 Hasil lengkap ditampilkan di **Job Summary** GitHub dan disimpan sebagai artifact `checkup-report`.
