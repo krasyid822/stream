@@ -442,4 +442,4 @@ https://myanimelist.net/
 fungsikan operasi direktori maju-mundur melalui tombol maju-mundur bawaan browser, agar proyek tidak tiba tiba tertutup.
 script run.sh sepertinya perlu diupgrade.
 cara set environment variable di github repo.
-supaya g boros api mal, otomatis simpan ke metadata
+supaya g boros api mal, otomatis simpan ke metadata aliases.json.
