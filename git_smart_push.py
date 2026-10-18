@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 
 # Batas maksimum ukuran staging per batch push (500 MB agar sangat aman dari batas 2.0 GB GitHub)
 MAX_BATCH_BYTES = 500 * 1024 * 1024 
@@ -67,16 +68,143 @@ def get_file_size(filepath):
     except Exception:
         return 0
 
+# File yang boleh "kalah" kalau benar-benar bentrok: ini di-generate otomatis oleh
+# pipeline, jadi isinya akan dibangun ulang sendiri pada run berikutnya. Untuk file
+# di luar daftar ini, konflik yang tidak bisa digabung akan membatalkan rebase.
+CONFLICT_TAKE_LOCAL = {"metadata.json"}
+
+
+def in_rebase():
+    """True kalau ada rebase yang belum selesai (bikin repo 'macet')."""
+    return os.path.isdir(os.path.join(".git", "rebase-merge")) or \
+           os.path.isdir(os.path.join(".git", "rebase-apply"))
+
+
+def conflicted_files():
+    """Daftar file yang masih berstatus konflik (unmerged)."""
+    res = subprocess.run(["git", "diff", "--name-only", "--diff-filter=U"],
+                         text=True, capture_output=True)
+    return [l for l in res.stdout.splitlines() if l.strip()]
+
+
+def _stage_blob(stage, path):
+    """Ambil isi file pada indeks rebase: 1=base, 2=upstream(remote), 3=commit lokal."""
+    res = subprocess.run(["git", "show", f":{stage}:{path}"], capture_output=True)
+    return res.stdout if res.returncode == 0 else None
+
+
+def three_way_merge(path, prefer_local=False):
+    """
+    Gabungkan versi lokal + versi remote memakai basis yang sama (three-way merge).
+
+    Dipakai karena `git pull --rebase` KADANG hanya menyisakan konflik di satu-dua
+    baris (mis. 'updated_at') sementara seluruh perubahan lain bisa dipertahankan.
+
+    PENTING: kalau konflik, kita TIDAK mengambil seluruh file versi lokal (itu akan
+    membuang entri yang ditambahkan remote). Yang dipakai hanya baris yang benar-benar
+    bentrok, lewat `git merge-file --ours`. Jadi tambahan dari remote tetap utuh.
+
+    Return:
+      "clean"  - berhasil digabung tanpa bentrok
+      "forced" - ada bentrok, baris itu memakai versi lokal (hanya bila prefer_local)
+      None     - tidak bisa / tidak boleh diselesaikan otomatis
+    """
+    base = _stage_blob(1, path)
+    remote = _stage_blob(2, path)   # saat rebase, "ours" = upstream/remote
+    local = _stage_blob(3, path)    # "theirs" = commit lokal yang sedang diterapkan
+    if base is None or remote is None or local is None:
+        return None
+
+    with tempfile.TemporaryDirectory() as td:
+        f_local = os.path.join(td, "local")
+        f_base = os.path.join(td, "base")
+        f_remote = os.path.join(td, "remote")
+        for fp, data in ((f_local, local), (f_base, base), (f_remote, remote)):
+            with open(fp, "wb") as fh:
+                fh.write(data)
+
+        # Tanpa --ours: exit!=0 berarti benar-benar ada baris yang bentrok.
+        probe = subprocess.run(["git", "merge-file", "-p", f_local, f_base, f_remote],
+                               capture_output=True)
+        if probe.returncode == 0:
+            merged, status = probe.stdout, "clean"
+        elif prefer_local:
+            merged = subprocess.run(["git", "merge-file", "-p", "--ours",
+                                     f_local, f_base, f_remote],
+                                    capture_output=True).stdout
+            status = "forced"
+        else:
+            return None
+
+    if not merged:
+        return None
+    with open(path, "wb") as fh:
+        fh.write(merged)
+    return status
+
+
+def resolve_rebase_conflicts(max_rounds=25):
+    """
+    Selesaikan rebase yang tersangkut konflik.
+
+    Urutan penanganan per file konflik:
+      1. Coba three-way merge  -> perubahan lokal DAN remote sama-sama dipertahankan.
+      2. Kalau tetap bentrok dan file-nya ada di CONFLICT_TAKE_LOCAL -> pakai versi lokal.
+      3. Selain itu -> menyerah (return False) supaya pemanggil membatalkan rebase,
+         bukan menimpa file penting tanpa sepengetahuan pengguna.
+    """
+    rounds = 0
+    while in_rebase() and rounds < max_rounds:
+        rounds += 1
+        conflicts = conflicted_files()
+
+        if conflicts:
+            gagal = []
+            for path in conflicts:
+                boleh_paksa = os.path.basename(path) in CONFLICT_TAKE_LOCAL
+                status = three_way_merge(path, prefer_local=boleh_paksa)
+                if status is None:
+                    gagal.append(path)
+                    continue
+                if status == "forced":
+                    print(f"[⚠️] '{path}' bentrok di sebagian baris; baris itu memakai versi "
+                          f"LOKAL, sisanya (termasuk tambahan dari remote) tetap dipertahankan.")
+                else:
+                    print(f"[✓] '{path}' digabung 3-arah (perubahan lokal + remote utuh).")
+                subprocess.run(["git", "add", "--", path], check=False)
+
+            if gagal:
+                print(f"[!] Konflik tidak bisa diselesaikan otomatis: {', '.join(gagal)}")
+                return False
+
+        env = dict(os.environ, GIT_EDITOR="true", GIT_SEQUENCE_EDITOR="true")
+        res = subprocess.run(["git", "rebase", "--continue"], text=True, env=env)
+        if res.returncode != 0 and not in_rebase():
+            return True  # rebase selesai (git keluar dengan "tak ada rebase yang jalan")
+    return not in_rebase()
+
+
 def safe_push(batch_label):
     print(f"[🚀] Mendorong {batch_label} ke GitHub remote...")
     push_res = run_cmd_push(["git", "push", "origin", "main"])
     if push_res.returncode != 0:
         print("[!] Push ditolak remote (ada komit baru). Menjalankan rebase otomatis dengan autostash...")
         pull_res = subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", "main"], text=True)
-        if pull_res.returncode == 0:
-            print("[✓] Rebase berhasil! Mencoba push ulang...")
-            push_res = run_cmd_push(["git", "push", "origin", "main"])
-        
+        if pull_res.returncode != 0:
+            print("[!] Rebase otomatis terhenti (kemungkinan konflik).")
+            if resolve_rebase_conflicts():
+                print("[✓] Rebase berhasil diselesaikan. Mencoba push ulang...")
+            else:
+                # PENTING: jangan tinggalkan repo dalam keadaan rebase setengah jalan,
+                # karena semua git add/commit berikutnya akan gagal dan repo rusak.
+                print("[-] Konflik TIDAK dapat diselesaikan otomatis.")
+                print("    → Membatalkan rebase supaya repo tidak tertinggal rusak.")
+                subprocess.run(["git", "rebase", "--abort"], check=False)
+                print("    → Perubahan lokal Anda tetap tersimpan di commit terakhir.")
+                print("    → Selesaikan manual: git status  lalu  git rebase --continue")
+                sys.exit(1)
+        push_res = run_cmd_push(["git", "push", "origin", "main"])
+
     if push_res.returncode != 0:
         print(f"[-] Gagal melakukan push pada {batch_label}.")
         sys.exit(1)
@@ -86,6 +214,17 @@ def chunk_push():
     print("==========================================================")
     print("🚀 SMART AUTO GIT CHUNK PUSHER (Max ~1.2GB per Push Batch)")
     print("==========================================================")
+
+    # 0. Jaring pengaman: kalau ada rebase yang menggantung dari run sebelumnya,
+    #    bereskan dulu. Kalau tidak, semua git add/commit di bawah akan gagal.
+    if in_rebase():
+        print("[!] Terdeteksi rebase yang belum selesai dari eksekusi sebelumnya.")
+        if resolve_rebase_conflicts():
+            print("[✓] Rebase sebelumnya berhasil diselesaikan.")
+        else:
+            subprocess.run(["git", "rebase", "--abort"], check=False)
+            print("[-] Rebase dibatalkan. Periksa 'git status' sebelum push lagi.")
+            sys.exit(1)
 
     # 1. Bersihkan file kunci index.lock dan folder cache __pycache__
     lock_file = os.path.join(".git", "index.lock")
