@@ -78,6 +78,17 @@
             line-height: 1.2;
             color: var(--text-main);
         }
+        /* Mode layar penuh: video memenuhi seluruh layar */
+        .video-container:fullscreen {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: auto;
+            border: none;
+        }
+        .video-container:fullscreen video {
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -141,19 +152,34 @@
                 </div>
 
                 <!-- Custom Retro Subtitle & Quality Control Bar -->
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; background: var(--bg-surface); padding: 0.4rem 0.6rem; border: 2px solid var(--accent-purple); box-shadow: 3px 3px 0px #000; flex-wrap: nowrap;">
-                    <button class="pixel-btn" id="btnToggleSub" onclick="toggleSubtitle()" style="font-size: 0.65rem; padding: 0.3rem 0.5rem; color: var(--text-muted); border-color: var(--text-dim); white-space: nowrap;">
-                        <i class="fa-solid fa-closed-captioning"></i> SUBTITLE: OFF
-                    </button>
-                    
-                    <!-- Retro Button Wrapper untuk Pemilih Resolusi & Info Kualitas Realtime -->
-                    <div style="display: inline-flex; align-items: center; gap: 0.3rem;">
-                        <span id="realtimeQualityBadge" class="pixel-badge cyan" style="display: none; font-size: 0.55rem; padding: 0.2rem 0.4rem;" title="Kualitas Live Stream ABR">720p</span>
-                        <div class="pixel-btn" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; border-color: var(--accent-purple); color: var(--accent-cyan); display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
-                            <i class="fa-solid fa-sliders" style="color: var(--accent-cyan); font-size: 0.75rem;"></i>
-                            <select id="resSelect" onchange="changeResolution(this.value)" style="background: transparent; color: var(--accent-cyan); font-family: var(--pixel-font); font-size: 0.65rem; border: none; outline: none; cursor: pointer;">
-                                <option value="-1" style="background: var(--bg-panel); color: var(--text-main);">Auto</option>
-                            </select>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; background: var(--bg-surface); padding: 0.4rem 0.6rem; border: 2px solid var(--accent-purple); box-shadow: 3px 3px 0px #000; flex-wrap: wrap;">
+                    <div style="display: inline-flex; align-items: center; gap: 0.3rem; flex-wrap: nowrap;">
+                        <button class="pixel-btn" id="btnToggleSub" onclick="toggleSubtitle()" style="font-size: 0.65rem; padding: 0.3rem 0.5rem; color: var(--text-muted); border-color: var(--text-dim); white-space: nowrap;">
+                            <i class="fa-solid fa-closed-captioning"></i> SUBTITLE: OFF
+                        </button>
+                        <button class="pixel-btn" id="btnAutoNext" onclick="toggleAutoNext()" style="font-size: 0.65rem; padding: 0.3rem 0.5rem; color: var(--accent-green); border-color: var(--accent-green); white-space: nowrap;">
+                            <i class="fa-solid fa-forward"></i> AUTO-NEXT: ON
+                        </button>
+                    </div>
+
+                    <div style="display: inline-flex; align-items: center; gap: 0.3rem; flex-wrap: nowrap;">
+                        <!-- Pengatur ukuran preview player (kecil <-> besar) + layar penuh -->
+                        <div style="display: inline-flex; align-items: center; gap: 0.2rem;">
+                            <button class="pixel-btn" onclick="resizePlayer(-1)" title="Perkecil player" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-minus"></i></button>
+                            <span id="playerSizeBadge" class="pixel-badge purple" style="font-size: 0.55rem; padding: 0.2rem 0.35rem; min-width: 3.4em; text-align: center;">440px</span>
+                            <button class="pixel-btn" onclick="resizePlayer(1)" title="Perbesar player" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-plus"></i></button>
+                            <button class="pixel-btn" onclick="togglePlayerFullscreen()" title="Layar penuh" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-expand"></i></button>
+                        </div>
+
+                        <!-- Retro Button Wrapper untuk Pemilih Resolusi & Info Kualitas Realtime -->
+                        <div style="display: inline-flex; align-items: center; gap: 0.3rem;">
+                            <span id="realtimeQualityBadge" class="pixel-badge cyan" style="display: none; font-size: 0.55rem; padding: 0.2rem 0.4rem;" title="Kualitas Live Stream ABR">720p</span>
+                            <div class="pixel-btn" style="font-size: 0.65rem; padding: 0.2rem 0.4rem; border-color: var(--accent-purple); color: var(--accent-cyan); display: inline-flex; align-items: center; gap: 0.3rem; white-space: nowrap;">
+                                <i class="fa-solid fa-sliders" style="color: var(--accent-cyan); font-size: 0.75rem;"></i>
+                                <select id="resSelect" onchange="changeResolution(this.value)" style="background: transparent; color: var(--accent-cyan); font-family: var(--pixel-font); font-size: 0.65rem; border: none; outline: none; cursor: pointer;">
+                                    <option value="-1" style="background: var(--bg-panel); color: var(--text-main);">Auto</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>

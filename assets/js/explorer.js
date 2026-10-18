@@ -7,6 +7,10 @@ let categoriesStore = [];
 let currentFolder = "";
 let hlsInstance = null;
 
+// Di-set true setelah load awal selesai. Sebelum itu, perubahan hash memakai
+// replaceState (agar restore dari deep-link tidak menambah entri riwayat).
+let historyReady = false;
+
 // DOM Elements
 const gridExplorer = document.getElementById("gridExplorer");
 const breadcrumbPath = document.getElementById("breadcrumbPath");
@@ -58,10 +62,16 @@ function syncUrlHash() {
         hashPath += (hashPath ? "?" : "#?") + "ep=" + encodeURIComponent(episodeName);
     }
 
-    if (hashPath) {
-        history.replaceState(null, "", hashPath);
+    const targetUrl = hashPath
+        ? hashPath
+        : (window.location.pathname + window.location.search);
+
+    // Simpan riwayat navigasi supaya tombol MAJU/MUNDUR bawaan browser berpindah
+    // folder di dalam aplikasi ini (bukan meninggalkan halaman/tab).
+    if (historyReady && window.location.hash !== hashPath) {
+        history.pushState(null, "", targetUrl);
     } else {
-        history.replaceState(null, "", window.location.pathname + window.location.search);
+        history.replaceState(null, "", targetUrl);
     }
 
     // Sinkronkan room widget komentar secara otomatis
@@ -151,18 +161,22 @@ async function loadMetadata() {
     } catch (err) {
         console.error("Gagal membaca metadata.json:", err);
         statusBadge.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> METADATA MISSING`;
+    } finally {
+        // Setelah load awal, navigasi berikutnya boleh menambah entri riwayat.
+        historyReady = true;
     }
 }
 
 // Event listener saat tombol Back/Forward browser diklik
 window.addEventListener("popstate", function () {
-    const { dir, play } = parseUrlHash();
+    const { dir, ep } = parseUrlHash();
     if (dir !== currentFolder) {
         currentFolder = dir;
         renderDirectoryGrid();
     }
-    if (play && play !== window.currentPlayingMediaId) {
-        const targetMedia = metadataStore.find(m => m.id === play);
+    const curName = window.currentPlayingMediaObj ? window.currentPlayingMediaObj.name : "";
+    if (ep && ep !== curName) {
+        const targetMedia = metadataStore.find(m => m.name === ep || m.id === ep);
         if (targetMedia) {
             playMedia(targetMedia, null);
         }

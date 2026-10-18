@@ -37,7 +37,7 @@ from process_release_archive import gh_api, parse_release_body_lines  # noqa: E4
 
 DRIVE_REPO = "krasyid822/stream_drive"
 RAW_BASE = f"https://raw.githubusercontent.com/{DRIVE_REPO}/main/"
-IGNORED_RELEASE_TAGS = {"PASSWORD"}
+IGNORED_RELEASE_TAGS = {"PASSWORD", "METADATA-GUIDE"}
 
 STATUS_DONE = "DONE"
 STATUS_PARTIAL = "PARTIAL"
@@ -319,6 +319,9 @@ def get_release(repo, tag):
 
 def declared_episode_count(body):
     m = re.search(r"(\d+)\s*episodes?\b", body or "", re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+)\s*compilations?\b", body or "", re.IGNORECASE)
     return int(m.group(1)) if m else None
 
 

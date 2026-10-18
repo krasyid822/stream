@@ -6,6 +6,13 @@ let currentPlayingHls = null;
 let currentSubtitleTracks = [];
 let isSubtitleActive = false;
 
+// Auto-lanjut ke episode berikutnya saat episode sekarang habis
+let autoNextEnabled = true;
+
+// Ukuran preview player (kecil -> besar). Index awal = 1 (lebar 440px di desktop)
+const PLAYER_SIZES = [340, 440, 560, 700, 860];
+let playerSizeIndex = 1;
+
 // Format URL CDN untuk membaca HLS dari repository stream_drive
 function getHlsStreamUrl(rawPath) {
     if (!rawPath) return "";
@@ -78,6 +85,10 @@ function playMedia(media, cardElement) {
 
     video.poster = posterUrl;
 
+    // Auto-lanjut episode berikutnya saat video selesai (listener selalu di-refresh)
+    video.removeEventListener("ended", onVideoEnded);
+    video.addEventListener("ended", onVideoEnded);
+
     if (currentPlayingHls) {
         currentPlayingHls.destroy();
         currentPlayingHls = null;
@@ -95,6 +106,12 @@ function playMedia(media, cardElement) {
 
     // Remove existing text tracks
     Array.from(video.querySelectorAll("track")).forEach(t => t.remove());
+
+    // DEFAULT SUBTITLE: nyalakan otomatis bila episode ini punya track subtitle.
+    // toggleSubtitle() menyalakan (isSubtitleActive masih false di titik ini).
+    if (currentSubtitleTracks.length > 0) {
+        toggleSubtitle();
+    }
 
     // Inisialisasi HLS.js
     if (Hls.isSupported()) {
@@ -267,3 +284,107 @@ async function toggleSubtitle() {
         }
     }
 }
+
+/* ============================================================
+   AUTO-LANJUT EPISODE BERIKUTNYA
+   ============================================================ */
+
+// Ambil daftar episode dalam satu folder, diurutkan secara natural (2 < 10).
+function getFolderPlaylist(folder) {
+    if (typeof metadataStore === "undefined" || !Array.isArray(metadataStore)) return [];
+    return metadataStore
+        .filter(m => (m.folder || "") === (folder || ""))
+        .sort((a, b) => (a.name || "").localeCompare(b.name || "", "id", {
+            numeric: true, sensitivity: "base"
+        }));
+}
+
+function onVideoEnded() {
+    if (!autoNextEnabled) return;
+    if (!playNextEpisode()) {
+        showToast("Episode terakhir — tidak ada episode berikutnya.");
+    }
+}
+
+function playNextEpisode() {
+    const cur = window.currentPlayingMediaObj;
+    if (!cur) return false;
+
+    const list = getFolderPlaylist(cur.folder);
+    if (list.length < 2) return false;
+
+    const idx = list.findIndex(m => m.id === cur.id) >= 0
+        ? list.findIndex(m => m.id === cur.id)
+        : list.findIndex(m => m.name === cur.name);
+
+    if (idx === -1 || idx + 1 >= list.length) return false;
+
+    const next = list[idx + 1];
+    showToast(`⏭ Memutar episode berikutnya: ${next.name}`);
+
+    const cardEl = Array.from(document.querySelectorAll(".grid-card.media-card")).find(
+        c => c.querySelector(".card-name")?.textContent === next.name
+    );
+    playMedia(next, cardEl);
+    return true;
+}
+
+function toggleAutoNext() {
+    autoNextEnabled = !autoNextEnabled;
+    const btn = document.getElementById("btnAutoNext");
+    if (!btn) return;
+    if (autoNextEnabled) {
+        btn.innerHTML = `<i class="fa-solid fa-forward"></i> AUTO-NEXT: ON`;
+        btn.style.color = "var(--accent-green)";
+        btn.style.borderColor = "var(--accent-green)";
+    } else {
+        btn.innerHTML = `<i class="fa-solid fa-forward"></i> AUTO-NEXT: OFF`;
+        btn.style.color = "var(--text-muted)";
+        btn.style.borderColor = "var(--text-dim)";
+    }
+}
+
+/* ============================================================
+   UKURAN PREVIEW PLAYER (BESAR / KECIL) + LAYAR PENUH
+   ============================================================ */
+
+function applyPlayerSize() {
+    const wrapper = document.getElementById("playerWrapper");
+    if (!wrapper) return;
+
+    // Di mobile player selalu penuh lebar kolom
+    if (window.innerWidth <= 768) {
+        wrapper.style.width = "";
+        wrapper.style.maxWidth = "";
+    } else {
+        wrapper.style.width = PLAYER_SIZES[playerSizeIndex] + "px";
+        wrapper.style.maxWidth = "70vw";
+    }
+
+    const badge = document.getElementById("playerSizeBadge");
+    if (badge && window.innerWidth > 768) {
+        badge.textContent = PLAYER_SIZES[playerSizeIndex] + "px";
+    } else if (badge) {
+        badge.textContent = "";
+    }
+}
+
+function resizePlayer(delta) {
+    playerSizeIndex = Math.max(0, Math.min(PLAYER_SIZES.length - 1, playerSizeIndex + delta));
+    applyPlayerSize();
+}
+
+function togglePlayerFullscreen() {
+    const wrapper = document.getElementById("playerWrapper");
+    const target = wrapper ? (wrapper.querySelector(".video-container") || wrapper) : null;
+    if (!target) return;
+    if (!document.fullscreenElement) {
+        (target.requestFullscreen || target.webkitRequestFullscreen || function () {}).call(target);
+    } else {
+        (document.exitFullscreen || document.webkitExitFullscreen || function () {}).call(document);
+    }
+}
+
+// Terapkan ukuran saat pertama kali dimuat dan saat jendela di-resize
+window.addEventListener("DOMContentLoaded", applyPlayerSize);
+window.addEventListener("resize", applyPlayerSize);

@@ -1,0 +1,233 @@
+================================================================================
+MEMORY PLAN — FITUR YANG DITUNDA (dibuat 2026-10-19)
+================================================================================
+Dokumen ini menyimpan rencana fitur besar yang BELUM dikerjakan, supaya konteksnya
+tidak hilang. Fitur cepat sudah dikerjakan lebih dulu (lihat bagian "SUDAH SELESAI").
+
+Aturan kerja:
+  - Fitur cepat dulu, fitur besar ditunda sampai diminta.
+  - Jangan mengubah perilaku pipeline yang sudah terbukti tanpa alasan jelas.
+  - Semua perubahan wajib diuji lokal sebelum push.
+
+Tambahan permintaan user (jangan lupa):
+  - Sampul folder = gambar pertama body release; kalau tidak ada -> ambil dari MAL.
+  - Ikon penyedia RAW: JANGAN sepenuhnya otomatis. Interface menampilkan kandidat
+    yang ditemukan, lalu USER memilih. Kalau sudah ada di metadata proyek ini,
+    langsung pakai tanpa konfirmasi. Kalau tidak ada yang cocok, user boleh
+    menempelkan URL gambar manual.
+
+================================================================================
+SUDAH SELESAI (sesi 2026-10-19)
+================================================================================
+1. Bug parser: baris <img ...> (gambar sampul) tidak lagi bocor menjadi "alias"
+   judul. (process_release_archive.py: parse_release_body_lines)
+   - Alias kotor lama pada 'am' sudah dibersihkan dari aliases.json.
+2. Tag METADATA-GUIDE ditambahkan ke IGNORED_RELEASE_TAGS (checkups.py +
+   process_release_archive.py) supaya release panduan tidak diproses/cek.
+3. Web UI (index.html + assets/js/player.js):
+   - Subtitle DEFAULT ON (otomatis menyala bila episode punya track .vtt).
+   - AUTO-NEXT episode berikutnya (tombol ON/OFF di control bar; jalan saat video
+     selesai, urut natural 2 < 10 dalam folder yang sama).
+   - Preview player bisa DIBESARKAN / DIKECILKAN (tombol - / +, badge ukuran,
+     plus tombol layar penuh pada video).
+4. Release GitHub tag "Metadata-Guide" berisi panduan format metadata release RAW.
+
+================================================================================
+TUNDA 1 — RELOKASI FOLDER TANPA RE-ENCODE (PRIORITAS USER)
+================================================================================
+Masalah:
+  Struktur RAW berubah, mis. dulu 'anime/tskb/' (datar) kini jadi
+  'anime/tskb/1/' dan 'anime/tskb/2/'. Karena judul kini menyebut >1 folder
+  tujuan, ancestor_fallback_allowed() = False -> folder 'anime/tskb/1' tidak
+  ditemukan -> S1 dianggap belum diproses -> DI-ENCODE ULANG (buang waktu ~jam).
+
+Yang diinginkan:
+  Deteksi bahwa folder lama sudah berisi episode musim yang bersangkutan, lalu
+  PINDAHKAN (git mv via Git Data API) ke struktur baru TANPA encode ulang.
+
+Rancangan:
+  - Skrip/mode baru, mis. 'relocate_drive_folders.py' atau
+    'process_release_archive.py --relocate'.
+  - Input: peta 'folder_lama -> folder_baru' (mis. anime/tskb -> anime/tskb/1).
+  - Teknik: Git Data API (sama seperti penghapusan folder HLS rusak):
+      1. Baca tree subtree lama (main:<folder_lama>?recursive=1).
+      2. Buat tree baru dengan semua blob di-prefix folder_baru.
+      3. Commit sekali, hapus path lama.
+  - Aman: idempotent, dry-run dulu, jangan mengubah isi file (blob tetap sama).
+  - Setelah relokasi, jalankan --sync-metadata agar metadata.json ikut terbarui.
+  - Verifikasi: masukkan ke proses plan (--check-skip) supaya S1 jadi skip=true.
+
+================================================================================
+TUNDA 2 — ANTRIAN JOB TANPA BATAS (WAIT-LIST)
+================================================================================
+Kondisi sekarang:
+  process-release-hls.yml sudah punya:
+      concurrency:
+        group: "hls-release-processing"
+        cancel-in-progress: false
+  Efeknya: job yang berjalan TIDAK dibatalkan, tapi GitHub hanya menyimpan
+  SATU run "pending" per grup. Trigger ke-3 akan membuang pending sebelumnya.
+
+Yang diinginkan:
+  Antrian tanpa batas (atau batas tinggi) dan tidak saling membatalkan.
+
+Rancangan (file daftar tunggu):
+  - Simpan antrian di sebuah file/issue/label (mis. 'pending_queue.json' di repo
+    atau label 'queue:menunggu' pada issue).
+  - Workflow job "queue" menerima release_tag dan memasukkannya ke daftar tunggu.
+  - Job "runner": selama daftar tunggu tidak kosong, ambil item teratas, proses,
+    tandai selesai, ulangi. Selalu hanya satu runner yang berjalan.
+  - Jika ada job baru saat runner berjalan, hanya ditambahkan ke daftar (tidak
+    memicu run baru), sehingga tidak ada pending yang terbuang.
+  - Alternatif: self-hosted runner + satu worker loop.
+
+================================================================================
+TUNDA 3 — SAMPUL & JUDUL ASLI DI UI
+================================================================================
+Yang diinginkan:
+  - Gambar sampul release dipakai sebagai ikon/pengganti ikon folder.
+  - Nama folder di UI diganti JUDUL ASLI LENGKAP, bukan nama folder fisik.
+  - Sumber sampul: (1) gambar pertama body release; (2) kalau tidak ada -> MAL.
+
+Rancangan:
+  - Ekstrak <img src="..."> pertama dari body release (cover) + baris judul pertama
+    (judul utama). Simpan ke metadata.json / aliases.json (folder_info) dengan KEY
+    PATH LENGKAP (folder), karena key leaf saja bermasalah untuk struktur
+    berjenjang (mis. 'anime/tskb/1' -> leaf '1').
+  - UI (assets/js/explorer.js):
+      * folderInfoStore dicari pakai folderPath, bukan folderName leaf.
+      * Tampilkan <img> sampul pada folder-card bila tersedia.
+      * card-name menampilkan judul lengkap (fallback ke nama folder).
+
+================================================================================
+TUNDA 4 — APLIKASI UI PYTHON UNTUK MANAJEMEN RELEASE
+================================================================================
+Yang diinginkan:
+  Interface (Python) untuk menyusun/memperbarui GitHub Release otomatis:
+  memperbarui RAW, mengunggah RAW baru, membuat release, dsb.
+
+Sumber metadata:
+  - Judul RAW + gambar sampul: MyAnimeList lewat API RESMI (lihat bagian MAL).
+  - Sumber RAW: user hanya diminta URL tempat download.
+  - Ikon/logo penyedia RAW:
+      * Interface mencari kandidat (mis. favicon domain).
+      * User MEMILIH kandidat yang sesuai (bukan otomatis penuh).
+      * Kalau provider sudah tercatat di metadata proyek ini -> langsung pakai,
+        tanpa konfirmasi.
+      * Kalau tidak ada yang cocok -> user boleh menempel URL gambar manual.
+
+Catatan desain:
+  - Simpan token/API key di environment variable, JANGAN di dalam git.
+  - Semua aksi destruktif (menimpa asset release) harus konfirmasi + dry-run.
+
+================================================================================
+PANDUAN SETUP API RESMI MyAnimeList
+================================================================================
+Tujuan: dapat 'client_id' untuk membaca data anime (judul + gambar) secara legal.
+
+Langkah:
+  1. Login ke https://myanimelist.net/ dengan akun MAL.
+  2. Buka https://myanimelist.net/apiconfig
+     (menu: Preferences -> API, atau langsung URL itu).
+  3. Klik "Create ID".
+  4. Isi form:
+       - App Name           : <nama bebas, mis. "Stream Hub Metadata">
+       - App Type           : Web
+       - App Description    : <deskripsi singkat>
+       - App Redirect URI   : <boleh http://localhost:8000/callback untuk uji lokal>
+  5. Setelah dibuat, MAL menampilkan:
+       - Client ID   <-- INI yang kita butuh
+       - Client Secret
+  6. Simpan sebagai environment variable (JANGAN di-commit):
+       export MAL_CLIENT_ID="xxxxxxxxxxxxxxxxxxxxxxxx"
+  7. Uji cepat (anime Fruits Basket sebagai contoh):
+       curl -s "https://api.myanimelist.net/v2/anime?q=fruits%20basket&limit=3" \
+            -H "X-MAL-CLIENT-ID: $MAL_CLIENT_ID" | python3 -m json.tool | head -40
+
+Endpoint yang akan dipakai:
+  - Pencarian    : GET /v2/anime?q=<judul>&limit=5
+  - Detail       : GET /v2/anime/<id>?fields=id,title,main_picture,alternative_titles,start_date
+  - Gambar sampul: field 'main_picture' (large/medium)
+
+PENTING soal legalitas:
+  - Gunakan HANYA API resmi di atas. Scraping halaman web MAL melanggar ToS.
+  - Sumber tidak resmi (mis. Jikan) tidak dipakai karena bukan sumber resmi.
+  - Hormati rate limit API MAL (jangan spam; beri jeda antar request).
+
+================================================================================
+PANDUAN FORMAT BODY RELEASE (ringkas — versi lengkap ada di release Metadata-Guide)
+================================================================================
+  <img ... sampul ...>            (opsional; gambar sampul)
+
+  <resolusi>                      mis. 480p
+  <jumlah episode>                mis. 12 Episodes / 1 Compilation
+
+  ====================            (pemisah: minimal 3 tanda '=')
+
+  <alias judul 1>                 baris pertama = JUDUL UTAMA
+  <alias judul 2>
+  ...
+
+  ====================
+
+  <folder/tujuan>/<nama file>     mis. anime/tskb/1/Otakudesu_TSKB_480p.7z
+
+  ====================
+
+  <URL situs penyedia RAW>
+  <URL ikon/logo penyedia>
+
+Konvensi tag subtitle (ditaruh di JUDUL release, bukan body):
+  [RAW]         -> diharapkan ada subtitle .vtt terpisah
+  [RAW HARDSUB] -> subtitle sudah menempel di video, tidak ada .vtt terpisah
+  (kalau tidak ada tag -> sistem menebak dari isi drive, ditandai '?')
+
+================================================================================
+CATATAN TODO DARI USER (dari README bagian "Catatan")
+================================================================================
+1. [SELESAI] Navigasi direktori lewat tombol MAJU/MUNDUR bawaan browser, agar
+   proyek tidak tiba-tiba tertutup. (explorer.js: syncUrlHash kini pushState,
+   popstate menangani dir+ep, plus bug lama 'play' -> 'ep' diperbaiki.)
+2. [SELESAI SEBAGIAN] run.sh diupgrade: PORT & HOST bisa diatur lewat env,
+   menampilkan alamat, bind eksplisit.
+3. Cara set environment variable di GitHub repo — lihat bagian di bawah.
+4. Jangan boros kuota API MyAnimeList — lihat tips di bawah.
+
+================================================================================
+CARA SET ENVIRONMENT VARIABLE DI GITHUB REPO
+================================================================================
+Untuk nilai yang dipakai workflow (mis. MAL_CLIENT_ID):
+
+NON-RAHASIA (repository variable):
+  1. Buka repo -> Settings -> Secrets and variables -> Actions.
+  2. Tab "Variables" -> "New repository variable".
+  3. Name  : MAL_CLIENT_ID
+     Value : <nilai>
+  4. Simpan. Dipakai di workflow: ${{ vars.MAL_CLIENT_ID }}
+
+RAHASIA (repository secret):
+  1. Sama seperti di atas, tapi tab "Secrets" -> "New repository secret".
+  2. Name  : MAL_CLIENT_ID
+     Value : <nilai>
+  3. Dipakai di workflow: ${{ secrets.MAL_CLIENT_ID }}
+
+Catatan:
+  - Secret tidak bisa dibaca ulang setelah disimpan (write-only).
+  - JANGAN pernah menaruh token/API key di file yang di-commit.
+  - Bisa juga lewat CLI:
+      gh variable set MAL_CLIENT_ID --repo krasyid822/stream --body "..."
+      gh secret   set MAL_CLIENT_ID --repo krasyid822/stream
+
+================================================================================
+TIPS AGAR TIDAK BOROS KUOTA API MYANIMELIST
+================================================================================
+  - Ambil hanya field yang perlu: pakai parameter 'fields='
+    (mis. fields=id,title,main_picture,synopsis).
+  - Cache hasil ke file lokal (mis. mal_cache.json) dengan key = query/id,
+    dan sertakan timestamp; hanya panggil API kalau cache kedaluwarsa.
+  - Cari sekali per judul unik, lalu simpan id MAL-nya; setelah itu detail
+    via id (bukan pencarian berulang).
+  - Beri jeda kecil antar request (mis. 0.5-1 detik) dan tangani 429 dengan
+    backoff eksponensial.
+  - Saat pengembangan, cukup 1-2 judul untuk uji; jangan menarik seluruh library.
+

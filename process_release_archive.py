@@ -15,8 +15,9 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(line_buffering=True)
 
-# Tag release yang diabaikan (tag 'password' menyimpan kunci enkripsi, bukan arsip video)
-IGNORED_RELEASE_TAGS = {"PASSWORD"}
+# Tag release yang diabaikan (tag 'password' menyimpan kunci enkripsi, bukan arsip video;
+# tag 'metadata-guide' hanya berisi dokumentasi format, bukan arsip media)
+IGNORED_RELEASE_TAGS = {"PASSWORD", "METADATA-GUIDE"}
 
 DRIVE_REPO = "krasyid822/stream_drive"
 
@@ -152,7 +153,12 @@ def parse_release_body_lines(body_text):
                 continue
 
             # Lewati baris resolusi / episode
-            if re.match(r'^(?:\d+p|\d+\s*episodes?|part\s*\d+|#+)', line, re.IGNORECASE):
+            if re.match(r'^(?:\d+p|\d+\s*episodes?|\d+\s*compilations?|part\s*\d+|#+)', line, re.IGNORECASE):
+                continue
+
+            # Lewati tag HTML / markdown gambar (mis. <img ...> untuk gambar sampul).
+            # Tanpa ini, baris <img ...> ikut tersimpan sebagai "alias" judul.
+            if re.match(r'^<', line) or re.match(r'^!\[', line):
                 continue
 
             clean_title = re.sub(r'^[–\-\*•\s]+', '', line).strip()

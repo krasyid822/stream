@@ -439,11 +439,7 @@ Repo `stream_drive` sudah **~15 GB / 19.000+ file `.ts`**, sehingga job publish 
 https://myanimelist.net/
 
 ## Catatan
-apakah script saat ini bisa menangi pembaruan? misal sebelumnya anime/tskb/Otakudesu.io_TSKB_480p.7z tapi kareana sudah ada season berikutnya penamaan berubah jadi anime/tskb/1/Otakudesu.io_TSKB_480p.7z dan anime/tskb/2/Otakudesu.io_TSKB_S2_480p.7z seharusnya kan untuk s1 sudah diproses dan tidak perlu regenerate lagi cukup sesuaikan strukur foldernya.
-buatkan satu konten github release dengan tag Metadata-Guide didalamnya berisi formattemplat bagaimana menulis struktur video raw ke github release.
-bisakah script .github/workflows/process-release-hls.yml membuat antrian job tanpa membuat job yang sedang berjalan dibatalkan.
-saya memperbarui struktur github release, sekarang menyertakan gambar sampul, itu digunakan untuk pengganti ikon folder. perbarui penamaan folder di ui yang selama ini pake nama dari folder fisik jadi judul asli lengkapnya.
-buat default subtitlenya on bukan off.
-tambahkan mekanisme otomatis lanjut episode berikutnya.
-perbarui preview video player bisa dibesarkan-dikecilkan.
-buatkan
+fungsikan operasi direktori maju-mundur melalui tombol maju-mundur bawaan browser, agar proyek tidak tiba tiba tertutup.
+script run.sh sepertinya perlu diupgrade.
+cara set environment variable di github repo.
+supaya g boros api mal, otomatis simpan ke metadata
