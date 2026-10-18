@@ -223,8 +223,10 @@ TIPS AGAR TIDAK BOROS KUOTA API MYANIMELIST
 ================================================================================
   - Ambil hanya field yang perlu: pakai parameter 'fields='
     (mis. fields=id,title,main_picture,synopsis).
-  - Cache hasil ke file lokal (mis. mal_cache.json) dengan key = query/id,
-    dan sertakan timestamp; hanya panggil API kalau cache kedaluwarsa.
+  - Cache hasil ke metadata proyek sendiri: simpan judul + sampul hasil MAL
+    LANGSUNG ke metadata.json / aliases.json (sesuai catatan user), sehingga
+    tidak perlu memanggil API dua kali. Sertakan timestamp sumbernya.
+    (Boleh juga mal_cache.json sebagai perantara, lalu ditulis ke aliases.json.)
   - Cari sekali per judul unik, lalu simpan id MAL-nya; setelah itu detail
     via id (bukan pencarian berulang).
   - Beri jeda kecil antar request (mis. 0.5-1 detik) dan tangani 429 dengan
