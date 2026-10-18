@@ -127,6 +127,68 @@ Catatan desain:
   - Semua aksi destruktif (menimpa asset release) harus konfirmasi + dry-run.
 
 ================================================================================
+TUNDA 5 — PWA (INSTALLABLE + OFFLINE + CACHE VIDEO + LAYAR PENGATURAN)
+================================================================================
+Permintaan user:
+  - PWA bisa diinstal.
+  - Bisa offline.
+  - Video yang PERNAH DITONTON otomatis ter-cache.
+  - Layar pengaturan: tampilkan info UKURAN CACHE + tombol BERSIHKAN cache.
+
+Prasyarat:
+  - Situs harus via HTTPS (sudah: https://stream.rasyidkurniawan.my.id/).
+  - Scope di root '/', start_url '/'. OK karena domain custom (bukan subfolder).
+
+Komponen yang perlu dibuat:
+  1) manifest.webmanifest
+       { name, short_name, start_url: "/", scope: "/", display: "standalone",
+         background_color, theme_color, icons: [192, 512, maskable] }
+     Index.html: <link rel="manifest" href="manifest.webmanifest">
+     Catatan: perlu IKON PNG 192 & 512 (favicon.ico bisa dijadikan sumber,
+     tapi sebaiknya PNG asli). Taruh di assets/icons/.
+  2) sw.js (Service Worker) — didaftarkan dari JS (mis. assets/js/pwa.js):
+       - Versi cache: CACHE_VERSION = "v1" agar bisa invalidasi.
+       - APP SHELL (precache saat install): "/", "index.html",
+         "assets/css/*.css", "assets/js/*.js", "favicon.ico", manifest.
+       - Strategi runtime:
+           * metadata.json & aliases.json : network-first + fallback cache
+             (stale-while-revalidate) -> UI tetap jalan offline.
+           * HLS playlist (.m3u8)         : network-first, fallback cache.
+           * Segmen video (.ts)           : CACHE-FIRST -> inilah yang membuat
+             "video yang pernah ditonton" otomatis tersimpan saat diputar.
+           * Poster (.jpg/.png) & .vtt    : cache-first.
+       - Penting: batasi pertumbuhan. Simpan metadata waktu akses, lalu evict
+         (LRU) bila melewati batas (mis. 2 GB atau N entri) — Cache Storage
+         tidak punya auto-evict saat offline-nya sendiri.
+       - activate: hapus cache versi lama; clients.claim().
+       - message handler untuk layar pengaturan:
+           {type:"CACHE_SIZE"} -> balas daftar cache + jumlah entri + ukuran.
+           {type:"CLEAR_CACHE"} -> hapus semua cache media (sisakan app shell).
+  3) Layar PENGATURAN (modal di index.html + assets/js/settings.js):
+       - Ukuran cache: pakai navigator.storage.estimate() (usage/quota) +
+         caches.keys() + caches.open().keys() untuk rincian per-cache.
+       - Tombol "Bersihkan Cache": kirim CLEAR_CACHE ke SW, lalu refresh angka.
+       - (Opsional) tombol "Simpan offline episode ini" untuk mengunduh SEMUA
+         segmen satu episode sekaligus (bukan hanya yang terlewat saat nonton).
+       - (Opsional) navigator.storage.persist() untuk minta penyimpanan
+         persisten agar cache tidak dibersihkan browser.
+
+Jebakan yang harus diingat:
+  - Cache-first untuk .ts berarti update konten tidak terlihat sampai versi
+    cache dinaikkan -> naikkan CACHE_VERSION saat ada perubahan media.
+  - Offline hanya berisi episode yang sudah pernah ditonton/diunduh; bukan
+    seluruh library (terlalu besar).
+  - Jangan cache respons lintas-origin secara membabi-buta; hanya URL CDN
+    stream_drive + app shell sendiri.
+  - GitHub Pages: SW di root, pastikan header tidak memblokir (Pages tidak
+    mengirim header yang menghalangi SW).
+
+Rencana berkas:
+  + manifest.webmanifest, sw.js, assets/js/pwa.js, assets/js/settings.js,
+    assets/icons/icon-192.png, assets/icons/icon-512.png
+  ~ index.html (link manifest, tombol pengaturan, registrasi SW)
+
+================================================================================
 PANDUAN SETUP API RESMI MyAnimeList
 ================================================================================
 Tujuan: dapat 'client_id' untuk membaca data anime (judul + gambar) secara legal.
@@ -191,13 +253,17 @@ Konvensi tag subtitle (ditaruh di JUDUL release, bukan body):
 ================================================================================
 CATATAN TODO DARI USER (dari README bagian "Catatan")
 ================================================================================
-1. [SELESAI] Navigasi direktori lewat tombol MAJU/MUNDUR bawaan browser, agar
-   proyek tidak tiba-tiba tertutup. (explorer.js: syncUrlHash kini pushState,
-   popstate menangani dir+ep, plus bug lama 'play' -> 'ep' diperbaiki.)
-2. [SELESAI SEBAGIAN] run.sh diupgrade: PORT & HOST bisa diatur lewat env,
-   menampilkan alamat, bind eksplisit.
-3. Cara set environment variable di GitHub repo — lihat bagian di bawah.
-4. Jangan boros kuota API MyAnimeList — lihat tips di bawah.
+1. [SELESAI & TERUJI] Navigasi direktori lewat tombol MAJU/MUNDUR bawaan browser,
+   agar proyek tidak tiba-tiba tertutup. (explorer.js: pushState + popstate
+   menangani dir+ep; bug lama 'play' -> 'ep' diperbaiki; skema hash `_`<->spasi
+   yang rusak diganti encoding URL yang bisa dibalik.) Diuji di browser nyata.
+2. [SELESAI] run.sh diupgrade: PORT & HOST bisa diatur lewat env, menampilkan
+   alamat, bind eksplisit.
+3. [SELESAI] Cara set environment variable di GitHub repo — lihat bagian di bawah.
+4. [DITUNDA] Jangan boros kuota API MyAnimeList + otomatis simpan ke
+   metadata.json/aliases.json — lihat TUNDA 4 & tips di bawah (bagian dari UI MAL).
+5. [DITUNDA] PWA (installable + offline + cache video ditonton + layar pengaturan
+   ukuran cache) — lihat TUNDA 5.
 
 ================================================================================
 CARA SET ENVIRONMENT VARIABLE DI GITHUB REPO

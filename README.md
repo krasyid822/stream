@@ -439,8 +439,3 @@ Repo `stream_drive` sudah **~15 GB / 19.000+ file `.ts`**, sehingga job publish 
 https://myanimelist.net/
 
 ## Catatan
-fungsikan operasi direktori maju-mundur melalui tombol maju-mundur bawaan browser, agar proyek tidak tiba tiba tertutup.
-script run.sh sepertinya perlu diupgrade.
-cara set environment variable di github repo.
-supaya g boros api mal, otomatis simpan ke metadata aliases.json.
-implementasikan pwa agar bisa diinstal dan offline, video yang pernah ditonton otomatis tercache, sediakan layar pengaturan, salah satunya untuk menampilkan info ukuran cache dan tombol untuk membersihkannya.
