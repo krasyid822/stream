@@ -59,7 +59,7 @@ def load_drive_tree():
     if "all" in TREE_CACHE:
         return TREE_CACHE["all"]
     # Responsnya ~7 MB dan GitHub kadang membalas HTTP 500 acak -> percobakan lebih banyak
-    out, err = gh_api("git/trees/main", "?recursive=1", retries=5)
+    out, err = gh_api("git/trees/main", "?recursive=1", retries=8)
     if out is None:
         print("[-] Tidak bisa membaca stream_drive. Pastikan DRIVE_PAT tersedia.")
         sys.exit(2)
@@ -149,15 +149,32 @@ def analyze_folder(drive_path, tree):
     notes = []
     detail = []
 
+    # Kumpulkan file per episode lebih dulu: untuk menilai subtitle kita perlu
+    # melihat kondisi SELURUH folder, bukan tiap episode secara terpisah.
+    ep_files_map = {}
     for ep in episodes:
         ep_prefix = prefix + ep + "/"
-        ep_files = {p[len(ep_prefix):] for p in sizes if p.startswith(ep_prefix)}
+        ep_files_map[ep] = {p[len(ep_prefix):] for p in sizes if p.startswith(ep_prefix)}
+
+    # Hardsub vs softsub ditentukan dari ISI drive, bukan dari tag di judul release.
+    # Alasannya: tag "[RAW HARDSUB]" tidak konsisten (GSYOS & MINUSCULE hardsub tapi
+    # tidak diberi tag, dan tag yang ada belum tentu selalu berarti apa-apa).
+    # Yang jujur: kalau release punya .vtt di episode MANYAKAL, berarti softsub dan
+    # episode lain yang kosong itu masalah. Kalau TIDAK SATU PUN episode punya .vtt,
+    # subtitle sudah menyatu ke gambar (hardsub) sehingga tidak ada yang hilang.
+    ep_punya_sub = {ep for ep, files in ep_files_map.items()
+                    if any(f.endswith(".vtt") for f in files)}
+    softsub = bool(ep_punya_sub)
+
+    for ep in episodes:
+        ep_files = ep_files_map[ep]
 
         if "poster.jpg" not in ep_files:
             issues.append(f"{ep}: poster.jpg tidak ada")
-        if not any(f.endswith(".vtt") for f in ep_files):
-            # Hampir semua rilis di sini hardsub, jadi ini wajar — cukup dicatat
-            notes.append(f"{ep}: tidak ada subtitle .vtt")
+        # Hardsub sengaja TIDAK dicatat: tidak ada subtitle terpisah yang diharapkan,
+        # jadi catatan itu cuma derau. Hilangnya subtitle baru jadi masalah bila softsub.
+        if softsub and ep not in ep_punya_sub:
+            issues.append(f"{ep}: subtitle .vtt hilang, padahal release ini punya subtitle")
 
         renditions = sorted({f.split("/")[0] for f in ep_files
                              if re.fullmatch(r"stream_\d+/.+\.ts", f)})
@@ -192,7 +209,8 @@ def analyze_folder(drive_path, tree):
         notes.append(f"{drive_path}: {numbering}")
 
     return {"folder": drive_path, "episode": episodes,
-            "issues": issues, "notes": notes, "detail": detail}
+            "issues": issues, "notes": notes, "detail": detail,
+            "subs": "softsub" if softsub else "hardsub"}
 
 
 def deep_check_folder(drive_path, tree):
@@ -352,7 +370,8 @@ def check_release(repo, tag, tree, deep=False):
                 res["issues"] = res["issues"] + deep_problems
         rows.append({"folder": dest, "drive_folder": drive_path,
                      "found": len(res["episode"]), "issues": res["issues"],
-                     "notes": res["notes"], "episodes": res["episode"]})
+                     "notes": res["notes"], "episodes": res["episode"],
+                     "subs": res.get("subs", "")})
 
     expected = declared_episode_count(body)
     if found_total == 0:
@@ -419,8 +438,9 @@ def main():
         print(f"     {strip_badge(res['title'])}")
         for row in res["rows"]:
             dup = " (duplikat, tidak dihitung)" if row.get("duplicate_of") else ""
+            tag_sub = f"  [{row['subs']}]" if row.get("subs") else ""
             print(f"     - {row['folder']} -> {row.get('drive_folder', '(tidak ada)')} : "
-                  f"{row['found']} episode{dup}")
+                  f"{row['found']} episode{dup}{tag_sub}")
             for iss in row.get("issues", [])[:4]:
                 print(f"         ⛔ {iss}")
             for nts in row.get("notes", [])[:2]:

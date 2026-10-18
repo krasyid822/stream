@@ -42,7 +42,10 @@ def gh_api(path, params="", retries=3):
             return None, last_err
 
         if attempt < max(1, retries) - 1:
-            time.sleep(2 * (attempt + 1))
+            # Backoff eksponensial (2,4,8,16,20... detik, dibatasi 20 detik).
+            # Endpoint pohon besar (~7 MB) sering terpotong sesaat; jeda yang terlalu
+            # pendek membuat semua percobaan jatuh pada kondisi jaringan yang sama.
+            time.sleep(min(2 ** (attempt + 1), 20))
             continue
 
     print(f"[!] Gagal mengakses stream_drive ({path}): {last_err} (setelah {retries} percobaan)")
