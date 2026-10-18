@@ -133,6 +133,9 @@ Permintaan user:
   - PWA bisa diinstal.
   - Bisa offline.
   - Video yang PERNAH DITONTON otomatis ter-cache.
+    CATATAN PENTING: aplikasi saat ini TIDAK punya opsi unduh sama sekali.
+    Jadi cache offline murni berasal dari video yang DITONTON. Tombol
+    unduh/simpan-offline adalah fitur BARU (belum ada) — lihat (Opsional) di bawah.
   - Layar pengaturan: tampilkan info UKURAN CACHE + tombol BERSIHKAN cache.
 
 Prasyarat:
@@ -146,6 +149,7 @@ Komponen yang perlu dibuat:
      Index.html: <link rel="manifest" href="manifest.webmanifest">
      Catatan: perlu IKON PNG 192 & 512 (favicon.ico bisa dijadikan sumber,
      tapi sebaiknya PNG asli). Taruh di assets/icons/.
+     -> User minta AI yang MEN-GENERATE ikon ini nanti (bukan user).
   2) sw.js (Service Worker) — didaftarkan dari JS (mis. assets/js/pwa.js):
        - Versi cache: CACHE_VERSION = "v1" agar bisa invalidasi.
        - APP SHELL (precache saat install): "/", "index.html",
@@ -168,15 +172,17 @@ Komponen yang perlu dibuat:
        - Ukuran cache: pakai navigator.storage.estimate() (usage/quota) +
          caches.keys() + caches.open().keys() untuk rincian per-cache.
        - Tombol "Bersihkan Cache": kirim CLEAR_CACHE ke SW, lalu refresh angka.
-       - (Opsional) tombol "Simpan offline episode ini" untuk mengunduh SEMUA
-         segmen satu episode sekaligus (bukan hanya yang terlewat saat nonton).
+       - (Opsional, FITUR BARU — belum ada) tombol "Simpan offline episode ini"
+         untuk mengunduh SEMUA segmen satu episode sekaligus (bukan hanya yang
+         terlewat saat nonton).
        - (Opsional) navigator.storage.persist() untuk minta penyimpanan
          persisten agar cache tidak dibersihkan browser.
 
 Jebakan yang harus diingat:
   - Cache-first untuk .ts berarti update konten tidak terlihat sampai versi
     cache dinaikkan -> naikkan CACHE_VERSION saat ada perubahan media.
-  - Offline hanya berisi episode yang sudah pernah ditonton/diunduh; bukan
+  - Offline hanya berisi episode yang sudah pernah DITONTON (dan/atau yang
+    diunduh lewat tombol simpan-offline, bila fitur itu dibuat nanti); bukan
     seluruh library (terlalu besar).
   - Jangan cache respons lintas-origin secara membabi-buta; hanya URL CDN
     stream_drive + app shell sendiri.
