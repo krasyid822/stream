@@ -8,6 +8,8 @@ Aturan kerja:
   - Fitur cepat dulu, fitur besar ditunda sampai diminta.
   - Jangan mengubah perilaku pipeline yang sudah terbukti tanpa alasan jelas.
   - Semua perubahan wajib diuji lokal sebelum push.
+  - PROYEK INI SENGAJA TIDAK menyediakan tombol/mekanisme UNDUH (sejak awal).
+    Jangan pernah menambahkan fitur unduh/offline-download.
 
 Tambahan permintaan user (jangan lupa):
   - Sampul folder = gambar pertama body release; kalau tidak ada -> ambil dari MAL.
@@ -133,9 +135,9 @@ Permintaan user:
   - PWA bisa diinstal.
   - Bisa offline.
   - Video yang PERNAH DITONTON otomatis ter-cache.
-    CATATAN PENTING: aplikasi saat ini TIDAK punya opsi unduh sama sekali.
-    Jadi cache offline murni berasal dari video yang DITONTON. Tombol
-    unduh/simpan-offline adalah fitur BARU (belum ada) — lihat (Opsional) di bawah.
+    PRINSIP DESAIN PROYEK: aplikasi ini SENGAJA tidak menyediakan tombol/offline-
+    download sejak awal. JANGAN menambahkan mekanisme unduh apa pun. Jadi cache
+    offline murni berasal dari video yang DITONTON (segmen tersimpan saat diputar).
   - Layar pengaturan: tampilkan info UKURAN CACHE + tombol BERSIHKAN cache.
 
 Prasyarat:
@@ -172,18 +174,17 @@ Komponen yang perlu dibuat:
        - Ukuran cache: pakai navigator.storage.estimate() (usage/quota) +
          caches.keys() + caches.open().keys() untuk rincian per-cache.
        - Tombol "Bersihkan Cache": kirim CLEAR_CACHE ke SW, lalu refresh angka.
-       - (Opsional, FITUR BARU — belum ada) tombol "Simpan offline episode ini"
-         untuk mengunduh SEMUA segmen satu episode sekaligus (bukan hanya yang
-         terlewat saat nonton).
+         (JANGAN menambahkan tombol unduh/simpan-offline — proyek ini sengaja
+         tidak menyediakan mekanisme unduh.)
        - (Opsional) navigator.storage.persist() untuk minta penyimpanan
          persisten agar cache tidak dibersihkan browser.
 
 Jebakan yang harus diingat:
   - Cache-first untuk .ts berarti update konten tidak terlihat sampai versi
     cache dinaikkan -> naikkan CACHE_VERSION saat ada perubahan media.
-  - Offline hanya berisi episode yang sudah pernah DITONTON (dan/atau yang
-    diunduh lewat tombol simpan-offline, bila fitur itu dibuat nanti); bukan
-    seluruh library (terlalu besar).
+  - Offline hanya berisi episode yang sudah pernah DITONTON; bukan seluruh
+    library (terlalu besar). Tidak ada cara mengunduh episode yang belum ditonton
+    (memang sengaja demikian).
   - Jangan cache respons lintas-origin secara membabi-buta; hanya URL CDN
     stream_drive + app shell sendiri.
   - GitHub Pages: SW di root, pastikan header tidak memblokir (Pages tidak
