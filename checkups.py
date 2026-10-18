@@ -409,6 +409,8 @@ def check_release(repo, tag, tree, deep=False):
                      "subs": res.get("subs", ""),
                      "subs_source": res.get("subs_source", "data")})
 
+    # Kondisi yang sudah disadari user (mis. RAW memang cacat) dipindahkan dari
+    # "masalah" menjadi "catatan", supaya tidak menurunkan status ke ⚠️ selamanya.
     expected = declared_episode_count(body)
     if found_total == 0:
         status = STATUS_MISSING

@@ -446,3 +446,4 @@ saya memperbarui struktur github release, sekarang menyertakan gambar sampul, it
 buat default subtitlenya on bukan off.
 tambahkan mekanisme otomatis lanjut episode berikutnya.
 perbarui preview video player bisa dibesarkan-dikecilkan.
+buatkan
