@@ -34,3 +34,6 @@ chunk.json
 drive_skip_list.txt
 stream_drive_target/
 hls_artifacts/
+
+# Konfigurasi lokal opencode (berisi path mesin: /opt/hopper, /usr/bin/brave)
+opencode.json
