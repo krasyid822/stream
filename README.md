@@ -443,3 +443,4 @@ fungsikan operasi direktori maju-mundur melalui tombol maju-mundur bawaan browse
 script run.sh sepertinya perlu diupgrade.
 cara set environment variable di github repo.
 supaya g boros api mal, otomatis simpan ke metadata aliases.json.
+implementasikan pwa agar bisa diinstal dan offline, video yang pernah ditonton otomatis tercache, sediakan layar pengaturan, salah satunya untuk menampilkan info ukuran cache dan tombol untuk membersihkannya.

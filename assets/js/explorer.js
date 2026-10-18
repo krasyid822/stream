@@ -46,20 +46,21 @@ function updateCommentWidgetRoom() {
     }
 }
 
-// Synchronize & Sync URL Hash for Deep-Linking & Reload Persistence with Pretty Path Slashes & Underscore Spaces
+// Sinkronkan URL hash untuk deep-linking, reload persistence, dan riwayat
+// MAJU/MUNDUR browser. Path di-encode per segmen (encodeURIComponent) supaya
+// spasi, tanda hubung, dan garis bawah (mis. 'zero_tskma') tetap utuh dan
+// benar-benar bisa dibalik oleh parseUrlHash().
 function syncUrlHash() {
     let hashPath = "";
 
     if (currentFolder) {
-        // Ganti spasi dengan underscore di URL hash
-        const cleanFolder = currentFolder.replace(/^\/+|\/+$/g, "").replace(/ /g, "_");
-        hashPath = "#/" + cleanFolder;
+        const cleanFolder = currentFolder.replace(/^\/+|\/+$/g, "");
+        hashPath = "#/" + cleanFolder.split("/").map(encodeURIComponent).join("/");
     }
 
     // Hanya tampilkan parameter episode jika media diputar berada di dalam currentFolder yang sedang dibuka
     if (window.currentPlayingMediaObj && window.currentPlayingMediaObj.folder === currentFolder) {
-        const episodeName = window.currentPlayingMediaObj.name.replace(/ /g, "_");
-        hashPath += (hashPath ? "?" : "#?") + "ep=" + encodeURIComponent(episodeName);
+        hashPath += (hashPath ? "?" : "#?") + "ep=" + encodeURIComponent(window.currentPlayingMediaObj.name);
     }
 
     const targetUrl = hashPath
@@ -87,15 +88,25 @@ function parseUrlHash() {
 
     const queryIdx = rawHash.indexOf("?");
     if (queryIdx !== -1) {
-        dirPath = decodeURIComponent(rawHash.substring(0, queryIdx)).replace(/^\/+|\/+$/g, "").replace(/_/g, " ");
+        dirPath = safeDecode(rawHash.substring(0, queryIdx)).replace(/^\/+|\/+$/g, "");
         const queryStr = rawHash.substring(queryIdx + 1);
+        // URLSearchParams sudah men-decode nilai (mis. %20 -> spasi).
         const params = new URLSearchParams(queryStr);
-        episodeName = (params.get("ep") || params.get("play") || "").replace(/_/g, " ");
+        episodeName = params.get("ep") || params.get("play") || "";
     } else {
-        dirPath = decodeURIComponent(rawHash.replace(/^\/+|\/+$/g, "")).replace(/_/g, " ");
+        dirPath = safeDecode(rawHash.replace(/^\/+|\/+$/g, ""));
     }
 
     return { dir: dirPath, ep: episodeName };
+}
+
+// decodeURIComponent yang tidak melempar error bila hash cacat (mis. '%' liar)
+function safeDecode(value) {
+    try {
+        return decodeURIComponent(value);
+    } catch (e) {
+        return value;
+    }
 }
 
 let aliasesStore = {};

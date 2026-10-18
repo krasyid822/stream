@@ -224,6 +224,13 @@ async function toggleSubtitle() {
     isSubtitleActive = !isSubtitleActive;
 
     if (isSubtitleActive) {
+        // Perbarui tampilan tombol LEBIH DULU supaya status ON langsung terlihat,
+        // tidak menunggu proses fetch .vtt yang asinkron.
+        if (btn) {
+            btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: ON`;
+            btn.style.color = "var(--accent-yellow)";
+            btn.style.borderColor = "var(--accent-yellow)";
+        }
         if (!video.querySelector("track")) {
             for (let idx = 0; idx < currentSubtitleTracks.length; idx++) {
                 const sub = currentSubtitleTracks[idx];
@@ -267,11 +274,6 @@ async function toggleSubtitle() {
         }
         for (let i = 0; i < video.textTracks.length; i++) {
             video.textTracks[i].mode = "showing";
-        }
-        if (btn) {
-            btn.innerHTML = `<i class="fa-solid fa-closed-captioning"></i> SUBTITLE: ON`;
-            btn.style.color = "var(--accent-yellow)";
-            btn.style.borderColor = "var(--accent-yellow)";
         }
     } else {
         for (let i = 0; i < video.textTracks.length; i++) {
