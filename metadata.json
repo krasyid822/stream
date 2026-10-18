@@ -585,36 +585,6 @@
       "type": "hls_stream"
     },
     {
-      "id": "anime_zero_tskma_2_Episode_2_hls_master_m3u8",
-      "name": "Episode 2",
-      "folder": "anime/zero_tskma/2",
-      "path": "anime/zero_tskma/2/Episode 2_hls",
-      "master_url": "anime/zero_tskma/2/Episode 2_hls/master.m3u8",
-      "poster_url": "anime/zero_tskma/2/Episode 2_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_zero_tskma_3_Episode_3_hls_master_m3u8",
-      "name": "Episode 3",
-      "folder": "anime/zero_tskma/3",
-      "path": "anime/zero_tskma/3/Episode 3_hls",
-      "master_url": "anime/zero_tskma/3/Episode 3_hls/master.m3u8",
-      "poster_url": "anime/zero_tskma/3/Episode 3_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "anime_zero_tskma_4_Episode_4_hls_master_m3u8",
-      "name": "Episode 4",
-      "folder": "anime/zero_tskma/4",
-      "path": "anime/zero_tskma/4/Episode 4_hls",
-      "master_url": "anime/zero_tskma/4/Episode 4_hls/master.m3u8",
-      "poster_url": "anime/zero_tskma/4/Episode 4_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
       "id": "série_animée_minuscule_Minuscule_-_Compilation_#1_hls_master_m3u8",
       "name": "Minuscule - Compilation #1",
       "folder": "série_animée/minuscule",
@@ -625,5 +595,5 @@
       "type": "hls_stream"
     }
   ],
-  "updated_at": "1792076315.2489011"
+  "updated_at": "1792077569.4152126"
 }

@@ -202,17 +202,44 @@ Rilis baru otomatis diproses oleh workflow `Process Release Archive & Auto HLS S
 
   | Variable | Default | Arti |
   |---|---|---|
-  | `HLS_CHUNK_SIZE_GB` | `1.2` | Makin kecil = makin banyak job paralel |
+  | `HLS_CHUNK_SIZE_GB` | `0.9` | Makin kecil = makin banyak job paralel |
   | `HLS_MAX_SHARDS` | `6` | Plafon shard per grup arsip |
   | `HLS_NATIVE_MODE` | `auto` | `auto` / `copy` / `encode` (lihat tabel di bawah) |
   | `HLS_NATIVE_PRESET` | `medium` | Preset rendition resolusi asli |
   | `HLS_DERIVED_PRESET` | `veryfast` | Preset rendition turunan |
+
+### ⏱️ Anggaran waktu per job encode
+
+Job encode dibatasi `timeout-minutes: 350` (batas keras runner GitHub-hosted = 360).
+Rincian waktu satu shard, diukur dari log run `AM` (arsip 3,44 GB, 14 episode 1080p HEVC):
+
+| Fase | Durasi | Catatan |
+|---|---|---|
+| Unduh arsip | ~1,5 mnt | 6 bagian diunduh berurutan, sebenarnya sangat cepat |
+| **Ekstrak `zpaq`** | **~72 mnt** | Bottleneck tersembunyi; `zpaq` sangat lambat, diulang tiap shard |
+| Encode | ~42 mnt/episode | 4 rendition (1080/720/480/360) jalan bersamaan, 1 thread masing-masing |
+| Upload artifact | ~3 mnt | |
+
+Per_release, durasi tiap shard ≈ `72 mnt + 42 mnt × episode_per_shard`.
+Dengan `HLS_CHUNK_SIZE_GB = 0.9`, arsip 3,44 GB terbagi **4 shard × 4 episode ≈ 4j10m** — masih
+memiliki ~1j40m cadangan. Nilai `1.2` menghasilkan 3 shard × 5 episode = 5j02m, **melewati
+batas 5 jam** dan job dibunuh tepat setelah 5 jam kerja selesai.
+
+> ⚠️ Jangan menaikkan `HLS_CHUNK_SIZE_GB` tanpa memperhitungkan fase ekstrak `zpaq`.
+> roughly: shard harus tetap di bawah ~350 mnt.
 
 ## 🔄 Resume / Anti-Mulai-Ulang dari Nol
 Sebelum encode, tiap episode dicek terhadap isi `stream_drive`. Episode yang `master.m3u8`-nya
 sudah ada **dilewati**, bukan di-encode ulang. Artinya:
 - Menjalankan ulang workflow setelah job kena limit / gagal → **melanjutkan**, bukan mengulang.
 - Rilis yang hanya terisi sebagian (folder sudah ada tapi episode kurang) tetap bisa dilanjuti.
+
+### Hasil parsial tetap dipublish
+Job `publish` **tidak** bergantung pada `needs.encode.result`. Kalau satu shard timeout tapi
+shard lain berhasil, artifact shard yang sukses tetap diunduh & di-push ke `stream_drive`.
+Dulu langkah download/push dilewati begitu ada satu shard yang `cancelled`, sehingga
+puluhan jam encode ikut terbuang. Job `publish` baru ditandai gagal di akhir *setelah*
+media parsial tersimpan, sebagai penanda ada episode yang belum lengkap.
 
 ## 🎚️ Konfigurasi Encoding
 
@@ -247,6 +274,58 @@ Tersedia juga mode manual per perintah:
 # atur preset
 ./hls.sh "RAW/anime/series/1/video.mkv" --native-preset medium --derived-preset veryfast
 ```
+
+## 🏷️ Penamaan Folder Episode (`clean_episode_name`)
+
+Nama file sumber dinormalisasi menjadi nama folder HLS. **Token musim dibuang lebih dulu**,
+baru nomor episode dicari — ini penting, bukan sekadar kosmetik:
+
+| Nama file sumber | Nama folder HLS | Catatan |
+|---|---|---|
+| `01.mkv` | `Episode 01` | |
+| `E04.mkv` | `Episode 04` | |
+| `FullDive RPG 01.mkv` | `FullDive RPG 01` | >2 kata, nama dipertahankan |
+| `S2 01.mkv` | `Episode 01` | token `S2` **bukan** nomor episode |
+| `Season 2 03.mkv` | `Episode 03` | |
+
+> ⚠️ **Jangan pernah membalik urutan ini.** Kalau nomor episode dicari *sebelum* token musim
+> dibuang, `S2 01` akan terbaca sebagai "Episode 2". Seluruh 12 episode musim 2 lalu menabrak
+> satu folder yang sama, dan 11 di antaranya **hilang tanpa error** karena folder itu sudah
+> ada. Ini terjadi sungguhan di `zero_tskma` musim 2–4 (±33 episode).
+
+Sebagai pengaman, `resolve_unique_output_dir()` mendeteksi tabrakan nama dalam satu proses
+dan memberi sufiks dari nama file sumber, alih-alih menimpa diam-diam.
+
+### Deteksi musim yang belum terproses
+
+Plan/release memakai dua tingkat ketat:
+
+- Judul yang merujuk **satu** folder musim saja → boleh mencari ke folder induk
+  (mis. `GSYOS` menulis `anime/gsyos/2/`, tapi drive menyimpannya datar di `anime/gsyos/`).
+- Judul yang merunjuk **beberapa** musim → diperiksa **ketat per folder**.
+
+Tanpa aturan ini, `JCTK` musim 2 yang kosong akan terlihat "sudah lengkap" hanya karena
+musim 1 berisi episode — dan musim itu tidak akan pernah diproses.
+
+## 🗂️ Mode Sinkron Metadata Saja
+
+Kalau media **sudah ada** di `stream_drive` tapi `metadata.json` (indeks Web UI) basi,
+jalankan workflow yang sama dengan opsi **`sync_only = true`**:
+
+*Actions → Process Release Archive & Auto HLS Stream Pipeline → Run workflow*
+
+| Input | Nilai |
+|---|---|
+| `release_tag` | **kosongkan** (tidak dipakai pada mode ini) |
+| `sync_only` | ✅ centang |
+
+Yang terjadi: job `0) Sinkron Metadata (saja)` menjalankan `--sync-metadata` lalu commit &
+push `metadata.json` ke repo `stream`. Job `Plan`, `Encode`, dan `Publish` **dilewati**.
+
+Hasilnya tampil di **Job Summary**: total media, jumlah per kategori, dan daftar episode.
+
+Mode ini juga berguna sebagai **pemeriksaan cepat** — `metadata.json` di repo masih boleh
+di-`git checkout HEAD -- metadata.json` bila ingin mengembalikan ke versi lama.
 
 ## 🔎 Checkup Rilis Otomatis (`checkups.py` + workflow `checkups.yml`)
 
@@ -332,3 +411,15 @@ Repo `stream_drive` sudah **~15 GB / 19.000+ file `.ts`**, sehingga job publish 
 ## Sesi opencode
   Session   Perbaiki algoritma runner ffmpeg agar konversi be…
   Continue  opencode -s ses_eccba703cffek4irHS0Dtm1wrc
+
+## Sumber legal untuk metadata
+https://myanimelist.net/
+
+## Catatan
+apakah script saat ini bisa menangi pembaruan? misal sebelumnya anime/tskb/Otakudesu.io_TSKB_480p.7z tapi kareana sudah ada season berikutnya penamaan berubah jadi anime/tskb/1/Otakudesu.io_TSKB_480p.7z dan anime/tskb/2/Otakudesu.io_TSKB_S2_480p.7z seharusnya kan untuk s1 sudah diproses dan tidak perlu regenerate lagi cukup sesuaikan strukur foldernya.
+buatkan satu konten github release dengan tag Metadata-Guide didalamnya berisi formattemplat bagaimana menulis struktur video raw ke github release.
+bisakah script .github/workflows/process-release-hls.yml membuat antrian job tanpa membuat job yang sedang berjalan dibatalkan.
+saya memperbarui struktur github release, sekarang menyertakan gambar sampul, itu digunakan untuk pengganti ikon folder. perbarui penamaan folder di ui yang selama ini pake nama dari folder fisik jadi judul asli lengkapnya.
+buat default subtitlenya on bukan off.
+tambahkan mekanisme otomatis lanjut episode berikutnya.
+perbarui preview video player bisa dibesarkan-dikecilkan.

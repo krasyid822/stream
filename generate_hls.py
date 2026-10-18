@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 
@@ -291,25 +292,89 @@ def extract_web_source_from_filename(filename):
         }
     return None
 
+# Token musim/part yang HARUS dibuang sebelum mencari nomor episode.
+# Contoh: 'S2', 'S02', 'Season 3', 'Part 2', 'Cour 1', 'Vol 2'.
+# Lookbehind '[^a-z0-9]' mencegah nama seperti '5toubun' ikut terpotong.
+# Tanpa ini, nama 'S2 01' akan terbaca sebagai "Episode 2" (dari angka musim),
+# sehingga SELURUH episode satu musim menabrak folder HLS yang sama lalu saling menimpa.
+_SEASON_TOKEN_RE = re.compile(
+    r'(?<![a-z0-9])(?:season|ss|s|part|cour|vol)\s*[-_.]?\s*(\d{1,2})(?!\d)',
+    re.IGNORECASE
+)
+
+
 def clean_episode_name(raw_name):
     """Memangkas nama folder/file episode yang panjang menjadi ringkas (misal: 'Episode 04' atau 'Episode 14')."""
     clean_name = raw_name.replace("_hls", "").strip()
 
-    # 1. Cek apakah ada pola nomor episode seperti 'Episode 04', 'Ep 14', 'E04', atau angka '04' di dalam nama
-    ep_match = re.search(r'(?:episode|ep|e)?\s*(\d+)', clean_name, re.IGNORECASE)
-
-    # 2. Jika ada tag pembuka seperti [Doronime.id] atau [480p] [h265], bersihkan tag tanda kurung siku/bisa
+    # 1. Jika ada tag pembuka seperti [Doronime.id] atau [480p] [h265], bersihkan tag tanda kurung siku/bisa
     no_brackets = re.sub(r'\[.*?\]|\(.*?\)', '', clean_name).strip()
+    no_brackets = re.sub(r'\s+', ' ', no_brackets).strip()
+
+    # 2. Buang token musim/part lebih dulu, baru cari nomor episode.
+    #    'S2 01' -> '01' -> 'Episode 01' (bukan 'Episode 2')
+    seasonless = re.sub(r'\s+', ' ', _SEASON_TOKEN_RE.sub(' ', no_brackets)).strip()
+    basis = seasonless or no_brackets
+
+    # 3. Cek apakah ada pola nomor episode seperti 'Episode 04', 'Ep 14', 'E04', atau angka '04' di dalam nama
+    ep_match = re.search(r'(?:episode|ep|e)?\s*(\d+)', basis, re.IGNORECASE)
 
     if ep_match:
         ep_num = ep_match.group(1)
-        if not no_brackets or no_brackets.isdigit() or len(no_brackets.split()) <= 2:
+        if not basis or basis.isdigit() or len(basis.split()) <= 2:
             return f"Episode {ep_num}"
 
-    if no_brackets:
-        return no_brackets
+    if basis:
+        return basis
 
     return clean_name
+
+
+# Folder output HLS yang sudah dipakai VIDEO LAIN dalam satu proses berjalan.
+# Kunci = path output huruf kecil, nilai = nama file sumber yang memakainya.
+_CLAIMED_OUTPUT_DIRS = {}
+
+
+def _slug_for_output_suffix(raw_filename):
+    """Mengubah nama file sumber menjadi sufiks folder yang aman & ringkas."""
+    slug = re.sub(r'[^A-Za-z0-9]+', '_', raw_filename).strip('_')
+    return slug[:40] or "part"
+
+
+def resolve_unique_output_dir(prod_base_dir, clean_ep_folder, raw_filename):
+    """
+    Menentukan folder output HLS, dan mencegah TABRAKAN NAMA.
+
+    Dua file sumber berbeda bisa dipetakan ke nama episode yang sama (misal
+    'S2 01' dan 'S2 02' sama-sama jadi 'Episode 02'). Tanpa guard, video kedua
+    akan melihat folder milik video pertama lalu dilewati sebagai "sudah ada",
+    sehingga episode hilang tanpa error sama sekali.
+
+    Di sini tabrakan diperjelas: folder diberi sufiks dari nama file sumber.
+    """
+    output_dir = os.path.join(prod_base_dir, clean_ep_folder + "_hls")
+    claim_key = os.path.normcase(output_dir)
+    prior = _CLAIMED_OUTPUT_DIRS.get(claim_key)
+
+    if prior is not None and prior != raw_filename:
+        suffix = _slug_for_output_suffix(raw_filename)
+        base = clean_ep_folder + "_" + suffix
+        candidate = os.path.join(prod_base_dir, base + "_hls")
+        counter = 2
+        while (os.path.normcase(candidate) in _CLAIMED_OUTPUT_DIRS
+               and _CLAIMED_OUTPUT_DIRS[os.path.normcase(candidate)] != raw_filename):
+            candidate = os.path.join(prod_base_dir, f"{base}_{counter}_hls")
+            counter += 1
+        print(f"[⚠️] TABRAKAN NAMA: '{raw_filename}' menghasilkan nama episode '{clean_ep_folder}' "
+              f"yang sudah dipakai oleh '{prior}'.")
+        print(f"[⚠️] Folder output diubah menjadi '{os.path.basename(candidate)}' "
+              f"agar episode '{raw_filename}' tidak menimpa.")
+        output_dir = candidate
+        claim_key = os.path.normcase(output_dir)
+
+    _CLAIMED_OUTPUT_DIRS[claim_key] = raw_filename
+    return output_dir
+
 
 def update_library_metadata(workspace_dir):
     """Memindai seluruh folder kategori (anime, donghua, dll) serta file media HLS."""
@@ -453,6 +518,36 @@ def load_skip_list(skip_list_file):
     return existing
 
 
+def stage_completed_output(workspace_root, output_dir, staging_dir):
+    """
+    Memindahkan folder HLS yang SUDAH SELESAI ke folder staging (HLS_OUT) segera setelah
+    satu episode beres — bukan menunggu seluruh shard selesai.
+
+    Tujuannya: kalau job dibunuh di tengah (mis. timeout), episode yang sudah jadi tetap
+    tersimpan di HLS_OUT dan bisa ter-upload sebagai artifact, bukan hilang semua.
+    """
+    if not staging_dir or not output_dir or not os.path.isdir(output_dir):
+        return False
+    try:
+        abs_staging = staging_dir if os.path.isabs(staging_dir) else os.path.join(workspace_root, staging_dir)
+        abs_out = output_dir if os.path.isabs(output_dir) else os.path.join(workspace_root, output_dir)
+        rel = os.path.relpath(abs_out, start=workspace_root)
+        if rel.startswith(".."):
+            # di luar workspace -> tidak bisa direferensikan relatif, salin apa adanya
+            target = os.path.join(abs_staging, os.path.basename(abs_out))
+        else:
+            target = os.path.join(abs_staging, rel)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        if os.path.isdir(target):
+            shutil.rmtree(target, ignore_errors=True)
+        shutil.move(abs_out, target)
+        print(f"[📦] Di-stage: {rel} -> {os.path.relpath(target, start=workspace_root)}")
+        return True
+    except Exception as e:
+        print(f"[-] Gagal men-stage '{output_dir}': {e}")
+        return False
+
+
 def process_single_video(video_path, opts):
     """Memproses 1 file video ke format HLS ABR dan menghapus file sumber jika berhasil 100%."""
     video_path = video_path.strip("'\"")
@@ -497,7 +592,8 @@ def process_single_video(video_path, opts):
 
     # Jika clean_ep_name menghasilkan nama ringkas (misal 'Episode 04' atau 'Episode 14'), gunakan sebagai nama folder HLS
     clean_ep_folder = clean_ep_name if clean_ep_name else raw_filename
-    output_dir = os.path.join(prod_base_dir, clean_ep_folder + "_hls")
+    # resolve_unique_output_dir mencegah dua file sumber berbeda menabrak folder HLS yang sama
+    output_dir = resolve_unique_output_dir(prod_base_dir, clean_ep_folder, raw_filename)
 
     master_playlist = os.path.join(output_dir, "master.m3u8")
     stream_playlist = os.path.join(output_dir, "stream_%v", "playlist.m3u8")
@@ -646,6 +742,9 @@ def process_single_video(video_path, opts):
                 print(f"[🗑️] File video sumber berhasil dihapus otomatis: {os.path.basename(abs_video_path)}")
             except Exception as e:
                 print(f"[-] Gagal menghapus file video sumber: {e}")
+
+        # Segera amankan hasilnya ke staging supaya tetap ter-upload walau job dibunuh nanti
+        stage_completed_output(workspace_root, output_dir, opts.get("stage_dir"))
         return "success"
     except subprocess.CalledProcessError as e:
         print(f"\n[-] Proses HLS gagal diproses oleh FFmpeg. Error code: {e.returncode}")
@@ -666,6 +765,9 @@ def main():
                         help=f"Jumlah core yang boleh dipakai untuk encoding (default: {DEFAULT_CORES})")
     parser.add_argument("--skip-list", default=os.environ.get("HLS_SKIP_LIST", ""),
                         help="File berisi daftar master.m3u8 yang sudah ada di stream_drive (resume)")
+    parser.add_argument("--stage-dir", default=os.environ.get("HLS_STAGE_DIR", ""),
+                        help="Folder staging (mis. HLS_OUT). Kalau diisi, tiap episode yang selesai "
+                             "langsung dipindahkan ke sini supaya tetap ter-upload walau job dihentikan.")
     args = parser.parse_args()
 
     opts = {
@@ -674,6 +776,7 @@ def main():
         "derived_preset": args.derived_preset,
         "cores": max(1, args.cores),
         "skip_list": load_skip_list(args.skip_list),
+        "stage_dir": args.stage_dir,
     }
 
     total_files = len(args.video_paths)

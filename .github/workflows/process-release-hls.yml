@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Tag GitHub Release yang ingin diproses secara manual'
-        required: true
+        description: 'Tag GitHub Release yang ingin diproses (wajib kecuali sync_only = true)'
+        required: false
         default: ''
       sync_only:
         description: 'Hanya sinkronkan metadata.json dari stream_drive (lewati download/encode/push media)'
@@ -17,13 +17,16 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 # Konfigurasi pipeline (dapat diubah lewat repository variables:
 # Settings > Secrets and variables > Actions > Variables > New repository variable)
 # Tidak perlu diisi di form — semua nilai dihitung otomatis dari ukuran arsip.
 env:
-  # Target ukuran arsip per shard encode (GB). Makin kecil = makin banyak job paralel.
-  HLS_CHUNK_SIZE_GB: ${{ vars.HLS_CHUNK_SIZE_GB || '1.2' }}
+  # Target ukuran arsip per shard encode (GB). Makin kecil = makin banyak job paralel,
+  # tapi makin sering tiap shard mengulang ekstrak zpaq yang lambat.
+  # 0.9 GB -> arsip 3,44 GB (14 ep 1080p HEVC) jadi 4 shard @4 episode = ~4j10m (aman).
+  HLS_CHUNK_SIZE_GB: ${{ vars.HLS_CHUNK_SIZE_GB || '0.9' }}
   # Batas maksimum shard per grup arsip
   HLS_MAX_SHARDS: ${{ vars.HLS_MAX_SHARDS || '6' }}
 
@@ -161,19 +164,29 @@ jobs:
           GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
         run: |
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "::error::Isi release_tag, atau centang sync_only bila hanya ingin sinkronkan metadata."
+            exit 1
+          fi
+
           cat << 'EOF' > release_body.txt
           ${{ github.event.release.body }}
           EOF
 
           python3 -u process_release_archive.py --plan release_body.txt plan.json
 
-      - name: Commit Updated Aliases (Web UI)
-        if: steps.plan.outputs.skip != 'true'
+      - name: Commit Updated Aliases & Metadata (Web UI)
+        # Sengaja TIDAK diberi kondisi 'skip': saat plan menemukan rilis sudah lengkap,
+        # ia tetap menyegarkan aliases.json & metadata.json — perubahan itu harus ikut ter-commit,
+        # kalau tidak akan hilang diam-diam.
         run: |
-          git add aliases.json || true
-          if [ -n "$(git status --porcelain aliases.json)" ]; then
-            git commit -m "chore(metadata): update aliases & sources [skip ci]" || true
+          git add aliases.json metadata.json || true
+          if [ -n "$(git status --porcelain aliases.json metadata.json)" ]; then
+            git commit -m "chore(metadata): update aliases, sources & library index [skip ci]" || true
             git push origin HEAD:main || true
+            echo "[✓] aliases.json / metadata.json diperbarui & di-push."
+          else
+            echo "[i] aliases.json & metadata.json sudah paling baru."
           fi
 
   # ==========================================================================
@@ -184,10 +197,16 @@ jobs:
     needs: plan
     if: inputs.sync_only != true && needs.plan.outputs.skip != 'true' && needs.plan.outputs.chunks_count != '0'
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    # Batas keras GitHub-hosted runner adalah 360 menit. Diberi 350 agar ada
+    # ruang untuk upload artifact: kasus nyata (AM, 1080p HEVC) butuh
+    #   ~1,5 mnt unduh + ~72 mnt ekstrak zpaq + ~3j33 encode + ~4 mnt upload = 5j02m
+    # sehingga timeout 300 membunuhnya DI AKHIR, setelah 5 jam kerja terbuang.
+    timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 4
+      # Semua shard boleh jalan bersamaan: wall-clock = shard terlama.
+      # Batas GitHub: 20 job konkuren untuk repo publik.
+      max-parallel: 6
       matrix:
         chunk: ${{ fromJson(needs.plan.outputs.chunks) }}
     steps:
@@ -233,6 +252,11 @@ jobs:
           sudo apt install -y --no-install-recommends ffmpeg p7zip-full p7zip-rar unrar zpaq unshield
 
       - name: Download, Extract & Encode Chunk
+        # Timeout level-step (bukan job): encode dihentikan lebih dulu pada menit ke-320,
+        # menyisakan ~30 menit agar langkah "Upload HLS Output" tetap sempat berjalan.
+        # Episode yang sudah selesai sudah dipindahkan ke HLS_OUT per-episode, jadi
+        # hasilnya tidak hilang walau encode dibunuh di tengah.
+        timeout-minutes: 320
         env:
           GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
           PYTHONUNBUFFERED: "1"
@@ -268,7 +292,10 @@ jobs:
     needs: [plan, encode]
     if: always() && inputs.sync_only != true && needs.plan.result == 'success' && needs.plan.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Timeout job ini harus >= timeout push per-artifact di bawah (yang bisa sampai
+    # 330 menit). Kalau job lebih pendek, step push tetap dibunuh lebih dulu dan
+    # media yang sudah setengah ter-push jadi sia-sia.
+    timeout-minutes: 330
     steps:
       - name: Checkout Code Repository (Instant Sparse Checkout)
         uses: actions/checkout@v4
@@ -304,8 +331,24 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
+      # Gate push TIDAK boleh bergantung pada needs.encode.result.
+      # Kalau satu shard timeout tapi shard lain sukses, encode.result bernilai
+      # 'cancelled' sehingga SELURUH langkah download+push dilewati — hasil shard
+      # yang berhasil ikut terbuang dan jam-jaman encode hilang sia-sia.
+      - name: Cek Artifact HLS yang Tersedia
+        id: hasartifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          N=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100" \
+               --jq '[.artifacts[] | select(.name | startswith("hls_"))] | length' 2>/dev/null || echo 0)
+          [ -z "$N" ] && N=0
+          echo "Jumlah artifact 'hls_*' pada run ini: ${N}"
+          echo "found=${N}" >> "$GITHUB_OUTPUT"
+
       - name: Download All HLS Artifacts
-        if: needs.encode.result != 'skipped' && needs.encode.result != 'cancelled'
+        if: steps.hasartifact.outputs.found != '0'
         uses: actions/download-artifact@v4
         with:
           pattern: hls_*
@@ -327,7 +370,7 @@ jobs:
           echo "push_minutes=${MIN}" >> "$GITHUB_OUTPUT"
 
       - name: Push New HLS Media to stream_drive
-        if: needs.encode.result != 'skipped' && needs.encode.result != 'cancelled'
+        if: steps.hasartifact.outputs.found != '0'
         shell: bash
         timeout-minutes: ${{ fromJSON(steps.measure.outputs.push_minutes) }}
         env:
@@ -392,7 +435,7 @@ jobs:
           fi
 
       - name: Sync Metadata from stream_drive
-        if: needs.encode.result != 'skipped' && needs.encode.result != 'cancelled'
+        if: steps.hasartifact.outputs.found != '0'
         env:
           GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
         run: |

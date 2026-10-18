@@ -495,11 +495,41 @@ def _query_drive_tree(path):
     except Exception:
         return None
 
-def drive_folder_candidates(dest_folder):
+def ancestor_fallback_allowed(dest_folder, all_dest_folders):
+    """
+    Apakah boleh mencari content di folder INDUK bila folder tujuan tidak ada?
+
+    Kasus sah: release body hanya merujuk satu folder musim (misal GSYOS -> 'anime/gsyos/2'),
+    padahal drive menyimpannya datar di 'anime/gsyos'. Maka naik ke induknya masih sah.
+
+    Kasus BAHAYA: body merebug beberapa musim (misal JCTK -> 'anime/jctk/1' DAN 'anime/jctk/2').
+    Kalau 'anime/jctk/2' hilang tapi 'anime/jctk/1' berisi episode, naik ke induk akan membuat
+    musim 2 terlihat "sudah lengkap" padahal kosong -> episode hilang tanpa error.
+
+    Aturan: fallback ke induk hanya boleh bila judul tersebut punya SATU folder tujuan saja.
+    """
+    clean_f = dest_folder.strip("/").lower()
+    parts = clean_f.split("/")
+    if len(parts) <= 2:
+        return False
+    root = "/".join(parts[:2])
+
+    siblings = set()
+    for d in all_dest_folders:
+        dp = d.strip("/").lower().split("/")
+        if len(dp) >= 2 and "/".join(dp[:2]) == root:
+            siblings.add(d.strip("/").lower())
+
+    return len(siblings) <= 1
+
+
+def drive_folder_candidates(dest_folder, allow_ancestor=True):
     """
     Daftar path folder di stream_drive yang mungkin mewakili folder tujuan ini, urut dari yang
     paling spesifik. Menutup kasus penulisan folder berbeda antara release body dan drive,
     misal body: 'anime/gsyos/2' sedangkan drive: 'anime/gsyos'.
+
+    Perhatikan: naiknya ke folder INDUK hanya dilakukan bila allow_ancestor=True.
     """
     clean_f = dest_folder.strip("/")
     candidates = [clean_f]
@@ -507,6 +537,9 @@ def drive_folder_candidates(dest_folder):
     resolved = resolve_drive_folder(clean_f)
     if resolved not in candidates:
         candidates.append(resolved)
+
+    if not allow_ancestor:
+        return candidates
 
     # Coba versi lebih pendek (buang segmen paling bawah, minimal kategori/judul)
     parts = resolved.split("/")
@@ -518,20 +551,24 @@ def drive_folder_candidates(dest_folder):
 
     return candidates
 
-def fetch_drive_folder_index(dest_folder):
+def fetch_drive_folder_index(dest_folder, allow_ancestor=True):
     """
     Mengambil daftar master.m3u8 yang sudah ada di stream_drive untuk satu folder tujuan.
     Mengembalikan himpunan path relatif terhadap subtree yang cocok (huruf kecil).
     Dipakai untuk: (1) deteksi folder sudah terproses, (2) resume per-episode.
+
+    allow_ancestor=False membuat pemeriksaanini KETAT: hanya folder itu sendiri yang dicek,
+    bukan folder induknya. Wajib dipakai untuk mendeteksi musim yang belum terproses.
     """
     clean_f = dest_folder.strip("/")
-    if clean_f in _DRIVE_INDEX_CACHE:
-        return _DRIVE_INDEX_CACHE[clean_f]
+    cache_key = f"{clean_f}|anc={int(bool(allow_ancestor))}"
+    if cache_key in _DRIVE_INDEX_CACHE:
+        return _DRIVE_INDEX_CACHE[cache_key]
 
     masters = set()
 
     # Pakai Git Tree API pada subtree folder tujuan (1 panggilan API, bukan satu per episode)
-    for cand in drive_folder_candidates(clean_f):
+    for cand in drive_folder_candidates(clean_f, allow_ancestor):
         tree_data = _query_drive_tree(cand)
         if tree_data is None:
             continue
@@ -558,12 +595,12 @@ def fetch_drive_folder_index(dest_folder):
             except Exception:
                 pass
 
-    _DRIVE_INDEX_CACHE[clean_f] = masters
+    _DRIVE_INDEX_CACHE[f"{clean_f}|anc={int(bool(allow_ancestor))}"] = masters
     return masters
 
-def check_if_already_processed_in_drive(dest_folder):
+def check_if_already_processed_in_drive(dest_folder, allow_ancestor=True):
     """True bila folder tujuan sudah punya minimal satu episode HLS di stream_drive."""
-    return bool(fetch_drive_folder_index(dest_folder))
+    return bool(fetch_drive_folder_index(dest_folder, allow_ancestor))
 
 def get_split_archive_info(filename):
     """
@@ -760,9 +797,15 @@ def find_primary_downloaded(download_dir, primary_file, parts):
             return candidate
     return None
 
-def write_skip_list(workspace_root, dest_folder, skip_file):
-    """Menulis daftar episode yang sudah ada di stream_drive untuk dipakai generate_hls.py --skip-list."""
-    masters = fetch_drive_folder_index(dest_folder)
+def write_skip_list(workspace_root, dest_folder, skip_file, allow_ancestor=True):
+    """
+    Menulis daftar episode yang sudah ada di stream_drive untuk dipakai generate_hls.py --skip-list.
+
+    WAJIB memakai allow_ancestor yang sama dengan saat plan. Bila tidak, episode milik musim LAIN
+    (misal '1/Episode 01_hls/master.m3u8') ikut masuk skip-list dan membuat musim ini salah
+    melewati episode yang memang belum ada.
+    """
+    masters = fetch_drive_folder_index(dest_folder, allow_ancestor)
     if not masters:
         return 0
     with open(skip_file, "a", encoding="utf-8") as f:
@@ -864,11 +907,16 @@ def cmd_plan(release_body_file, plan_out_file):
 
     # Deteksi folder tujuan yang sudah terproces di stream_drive
     all_done = True
+    all_dests = [wg["dest"] for wg in work_groups]
     for wg in work_groups:
-        wg["done"] = check_if_already_processed_in_drive(wg["dest"])
+        # Musim yang punya saudara lain TIDAK boleh melihat isi folder induknya:
+        # kalau tidak, musim yang kosong tersamar jadi "sudah lengkap".
+        wg["allow_ancestor"] = ancestor_fallback_allowed(wg["dest"], all_dests)
+        wg["done"] = check_if_already_processed_in_drive(wg["dest"], wg["allow_ancestor"])
         if not wg["done"]:
             all_done = False
-        print(f"[+] Folder '{wg['dest']}' -> {'SUDAH ada di stream_drive' if wg['done'] else 'belum ada'}")
+        mode = "longgar" if wg["allow_ancestor"] else "ketat"
+        print(f"[+] Folder '{wg['dest']}' -> {'SUDAH ada di stream_drive' if wg['done'] else 'belum ada'} (cek {mode})")
 
     if all_done:
         print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
@@ -887,6 +935,7 @@ def cmd_plan(release_body_file, plan_out_file):
                 "shard": s,
                 "shards": shards,
                 "dest": wg["dest"],
+                "allow_ancestor": wg["allow_ancestor"],
                 "primary": wg["primary"],
                 "parts": wg["parts"],
                 "bytes": wg["bytes"],
@@ -925,6 +974,9 @@ def cmd_encode_chunk(release_body_file, chunk_file, download_dir="release_downlo
     shards = int(chunk.get("shards", 1))
     dest_folder = chunk["dest"]
     parts = chunk["parts"]
+    # Sikap pencocokan folder harus sama persis dengan yang dipakai job plan,
+    # jika tidak episode musim ini bisa salah di-skip karena milik musim lain.
+    allow_ancestor = bool(chunk.get("allow_ancestor", True))
 
     print(f"[+] Chunk: {chunk.get('id')} | shard {shard + 1}/{shards} | tujuan: {dest_folder}")
     print(f"[+] Bagian arsip ({len(parts)}): {parts}")
@@ -978,7 +1030,7 @@ def cmd_encode_chunk(release_body_file, chunk_file, download_dir="release_downlo
     skip_file = os.path.join(workspace_root, "drive_skip_list.txt")
     if os.path.exists(skip_file):
         os.remove(skip_file)
-    existing_count = write_skip_list(workspace_root, dest_folder, skip_file)
+    existing_count = write_skip_list(workspace_root, dest_folder, skip_file, allow_ancestor)
     if existing_count:
         print(f"[↩️] Resume: {existing_count} episode di '{dest_folder}' sudah ada di stream_drive.")
 
@@ -987,6 +1039,9 @@ def cmd_encode_chunk(release_body_file, chunk_file, download_dir="release_downlo
     cmd_gen = [sys.executable, "-u", generate_script] + my_videos
     if existing_count:
         cmd_gen += ["--skip-list", skip_file]
+    # Tiap episode yang selesai langsung di-stage, agar hasil parsial tetap ter-upload
+    # kalau job dihentikan (timeout) di tengah jalan.
+    cmd_gen += ["--stage-dir", STAGING_DIR]
 
     print(f"\n[🚀] Menjalankan: {' '.join(cmd_gen)}")
     res = subprocess.run(cmd_gen)
@@ -996,9 +1051,18 @@ def cmd_encode_chunk(release_body_file, chunk_file, download_dir="release_downlo
     elif res.returncode != 0:
         print(f"[-] Generator HLS berhenti dengan kode {res.returncode}.")
 
-    # 7. Pindahkan hasil HLS ke folder staging untuk di-upload sebagai artifact
-    moved = stage_hls_output(workspace_root, dest_folder, os.path.join(workspace_root, STAGING_DIR))
-    print(f"[📦] {moved} folder HLS siap di-upload ke stream_drive.")
+    # 7. Pindahkan sisa hasil HLS ke folder staging (episode yang selesai sudah di-stage
+    #    satu per satu oleh generate_hls.py --stage-dir, jadi biasanya tidak ada sisa)
+    staging_root = os.path.join(workspace_root, STAGING_DIR)
+    moved = stage_hls_output(workspace_root, dest_folder, staging_root)
+    staged_now = 0
+    dest_lower = normalize_rel_path(dest_folder)
+    stage_dir_path = os.path.join(staging_root, dest_folder.strip("/"))
+    if os.path.isdir(stage_dir_path):
+        for root, dirs, _ in os.walk(stage_dir_path):
+            staged_now += sum(1 for x in dirs if x.endswith("_hls"))
+    print(f"[📦] {staged_now} folder HLS di staging ({dest_lower}) — "
+          f"{'siap di-upload ke stream_drive' if staged_now else 'TIDAK ADA hasil_encode'}")
 
     # 8. Bersihkan ruang kerja
     shutil.rmtree(os.path.join(workspace_root, "RAW"), ignore_errors=True)
@@ -1122,8 +1186,14 @@ def cmd_check_skip(release_tag, release_body_file):
     all_already_in_drive = True
     for tf in target_folders:
         update_aliases_and_sources(workspace_root, tf, aliases, "", source_info)
-        if not check_if_already_processed_in_drive(tf):
+        # Sama seperti plan: judul bermulti-musim diperiksa ketat per folder,
+        # supaya musim yang kosong tidak ikut dianggap "sudah lengkap".
+        loose = ancestor_fallback_allowed(tf, target_folders)
+        done = check_if_already_processed_in_drive(tf, loose)
+        if not done:
             all_already_in_drive = False
+        print(f"[+] Folder '{tf}' -> {'SUDAH ada di stream_drive' if done else 'belum ada'} "
+              f"(cek {'longgar' if loose else 'ketat'})")
 
     if all_already_in_drive:
         print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
