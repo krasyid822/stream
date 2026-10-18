@@ -31,6 +31,12 @@ SUDAH SELESAI (sesi 2026-10-19)
    - Preview player bisa DIBESARKAN / DIKECILKAN (tombol - / +, badge ukuran,
      plus tombol layar penuh pada video).
 4. Release GitHub tag "Metadata-Guide" berisi panduan format metadata release RAW.
+5. Navigasi browser (maju/mundur) + perbaikan hash: skema `_`↔spasi yang rusak
+   diganti encoding URL yang bisa dibalik (folder `zero_tskma`, `série_animée`).
+6. Video rusak di localhost: penyebab = `getHlsStreamUrl()` mengembalikan path
+   LOKAL saat hostname localhost, padahal media tidak ada di repo web ini.
+   Kini default SELALU dari CDN `stream_drive`; pakai `?local=1` (atau
+   `window.HLS_USE_LOCAL = true`) bila ingin memakai salinan media lokal.
 
 ================================================================================
 TUNDA 1 — RELOKASI FOLDER TANPA RE-ENCODE (PRIORITAS USER)

@@ -13,20 +13,35 @@ let autoNextEnabled = true;
 const PLAYER_SIZES = [340, 440, 560, 700, 860];
 let playerSizeIndex = 1;
 
-// Format URL CDN untuk membaca HLS dari repository stream_drive
+// Format URL CDN untuk membaca HLS dari repository stream_drive.
+//
+// PENTING: berkas media (master.m3u8, segmen .ts, .vtt, poster) TIDAK disimpan di
+// repo web ini (ada di .gitignore) — semuanya di-host di repo 'stream_drive'.
+// Karena itu default-nya SELALU mengambil dari GitHub raw (CDN), termasuk saat
+// dibuka via localhost. Kalau Anda punya salinan media lokal dan ingin memakainya,
+// tambahkan ?local=1 pada URL atau set window.HLS_USE_LOCAL = true.
+const HLS_CDN_BASE = "https://raw.githubusercontent.com/krasyid822/stream_drive/main/";
+
+function useLocalMedia() {
+    try {
+        if (new URLSearchParams(location.search).get("local") === "1") return true;
+    } catch (e) { /* abaikan */ }
+    return window.HLS_USE_LOCAL === true;
+}
+
 function getHlsStreamUrl(rawPath) {
     if (!rawPath) return "";
     const cleanPath = rawPath.replace(/^\/+/, "");
-    const isLocalhost = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "0.0.0.0";
-    
+
     // Encode setiap segmen path agar karakter khusus seperti '#' atau spasi aman bagi HTTP request
     const encodedSegments = cleanPath.split("/").map(seg => encodeURIComponent(seg)).join("/");
 
-    if (isLocalhost) {
+    // Hanya pakai berkas lokal bila diminta secara eksplisit.
+    if (useLocalMedia()) {
         return cleanPath;
     }
-    // Menggunakan CDN GitHub raw dari repositori stream_drive
-    return "https://raw.githubusercontent.com/krasyid822/stream_drive/main/" + encodedSegments;
+
+    return HLS_CDN_BASE + encodedSegments;
 }
 
 function showToast(msg) {
