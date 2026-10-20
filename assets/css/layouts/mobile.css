@@ -72,19 +72,29 @@
         gap: 0.75rem;
     }
 
-    /* Mobile: pemutar DITEMPIELKAN DI ATAS (sticky) supaya tidak hilang saat
-       scroll daftar episode. Lebar tetap 100% — video TIDAK dikecilkan dan
-       area layar tidak dipersempit ke samping. */
-    .player-wrapper {
-        order: -1;
+    /* Mobile: HANYA area video (video#hlsPlayer + bingkainya) yang ditempel
+       di atas saat scroll. Header, kontrol, dan tombol komentar tetap ikut
+       scroll normal. Lebar video tetap 100% — tidak dikecilkan.
+       display:contents membuat video-container menjadi anak langsung
+       .main-layout, sehingga sticky berlaku sampai akhir daftar episode. */
+    .main-layout > .player-wrapper.is-active {
+        display: contents;
+    }
+
+    .player-wrapper.is-active > .pixel-header-title {
+        order: -4;
+    }
+
+    .player-wrapper.is-active > div:not(.video-container):not(.pixel-header-title) {
+        order: -2;
+    }
+
+    .player-wrapper.is-active > .video-container {
+        order: -3;
         position: sticky;
         top: 0;
         z-index: 100;
-        width: 100%;
-        max-width: none;
-        margin: 0;
-        padding-bottom: 0.35rem;
-        background: var(--bg-color);
+        background: var(--player-bg);
     }
 
     /* Di mobile player selalu selebar layar, jadi tombol perbesar/perkecil

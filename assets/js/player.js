@@ -65,7 +65,7 @@ function playMedia(media, cardElement) {
 
     if (!video) return;
 
-    if (playerWrapper) playerWrapper.style.display = "flex";
+    if (playerWrapper) playerWrapper.classList.add("is-active");
 
     // Set Global State
     window.currentPlayingMediaId = media.id;
@@ -204,7 +204,8 @@ function playMedia(media, cardElement) {
 
     // Scroll player into view jika di mobile
     if (window.innerWidth <= 768 && playerWrapper) {
-        playerWrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+        const scrollTarget = playerWrapper.querySelector(".video-container") || playerWrapper;
+        scrollTarget.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 }
 

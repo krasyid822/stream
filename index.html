@@ -24,9 +24,9 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <!-- Clean Architecture CSS Imports -->
-    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020d">
-    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020d">
-    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020d">
+    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020g">
+    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020g">
+    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020g">
 
     <style>
         /* Core UI Component Wrappers */
@@ -39,9 +39,12 @@
             color: var(--accent-pink);
         }
         .player-wrapper {
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 0.75rem;
+        }
+        .player-wrapper.is-active {
+            display: flex;
         }
         .video-container {
             position: relative;
@@ -153,7 +156,7 @@
             </section>
 
             <!-- Right: Video Player (Hidden when idle) -->
-            <aside class="player-wrapper" id="playerWrapper" style="display: none;">
+            <aside class="player-wrapper" id="playerWrapper">
                 <div class="pixel-header-title">
                     <i class="fa-solid fa-tv"></i> SCREEN MONITOR
                 </div>
@@ -272,9 +275,9 @@
     </div>
 
     <!-- Clean Architecture JavaScript Modules -->
-    <script src="assets/js/pwa.js?v=20261020d"></script>
-    <script src="assets/js/settings.js?v=20261020d"></script>
-    <script src="assets/js/player.js?v=20261020d"></script>
-    <script src="assets/js/explorer.js?v=20261020d"></script>
+    <script src="assets/js/pwa.js?v=20261020g"></script>
+    <script src="assets/js/settings.js?v=20261020g"></script>
+    <script src="assets/js/player.js?v=20261020g"></script>
+    <script src="assets/js/explorer.js?v=20261020g"></script>
 </body>
 </html>

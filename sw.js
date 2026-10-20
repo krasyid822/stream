@@ -9,7 +9,7 @@
  *  - Cache punya batas ukuran; pengaturan ada di modal "PENGATURAN".
  */
 
-const VERSION = "20261020d";
+const VERSION = "20261020g";
 const SHELL_CACHE = `stream-shell-${VERSION}`;
 const MEDIA_CACHE = `stream-media-${VERSION}`;
 const CONFIG_CACHE = "stream-config-v1";
