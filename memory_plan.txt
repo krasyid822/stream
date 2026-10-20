@@ -121,6 +121,8 @@ Rancangan (file daftar tunggu):
 ================================================================================
 TUNDA 3 — SAMPUL & JUDUL ASLI DI UI
 ================================================================================
+STATUS: [SELESAI 2026-10-20]
+
 Yang diinginkan:
   - Gambar sampul release dipakai sebagai ikon/pengganti ikon folder.
   - Nama folder di UI diganti JUDUL ASLI LENGKAP, bukan nama folder fisik.
@@ -135,6 +137,24 @@ Rancangan:
       * folderInfoStore dicari pakai folderPath, bukan folderName leaf.
       * Tampilkan <img> sampul pada folder-card bila tersedia.
       * card-name menampilkan judul lengkap (fallback ke nama folder).
+
+Realisasi (2026-10-20):
+  - process_release_archive.py:
+      * extract_release_cover() = <img> pertama / markdown image.
+      * pick_title_for_folder() = alias pertama, atau alias "Season N"/"SN"
+        untuk folder musim (mis. anime/zero_tskma/2).
+      * fetch_mal_cover() = MAL API RESMI, hanya jika env MAL_CLIENT_ID ada;
+        hasil disimpan ke folder_info agar tidak memanggil API berulang.
+      * apply_folder_info() menyimpan {title, cover} dengan key path lengkap
+        + key folder induk; deskripsi kategori tidak ditimpa.
+      * update_aliases_and_sources() otomatis menyimpan folder_info saat plan.
+      * Mode backfill: `python3 process_release_archive.py --sync-folder-info`
+        (tidak mengubah aliases/sources, hanya folder_info).
+  - assets/js/explorer.js:
+      * getFolderInfo(path, leaf) + normalisasi '_' vs '-' (fulldive_rpg).
+      * Sampul 64x64 di folder-card, judul lengkap di card + breadcrumb +
+        header hasil pencarian; escapeHtml untuk semua teks metadata.
+  - aliases.json: 23 entri folder_info (3 kategori + 20 folder judul/musim).
 
 ================================================================================
 TUNDA 4 — APLIKASI UI PYTHON UNTUK MANAJEMEN RELEASE
@@ -160,6 +180,8 @@ Catatan desain:
 ================================================================================
 TUNDA 5 — PWA (INSTALLABLE + OFFLINE + CACHE VIDEO + LAYAR PENGATURAN)
 ================================================================================
+STATUS: [SELESAI 2026-10-20]
+
 Permintaan user:
   - PWA bisa diinstal.
   - Bisa offline.
@@ -214,6 +236,29 @@ Jebakan yang harus diingat:
   - Offline hanya berisi episode yang sudah pernah DITONTON; bukan seluruh
     library (terlalu besar). Tidak ada cara mengunduh episode yang belum ditonton
     (memang sengaja demikian).
+
+Realisasi (2026-10-20):
+  - File baru: manifest.webmanifest, sw.js, assets/js/pwa.js, assets/js/settings.js,
+    assets/icons/{icon-192,icon-512,maskable-192,maskable-512,apple-touch-icon}.png
+    (ikon digenerate dari favicon; background checkerboard dibersihkan dulu).
+  - index.html: manifest + theme-color + apple-touch-icon, tombol PENGATURAN
+    di navbar, modal pengaturan, register SW via pwa.js.
+  - Cache version = 20261020c; shell cache + media cache dipisah.
+  - Strategi final:
+      * metadata.json/aliases.json: network-first, cache key kanonik tanpa ?t=
+        (mencegah entri menumpuk).
+      * .m3u8: network-first; .ts/.m4s/.mp4/.vtt/poster: cache-first.
+      * Range request tidak di-cache (agar seeking tetap benar).
+      * Semua request hanya di-cache bila GET + response OK (bukan opaque/206).
+  - Batas cache default 1 GB (200 MB .. 8 GB), pengaturan disimpan di
+    Cache Storage `stream-config-v1`; eviction LRU memakai header
+    x-stream-cached-at / x-stream-cached-size, target 80% batas.
+  - Pesan SW: GET_CACHE_INFO, CLEAR_MEDIA, SET_CACHE_LIMIT.
+  - Modal pengaturan: ukuran cache + bar, rincian entri, batas cache, tombol
+    bersihkan, install app, penyimpanan persisten, status online/offline.
+  - Diuji di Chrome: SW aktif, segmen .ts ter-cache saat video diputar,
+    metadata/aliases + segmen tetap tersedia saat offline, batas cache
+    tersimpan, bersihkan cache bekerja, video HLS tetap normal (480p).
   - Jangan cache respons lintas-origin secara membabi-buta; hanya URL CDN
     stream_drive + app shell sendiri.
   - GitHub Pages: SW di root, pastikan header tidak memblokir (Pages tidak
@@ -298,7 +343,7 @@ CATATAN TODO DARI USER (dari README bagian "Catatan")
 3. [SELESAI] Cara set environment variable di GitHub repo — lihat bagian di bawah.
 4. [DITUNDA] Jangan boros kuota API MyAnimeList + otomatis simpan ke
    metadata.json/aliases.json — lihat TUNDA 4 & tips di bawah (bagian dari UI MAL).
-5. [DITUNDA] PWA (installable + offline + cache video ditonton + layar pengaturan
+5. [SELESAI] PWA (installable + offline + cache video ditonton + layar pengaturan
    ukuran cache) — lihat TUNDA 5.
 
 ================================================================================

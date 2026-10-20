@@ -100,6 +100,86 @@
     "donghua": {
       "title": "Donghua (Animasi Tiongkok)",
       "desc": "Animasi yang diproduksi di Tiongkok / China, baik animasi 2D maupun 3D CGI."
+    },
+    "anime/oregairu": {
+      "title": "Yahari Ore no Seishun Love Comedy wa Machigatteiru",
+      "cover": "https://github.com/user-attachments/assets/c557f704-f6be-4121-9b71-f4baa4e541cc"
+    },
+    "anime/hyouka": {
+      "title": "Hyouka",
+      "cover": "https://github.com/user-attachments/assets/a449ee59-d46c-4a52-a695-f210e28e3268"
+    },
+    "anime/tskb": {
+      "title": "Tenkou-saki no Seiso Karen na Bishoujo ga, Mukashi Danshi to Omotte Issho ni Asonda Osananajimi Datta Ken",
+      "cover": "https://github.com/user-attachments/assets/5dc5f98b-7e0e-4a1d-911e-94c39c2fd270"
+    },
+    "série_animée/minuscule": {
+      "title": "Minuscule",
+      "cover": "https://github.com/user-attachments/assets/ba1f752a-50ab-44fd-8037-4ceeae682989"
+    },
+    "anime/29dcbnn/1": {
+      "title": "29-sai Dokushin Chuuken Boukensha no Nichijou",
+      "cover": "https://github.com/user-attachments/assets/5a1a0ae3-5b43-453b-b6d0-0147555f166a"
+    },
+    "anime/29dcbnn": {
+      "title": "29-sai Dokushin Chuuken Boukensha no Nichijou",
+      "cover": "https://github.com/user-attachments/assets/5a1a0ae3-5b43-453b-b6d0-0147555f166a"
+    },
+    "anime/zero_tskma/1": {
+      "title": "Zero no Tsukaima (Season 1)",
+      "cover": "https://github.com/user-attachments/assets/3c168158-75a6-4b24-a7f4-c8cb279f3b01"
+    },
+    "anime/zero_tskma": {
+      "title": "Zero no Tsukaima (Season 1)",
+      "cover": "https://github.com/user-attachments/assets/3c168158-75a6-4b24-a7f4-c8cb279f3b01"
+    },
+    "anime/zero_tskma/2": {
+      "title": "Zero no Tsukaima: Futatsuki no Kishi (Season 2)",
+      "cover": "https://github.com/user-attachments/assets/3c168158-75a6-4b24-a7f4-c8cb279f3b01"
+    },
+    "anime/zero_tskma/3": {
+      "title": "Zero no Tsukaima: Princesses no Rondo (Season 3)",
+      "cover": "https://github.com/user-attachments/assets/3c168158-75a6-4b24-a7f4-c8cb279f3b01"
+    },
+    "anime/zero_tskma/4": {
+      "title": "Zero no Tsukaima F (Season 4)",
+      "cover": "https://github.com/user-attachments/assets/3c168158-75a6-4b24-a7f4-c8cb279f3b01"
+    },
+    "anime/nagatoro/1": {
+      "title": "Ijiranaide, Nagatoro-san",
+      "cover": "https://github.com/user-attachments/assets/f8988b3f-8409-443d-8a29-be05c8b5f099"
+    },
+    "anime/nagatoro": {
+      "title": "Ijiranaide, Nagatoro-san",
+      "cover": "https://github.com/user-attachments/assets/f8988b3f-8409-443d-8a29-be05c8b5f099"
+    },
+    "anime/jctk/1": {
+      "title": "Jaku-Chara Tomozaki-kun",
+      "cover": "https://github.com/user-attachments/assets/333141a8-82c1-4de7-a097-d7e503ee9ee0"
+    },
+    "anime/jctk": {
+      "title": "Jaku-Chara Tomozaki-kun",
+      "cover": "https://github.com/user-attachments/assets/333141a8-82c1-4de7-a097-d7e503ee9ee0"
+    },
+    "anime/jctk/2": {
+      "title": "Jaku-Chara Tomozaki-kun",
+      "cover": "https://github.com/user-attachments/assets/333141a8-82c1-4de7-a097-d7e503ee9ee0"
+    },
+    "donghua/am": {
+      "title": "Above Myriads",
+      "cover": "https://github.com/user-attachments/assets/4d4c4876-b709-4a24-9406-69561cb4db7f"
+    },
+    "anime/fulldive_rpg": {
+      "title": "Kyuukyoku Shinka shita Full Dive RPG ga Genjitsu yori mo Kusoge Dattara",
+      "cover": "https://github.com/user-attachments/assets/ccdc0670-89aa-4fab-9d20-7035c62cb61b"
+    },
+    "anime/gsyos/2": {
+      "title": "Genjitsushugi Yūsha no Ōkoku Saikenki",
+      "cover": "https://github.com/user-attachments/assets/f07faefd-0b9e-45b1-b18e-07641b2f3c58"
+    },
+    "anime/gsyos": {
+      "title": "Genjitsushugi Yūsha no Ōkoku Saikenki",
+      "cover": "https://github.com/user-attachments/assets/f07faefd-0b9e-45b1-b18e-07641b2f3c58"
     }
   },
   "sources": {

@@ -9,6 +9,7 @@ import glob
 import math
 import time
 import urllib.parse
+import urllib.request
 
 # Pastikan semua output print langsung tampil real-time di GitHub Actions
 if hasattr(sys.stdout, 'reconfigure'):
@@ -19,6 +20,9 @@ if hasattr(sys.stderr, 'reconfigure'):
 # Tag release yang diabaikan (tag 'password' menyimpan kunci enkripsi, bukan arsip video;
 # tag 'metadata-guide' hanya berisi dokumentasi format, bukan arsip media)
 IGNORED_RELEASE_TAGS = {"PASSWORD", "METADATA-GUIDE"}
+
+# Cache in-process agar kuota MAL tidak terpakai berulang untuk judul yang sama
+_MAL_COVER_CACHE = {}
 
 DRIVE_REPO = "krasyid822/stream_drive"
 
@@ -168,6 +172,97 @@ def parse_release_body_lines(body_text):
 
     return file_mapping, aliases, source_info
 
+
+def extract_release_cover(body_text):
+    """URL sampul = gambar pertama di body release (<img> atau markdown image)."""
+    if not body_text:
+        return ""
+    m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', body_text, re.IGNORECASE)
+    if not m:
+        m = re.search(r'!\[[^\]]*\]\((https?://[^)\s]+)\)', body_text)
+    return m.group(1) if m else ""
+
+
+def pick_title_for_folder(aliases, folder_rel_path):
+    """
+    Judul tampilan untuk satu folder tujuan:
+      - alias pertama = judul utama;
+      - untuk sub-folder musim (mis. '.../2'), pakai alias yang menyebut
+        'Season 2' / 'S2' bila ada.
+    """
+    if not aliases:
+        return ""
+    parts = [p for p in folder_rel_path.strip("/").split("/") if p]
+    if len(parts) > 2 and parts[-1].isdigit():
+        season = int(parts[-1])
+        for alias in aliases:
+            if re.search(rf'\bseason\s*{season}\b', alias, re.IGNORECASE):
+                return alias
+            if re.search(rf'\bs0*{season}\b', alias, re.IGNORECASE):
+                return alias
+    return aliases[0]
+
+
+def fetch_mal_cover(title):
+    """
+    Cover dari MyAnimeList API RESMI (opsional, hanya bila env MAL_CLIENT_ID ada).
+    Dipakai sebagai fallback ketika body release tidak punya gambar sampul.
+    Hasilnya disimpan ke aliases.json sehingga tidak memanggil API berulang.
+    """
+    client_id = (os.environ.get("MAL_CLIENT_ID") or "").strip()
+    if not client_id or not title:
+        return ""
+    if title in _MAL_COVER_CACHE:
+        return _MAL_COVER_CACHE[title]
+    try:
+        url = ("https://api.myanimelist.net/v2/anime?fields=main_picture&limit=1&q="
+               + urllib.parse.quote(title))
+        req = urllib.request.Request(url, headers={"X-MAL-CLIENT-ID": client_id})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        node = (payload.get("data") or [{}])[0].get("node") or {}
+        pic = node.get("main_picture") or {}
+        cover = pic.get("large") or pic.get("medium") or ""
+        _MAL_COVER_CACHE[title] = cover
+        return cover
+    except Exception as exc:
+        print(f"[!] Cover MAL gagal untuk '{title}': {exc}")
+        _MAL_COVER_CACHE[title] = ""
+        return ""
+
+
+def apply_folder_info(data, folder_rel_path, title, cover_url=""):
+    """
+    Simpan judul & sampul folder berdasarkan PATH LENGKAP (bukan leaf), plus
+    folder induk (kategori/judul) agar UI tetap menemukannya.
+    """
+    data.setdefault("folder_info", {})
+    fi = data["folder_info"]
+    parts = [p for p in folder_rel_path.strip("/").split("/") if p]
+    if not parts:
+        return
+
+    full_key = folder_rel_path.strip("/")
+    parent_key = "/".join(parts[:2])
+    keys = [full_key]
+    if parent_key and parent_key != full_key:
+        keys.append(parent_key)
+
+    resolved_cover = cover_url
+    base = fi.get(full_key) or {}
+    if not resolved_cover and not base.get("cover"):
+        resolved_cover = fetch_mal_cover(title)
+
+    for key in keys:
+        info = fi.get(key) or {}
+        # Jangan menimpa judul/deskripsi kategori yang sudah ada
+        if title and (key == full_key or not info.get("title")):
+            info["title"] = title
+        if resolved_cover and (key == full_key or not info.get("cover")):
+            info["cover"] = resolved_cover
+        if info:
+            fi[key] = info
+
 def extract_archive_single(archive_path, output_dir, passwords):
     """Ekstrak arsip tunggal atau split dengan mencoba daftar password."""
     os.makedirs(output_dir, exist_ok=True)
@@ -263,8 +358,8 @@ def recursive_extract(archive_path, output_dir, passwords):
     # Urutan deterministik (penting untuk sharding antar-job: semua shard harus memilih episode yang sama)
     return sorted(found_videos)
 
-def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_archive_name, source_info=None):
-    """Memperbarui aliases.json dengan aliases dan info sumber otentik (Website URL + Icon/Logo)."""
+def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_archive_name, source_info=None, cover_url=""):
+    """Memperbarui aliases.json dengan aliases, info sumber otentik, judul & sampul folder."""
     aliases_path = os.path.join(workspace_root, "aliases.json")
     data = {"aliases": {}, "folder_info": {}, "sources": {}}
 
@@ -277,6 +372,8 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
 
     if "aliases" not in data:
         data["aliases"] = {}
+    if "folder_info" not in data:
+        data["folder_info"] = {}
     if "sources" not in data:
         data["sources"] = {}
 
@@ -323,6 +420,10 @@ def update_aliases_and_sources(workspace_root, folder_rel_path, aliases, first_a
     # Simpan juga pada root folder judul (misal: anime/gsyos) agar semua season mewarisi logo/sumbernya
     title_folder = "/".join(path_parts[:2])
     data["sources"][title_folder] = source_entry
+
+    # Simpan judul asli + sampul (TUNDA 3) dengan key path lengkap
+    folder_title = pick_title_for_folder(aliases, folder_rel_path)
+    apply_folder_info(data, folder_rel_path, folder_title, cover_url)
 
     with open(aliases_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
@@ -981,7 +1082,8 @@ def cmd_plan(release_body_file, plan_out_file):
 
     # Perbarui aliases.json (akan di-commit oleh job publish)
     for wg in work_groups:
-        update_aliases_and_sources(workspace_root, wg["dest"], aliases, wg["base_name"], source_info)
+        update_aliases_and_sources(workspace_root, wg["dest"], aliases, wg["base_name"], source_info,
+                                   cover_url=extract_release_cover(body_text))
 
     # Deteksi kelengkapan folder tujuan di stream_drive. JANGAN hanya cek
     # "ada minimal 1 episode": rilis parsial (mis. 13/14) harus tetap
@@ -1175,7 +1277,8 @@ def cmd_legacy(download_dir, release_tag, release_body_file):
     for wg in work_groups:
         arch_name = wg["base_name"]
         dest_folder = wg["dest"]
-        update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info)
+        update_aliases_and_sources(workspace_root, dest_folder, aliases, arch_name, source_info,
+                                   cover_url=extract_release_cover(body_text))
 
         raw_dest_dir = os.path.join(workspace_root, "RAW", dest_folder)
         os.makedirs(raw_dest_dir, exist_ok=True)
@@ -1265,7 +1368,8 @@ def cmd_check_skip(release_tag, release_body_file):
     expected_episodes = declared_episode_count(body_text)
     work_groups = [{"dest": tf} for tf in target_folders]
     for tf in target_folders:
-        update_aliases_and_sources(workspace_root, tf, aliases, "", source_info)
+        update_aliases_and_sources(workspace_root, tf, aliases, "", source_info,
+                                   cover_url=extract_release_cover(body_text))
 
     # Sama seperti plan: jangan skip hanya karena sudah ada 1 episode. Rilis
     # parsial (mis. 13/14) harus tetap dilanjutkan; resume per-episode aman.
@@ -1279,6 +1383,65 @@ def cmd_check_skip(release_tag, release_body_file):
     print("[+] Konten belum ada di stream_drive. Melanjutkan ke proses download & transcode...")
     return 0
 
+def cmd_sync_folder_info():
+    """
+    Backfill folder_info (judul asli + sampul) dari SELURUH release body,
+    tanpa mengubah aliases/sources dan tanpa encode. Jalankan lokal:
+        python3 process_release_archive.py --sync-folder-info
+    """
+    workspace_root = os.path.abspath(os.path.dirname(__file__))
+    aliases_path = os.path.join(workspace_root, "aliases.json")
+
+    res = subprocess.run(
+        ["gh", "release", "list", "--limit", "200", "--json", "tagName"],
+        capture_output=True, text=True
+    )
+    if res.returncode != 0:
+        print(f"[-] Gagal membaca daftar release: {res.stderr.strip()[:300]}")
+        return 1
+
+    try:
+        releases = json.loads(res.stdout or "[]")
+    except Exception:
+        releases = []
+
+    try:
+        with open(aliases_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {"aliases": {}, "folder_info": {}, "sources": {}}
+
+    data.setdefault("aliases", {})
+    data.setdefault("folder_info", {})
+    data.setdefault("sources", {})
+
+    total = 0
+    for rel in releases:
+        tag = (rel.get("tagName") or "").strip()
+        if not tag or tag.upper() in IGNORED_RELEASE_TAGS:
+            continue
+
+        body_text = load_release_body("", tag)
+        if not body_text:
+            print(f"[!] Body kosong untuk '{tag}', dilewati.")
+            continue
+
+        file_mapping, aliases, _source_info = parse_release_body_lines(body_text)
+        cover = extract_release_cover(body_text)
+        for dest in sorted(set(file_mapping.values())):
+            title = pick_title_for_folder(aliases, dest)
+            apply_folder_info(data, dest, title, cover)
+            info = data["folder_info"].get(dest) or {}
+            total += 1
+            print(f"  [{tag}] {dest}: {title or '(tanpa judul)'} | "
+                  f"cover={'ada' if info.get('cover') else '-'}")
+
+    with open(aliases_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    print(f"[✓] folder_info diperbarui untuk {total} folder tujuan.")
+    return 0
+
+
 def main():
     if len(sys.argv) < 2:
         print("Penggunaan:")
@@ -1287,6 +1450,7 @@ def main():
         print("  process_release_archive.py --encode-chunk <release_body_file> <chunk.json> [download_dir]")
         print("  process_release_archive.py --check-skip <release_tag> [release_body_file]")
         print("  process_release_archive.py --sync-metadata")
+        print("  process_release_archive.py --sync-folder-info")
         sys.exit(1)
 
     mode = sys.argv[1]
@@ -1316,6 +1480,9 @@ def main():
         workspace_root = os.path.abspath(os.path.dirname(__file__))
         # Exit non-zero bila gagal supaya job publish jadi merah, bukan hijau diam-diam
         sys.exit(0 if sync_metadata_from_stream_drive(workspace_root) else 1)
+
+    if mode == "--sync-folder-info":
+        sys.exit(cmd_sync_folder_info())
 
     # Mode lama (semua rilis dalam satu proses)
     if len(sys.argv) < 3:

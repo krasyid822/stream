@@ -6,6 +6,13 @@
     <title>RETRO PIXEL MEDIA HUB & HLS PLAYER</title>
 
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#121016">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RetroStream">
     
     <!-- Retro Google Fonts & FontAwesome -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,9 +24,9 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <!-- Clean Architecture CSS Imports -->
-    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020b">
-    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020b">
-    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020b">
+    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020c">
+    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020c">
+    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020c">
 
     <style>
         /* Core UI Component Wrappers */
@@ -74,7 +81,8 @@
         }
         .card-name {
             font-family: var(--pixel-font);
-            word-break: break-word;
+            word-break: normal;
+            overflow-wrap: break-word;
             line-height: 1.2;
             color: var(--text-main);
         }
@@ -109,6 +117,9 @@
                 <i class="fa-solid fa-gamepad" style="font-size: 1.8rem; color: var(--accent-cyan);"></i>
                 <h1 class="brand-title">RETRO STREAM HUB</h1>
             </div>
+            <button class="pixel-btn" id="settingsBtn" type="button" title="Pengaturan & cache" aria-label="Buka pengaturan" style="font-size: 0.75rem; padding: 0.4rem 0.6rem; border-color: var(--accent-purple); color: var(--accent-cyan);">
+                <i class="fa-solid fa-gear"></i> PENGATURAN
+            </button>
         </header>
 
         <!-- Breadcrumb & Search Navigation Bar -->
@@ -200,8 +211,70 @@
 
     </div>
 
+    <!-- PWA SETTINGS MODAL (TUNDA 5) -->
+    <div class="settings-overlay" id="settingsOverlay" aria-hidden="true">
+        <div class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+            <div class="settings-header">
+                <div class="pixel-header-title" id="settingsTitle"><i class="fa-solid fa-gear"></i> PENGATURAN</div>
+                <button class="pixel-btn" id="settingsCloseBtn" type="button" aria-label="Tutup pengaturan" style="font-size: 0.7rem; padding: 0.3rem 0.5rem; border-color: var(--accent-pink); color: var(--accent-pink);">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="settings-status-row">
+                <span class="pixel-badge cyan">NET: <span id="settingsOnlineStatus">ONLINE</span></span>
+                <span class="pixel-badge purple" id="settingsSwStatus">MEMUAT...</span>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label"><i class="fa-solid fa-database"></i> CACHE TONTONAN</div>
+                <div class="settings-meter"><div id="settingsCacheBar"></div></div>
+                <div id="settingsCacheUsage" class="settings-usage">0 B terpakai</div>
+                <div id="settingsCacheDetail" class="settings-detail">Menghitung cache...</div>
+
+                <div class="settings-controls">
+                    <label for="settingsCacheLimit" class="settings-label" style="margin: 0;">BATAS CACHE</label>
+                    <select id="settingsCacheLimit">
+                        <option value="209715200">200 MB</option>
+                        <option value="524288000">500 MB</option>
+                        <option value="1073741824" selected>1 GB</option>
+                        <option value="2147483648">2 GB</option>
+                        <option value="4294967296">4 GB</option>
+                        <option value="8589934592">8 GB</option>
+                    </select>
+                    <button class="pixel-btn primary" id="settingsSaveLimitBtn" type="button" style="font-size: 0.65rem; padding: 0.35rem 0.6rem;">
+                        <i class="fa-solid fa-floppy-disk"></i> SIMPAN
+                    </button>
+                </div>
+
+                <button class="pixel-btn" id="settingsClearBtn" type="button" style="margin-top: 0.75rem; width: 100%; justify-content: center; font-size: 0.7rem; border-color: var(--accent-pink); color: var(--accent-pink);">
+                    <i class="fa-solid fa-trash-can"></i> BERSIHKAN CACHE
+                </button>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-label"><i class="fa-solid fa-mobile-screen"></i> APLIKASI</div>
+                <div class="settings-controls" style="flex-wrap: wrap;">
+                    <button class="pixel-btn" id="settingsInstallBtn" type="button" style="display: none; font-size: 0.65rem; padding: 0.35rem 0.6rem; border-color: var(--accent-green); color: var(--accent-green);">
+                        <i class="fa-solid fa-download"></i> INSTALL APP
+                    </button>
+                    <button class="pixel-btn" id="settingsPersistBtn" type="button" style="font-size: 0.65rem; padding: 0.35rem 0.6rem; border-color: var(--accent-purple); color: var(--accent-cyan);">
+                        <i class="fa-solid fa-shield"></i> PENYIMPANAN PERSISTEN
+                    </button>
+                </div>
+            </div>
+
+            <p class="settings-note">
+                Cache hanya berisi video yang sudah pernah ditonton. Tidak ada tombol unduh —
+                video tetap dialirkan langsung dari server.
+            </p>
+        </div>
+    </div>
+
     <!-- Clean Architecture JavaScript Modules -->
-    <script src="assets/js/player.js?v=20261020b"></script>
-    <script src="assets/js/explorer.js?v=20261020b"></script>
+    <script src="assets/js/pwa.js?v=20261020c"></script>
+    <script src="assets/js/settings.js?v=20261020c"></script>
+    <script src="assets/js/player.js?v=20261020c"></script>
+    <script src="assets/js/explorer.js?v=20261020c"></script>
 </body>
 </html>

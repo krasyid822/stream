@@ -109,9 +109,39 @@ function safeDecode(value) {
     }
 }
 
+// Escape teks dari metadata/release body sebelum dimasukkan ke innerHTML
+function escapeHtml(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 let aliasesStore = {};
 let sourcesStore = {};
 let folderInfoStore = {};
+let folderInfoIndex = {};
+
+// Normalisasi path: 'anime/fulldive_rpg' == 'anime/fulldive-rpg'
+function folderKeyNorm(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function rebuildFolderInfoIndex() {
+    folderInfoIndex = {};
+    Object.keys(folderInfoStore).forEach((key) => {
+        folderInfoIndex[folderKeyNorm(key)] = folderInfoStore[key];
+    });
+}
+
+function getFolderInfo(path, leaf) {
+    return folderInfoStore[path]
+        || (leaf ? folderInfoStore[leaf] : null)
+        || folderInfoIndex[folderKeyNorm(path)]
+        || null;
+}
 
 // Fetch Metadata & Aliases secara terpisah tanpa duplikasi data
 async function loadMetadata() {
@@ -130,6 +160,7 @@ async function loadMetadata() {
             aliasesStore = aliasData.aliases || {};
             sourcesStore = aliasData.sources || {};
             folderInfoStore = aliasData.folder_info || {};
+            rebuildFolderInfoIndex();
 
             // Merge alias dan source ke item media secara dinamis di runtime (TANPA DUPLIKASI FILE)
             metadataStore.forEach(item => {
@@ -418,7 +449,9 @@ function renderDirectoryGrid() {
 
             const headerEl = document.createElement("div");
             headerEl.className = "search-group-header";
-            headerEl.innerHTML = `<i class="fa-solid fa-folder-tree"></i> ${folderPath.toUpperCase()}`;
+            const groupInfo = getFolderInfo(folderPath, folderPath.split("/").pop());
+            const groupLabel = groupInfo && groupInfo.title ? groupInfo.title : folderPath.toUpperCase();
+            headerEl.innerHTML = `<i class="fa-solid fa-folder-tree"></i> ${escapeHtml(groupLabel)}`;
             groupBlock.appendChild(headerEl);
 
             const gridEl = document.createElement("div");
@@ -492,22 +525,31 @@ function renderDirectoryGrid() {
                 }
             }
 
-            const infoObj = folderInfoStore[folderName] || folderInfoStore[folderLower] || null;
-            const folderTitle = infoObj ? infoObj.title : folderName;
-            const folderDescHtml = infoObj ? `<div style="margin-top: 0.3rem; color: var(--text-muted); font-size: 0.7rem; line-height: 1.3;">${infoObj.desc}</div>` : "";
+            const infoObj = getFolderInfo(folderPath, folderName);
+            const folderTitle = infoObj && infoObj.title ? infoObj.title : folderName;
+
+            // TUNDA 3: ganti ikon folder dengan sampul asli bila tersedia.
+            // Ikon bawaan (bendera kategori / folder) tetap jadi fallback.
+            if (infoObj && infoObj.cover) {
+                iconHtml = `<img class="folder-cover" src="${escapeHtml(infoObj.cover)}" alt="${escapeHtml(folderTitle)}" loading="lazy" referrerpolicy="no-referrer">`;
+            }
+
+            const folderDescHtml = infoObj && infoObj.desc
+                ? `<div style="margin-top: 0.3rem; color: var(--text-muted); font-size: 0.7rem; line-height: 1.3;">${escapeHtml(infoObj.desc)}</div>`
+                : "";
 
             folderCard.innerHTML = `
                 <div class="info-btn-wrapper">
                     <button class="info-btn">i</button>
                     <div class="pixel-balloon-popup">
-                        <div style="color: var(--accent-cyan); font-weight: bold; margin-bottom: 0.2rem;">${folderTitle}</div>
-                        <div>PATH: ${folderPath}</div>
+                        <div style="color: var(--accent-cyan); font-weight: bold; margin-bottom: 0.2rem;">${escapeHtml(folderTitle)}</div>
+                        <div>PATH: ${escapeHtml(folderPath)}</div>
                         ${folderDescHtml}
                     </div>
                 </div>
                 <span class="pixel-badge card-badge">DIR</span>
                 ${iconHtml}
-                <div class="card-name">${folderName}</div>
+                <div class="card-name">${escapeHtml(folderTitle)}</div>
             `;
 
             folderCard.onclick = (e) => {
@@ -554,7 +596,10 @@ function updateBreadcrumb() {
     parts.forEach(part => {
         accumulated = accumulated ? `${accumulated}/${part}` : part;
         const pathRef = accumulated;
-        html += ` <i class="fa-solid fa-chevron-right" style="font-size:0.7rem;"></i> <span class="breadcrumb-item" onclick="navigateToFolder('${pathRef}')">${part}</span>`;
+        // TUNDA 3: breadcrumb memakai judul asli bila folder_info punya judul
+        const info = getFolderInfo(pathRef, part);
+        const label = info && info.title ? info.title : part;
+        html += ` <i class="fa-solid fa-chevron-right" style="font-size:0.7rem;"></i> <span class="breadcrumb-item" onclick="navigateToFolder('${pathRef}')">${escapeHtml(label)}</span>`;
     });
 
     breadcrumbPath.innerHTML = html;
