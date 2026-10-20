@@ -60,6 +60,13 @@
     .player-wrapper {
         width: 420px;
         flex-shrink: 0;
+        /* Desktop: pemutar juga ditempel di atas saat halaman di-scroll,
+           sama seperti mobile. Lebar video TIDAK dikecilkan. */
+        position: sticky;
+        top: 0;
+        align-self: flex-start;
+        z-index: 100;
+        background: var(--bg-color);
     }
 
     .grid-explorer {
