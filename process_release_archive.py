@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import glob
+import math
 import time
 import urllib.parse
 
@@ -611,6 +612,57 @@ def check_if_already_processed_in_drive(dest_folder, allow_ancestor=True):
     """True bila folder tujuan sudah punya minimal satu episode HLS di stream_drive."""
     return bool(fetch_drive_folder_index(dest_folder, allow_ancestor))
 
+def declared_episode_count(body):
+    """
+    Jumlah episode yang dideklarasikan di body release, mis. '14 Episodes'
+    atau '2 Compilation'. None bila tidak disebutkan.
+
+    Dipakai agar rilis PARSIAL (mis. 13/14 episode) tidak ikut di-skip
+    hanya karena foldernya sudah punya beberapa episode.
+    """
+    m = re.search(r"(\d+)\s*episodes?\b", body or "", re.IGNORECASE)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(\d+)\s*compilations?\b", body or "", re.IGNORECASE)
+    return int(m.group(1)) if m else None
+
+def folder_completion_state(work_groups, expected_episodes):
+    """
+    Menghitung status kelengkapan tiap grup arsip.
+
+    - Satu folder tujuan + jumlah episode diketahui  -> lengkap bila found >= expected.
+    - Banyak folder (multi-musim)                    -> tiap folder wajib terisi,
+      dan TOTAL episode harus mencapai jumlah yang dideklarasikan.
+    - Jumlah episode tidak diketahui                 -> perilaku lama (ada = selesai).
+    """
+    multi = len(work_groups) > 1
+    total_found = 0
+    all_done = True
+
+    for wg in work_groups:
+        wg["allow_ancestor"] = ancestor_fallback_allowed(wg["dest"], [w["dest"] for w in work_groups])
+        existing = fetch_drive_folder_index(wg["dest"], wg["allow_ancestor"])
+        wg["found"] = len(existing)
+        total_found += wg["found"]
+
+        if expected_episodes and not multi:
+            wg["done"] = wg["found"] >= expected_episodes
+        else:
+            wg["done"] = wg["found"] > 0
+
+        if not wg["done"]:
+            all_done = False
+
+        mode = "longgar" if wg["allow_ancestor"] else "ketat"
+        print(f"[+] Folder '{wg['dest']}' -> {wg['found']} episode "
+              f"({'SUDAH lengkap' if wg['done'] else 'BELUM lengkap'}) (cek {mode})")
+
+    if all_done and expected_episodes and total_found < expected_episodes:
+        print(f"[!] Total episode ditemukan {total_found}/{expected_episodes} -> belum lengkap.")
+        all_done = False
+
+    return all_done, total_found
+
 def get_split_archive_info(filename):
     """
     Menganalisis apakah sebuah nama file merupakan bagian dari split archive.
@@ -788,6 +840,18 @@ def compute_shards(group_bytes, chunk_size_gb=CHUNK_SIZE_GB, max_shards=MAX_SHAR
     shards = int(round(group_bytes / chunk_bytes))
     return max(1, min(max_shards, shards))
 
+def shards_for_missing_episodes(missing_episodes, max_shards=MAX_SHARDS, per_shard=3):
+    """
+    Jumlah shard untuk RETRY PARSIAL, berdasarkan episode yang BENAR-BENAR
+    belum ada (bukan ukuran arsip). Tujuannya agar retry kecil tidak
+    mengulang ekstraksi arsip di banyak shard sekaligus.
+
+    Contoh: 1 episode hilang -> 1 shard (ekstrak sekali, encode 1 episode).
+    """
+    if not missing_episodes or missing_episodes <= 0:
+        return 1
+    return max(1, min(max_shards, math.ceil(missing_episodes / per_shard)))
+
 def download_release_parts(release_tag, parts, download_dir):
     """Mengunduh seluruh bagian arsip satu grup."""
     os.makedirs(download_dir, exist_ok=True)
@@ -914,18 +978,11 @@ def cmd_plan(release_body_file, plan_out_file):
     for wg in work_groups:
         update_aliases_and_sources(workspace_root, wg["dest"], aliases, wg["base_name"], source_info)
 
-    # Deteksi folder tujuan yang sudah terproces di stream_drive
-    all_done = True
-    all_dests = [wg["dest"] for wg in work_groups]
-    for wg in work_groups:
-        # Musim yang punya saudara lain TIDAK boleh melihat isi folder induknya:
-        # kalau tidak, musim yang kosong tersamar jadi "sudah lengkap".
-        wg["allow_ancestor"] = ancestor_fallback_allowed(wg["dest"], all_dests)
-        wg["done"] = check_if_already_processed_in_drive(wg["dest"], wg["allow_ancestor"])
-        if not wg["done"]:
-            all_done = False
-        mode = "longgar" if wg["allow_ancestor"] else "ketat"
-        print(f"[+] Folder '{wg['dest']}' -> {'SUDAH ada di stream_drive' if wg['done'] else 'belum ada'} (cek {mode})")
+    # Deteksi kelengkapan folder tujuan di stream_drive. JANGAN hanya cek
+    # "ada minimal 1 episode": rilis parsial (mis. 13/14) harus tetap
+    # dilanjutkan, dan resume per-episode akan melewati yang sudah selesai.
+    expected_episodes = declared_episode_count(body_text)
+    all_done, total_found = folder_completion_state(work_groups, expected_episodes)
 
     if all_done:
         print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
@@ -936,7 +993,15 @@ def cmd_plan(release_body_file, plan_out_file):
     # Susun chunk (unit kerja paralel) dari setiap grup arsip
     chunks = []
     for wg in work_groups:
-        shards = compute_shards(wg["bytes"])
+        found_now = int(wg.get("found", 0))
+        if len(work_groups) == 1 and expected_episodes and found_now > 0:
+            # Retry parsial: jumlahkan shard dari episode yang HILANG saja,
+            # supaya retry 1 episode tidak mengulang ekstraksi di banyak shard.
+            missing = max(1, expected_episodes - found_now)
+            shards = shards_for_missing_episodes(missing)
+            print(f"[+] Retry parsial: {missing} episode belum ada -> {shards} shard")
+        else:
+            shards = compute_shards(wg["bytes"])
         for s in range(shards):
             chunks.append({
                 "id": f"g{wg['group']}s{s}",
@@ -1192,17 +1257,14 @@ def cmd_check_skip(release_tag, release_body_file):
         tag_slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', release_tag).lower()
         target_folders = [f"anime/{tag_slug}"]
 
-    all_already_in_drive = True
+    expected_episodes = declared_episode_count(body_text)
+    work_groups = [{"dest": tf} for tf in target_folders]
     for tf in target_folders:
         update_aliases_and_sources(workspace_root, tf, aliases, "", source_info)
-        # Sama seperti plan: judul bermulti-musim diperiksa ketat per folder,
-        # supaya musim yang kosong tidak ikut dianggap "sudah lengkap".
-        loose = ancestor_fallback_allowed(tf, target_folders)
-        done = check_if_already_processed_in_drive(tf, loose)
-        if not done:
-            all_already_in_drive = False
-        print(f"[+] Folder '{tf}' -> {'SUDAH ada di stream_drive' if done else 'belum ada'} "
-              f"(cek {'longgar' if loose else 'ketat'})")
+
+    # Sama seperti plan: jangan skip hanya karena sudah ada 1 episode. Rilis
+    # parsial (mis. 13/14) harus tetap dilanjutkan; resume per-episode aman.
+    all_already_in_drive, _ = folder_completion_state(work_groups, expected_episodes)
 
     if all_already_in_drive:
         print(f"\n[⚡] PRE-CHECK SKIP: Seluruh konten untuk rilis '{release_tag}' SUDAH LENGKAP di stream_drive!")
