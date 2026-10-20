@@ -39,7 +39,12 @@
       "– Zero no Tsukaima (Season 1)",
       "– Zero no Tsukaima: Futatsuki no Kishi (Season 2)",
       "– Zero no Tsukaima: Princesses no Rondo (Season 3)",
-      "– Zero no Tsukaima F (Season 4)"
+      "– Zero no Tsukaima F (Season 4)",
+      "Zero no Tsukaima (Season 1)",
+      "Zero no Tsukaima: Futatsuki no Kishi (Season 2)",
+      "Zero no Tsukaima: Princesses no Rondo (Season 3)",
+      "Zero no Tsukaima F (Season 4)",
+      "otakudesu.io"
     ],
     "nagatoro": [
       "Ijiranaide, Nagatoro-san",
@@ -242,6 +247,36 @@
       "url": "https://otakudesu.io/",
       "icon": "https://otakudesu.io/otakudesu.png",
       "note": "Sumber mentah dari Release Otakudesu.net_JCTK.S2_480p.7z"
+    },
+    "anime/zero_tskma/2": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_ZeroTskma.S2_480p.7z"
+    },
+    "anime/zero_tskma": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_ZeroTskma_480p.7z"
+    },
+    "anime/zero_tskma/3": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_ZeroTskma.S3_480p.7z"
+    },
+    "anime/zero_tskma/4": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_ZeroTskma.S4_480p.7z"
+    },
+    "anime/zero_tskma/1": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_ZeroTskma_480p.7z"
     }
   }
 }
