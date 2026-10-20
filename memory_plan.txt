@@ -61,10 +61,13 @@ SESI 2026-10-20 — PERBAIKAN PIPELINE & MOBILE PLAYER
     folder aktif di mode pencarian ikut dipindah ke atas (desktop & mobile).
     Cache-buster CSS/JS dinaikkan ke `?v=20261020a`.
 11. `.env` / `.env.*` ditambahkan ke .gitignore (jangan pernah di-commit).
+12. Parser jumlah episode kini memahami RENTANG, mis. `14-26 Episodes` = 13
+    episode (bukan 26). Efeknya GSYOS tidak lagi dianggap 13/26 -> ✅ 13/13
+    dan tidak di-encode ulang.
 
-STATUS: Run AM di-retry (hanya Episode 9 yang belum). Rilis lain yang masih
-belum lengkap (ZERO-TSKMA 13/49, GSYOS 13/26, JCTK 11/12, dll.) TIDAK dijalankan
-otomatis; dispatch manual bila diinginkan.
+STATUS: AM sudah ✅ 14/14 (retry Episode 9 selesai). GSYOS ✅ 13/13 setelah
+fix rentang episode. Sisa: ZERO-TSKMA 13/49 & JCTK 11/12 (sedang diproses);
+MINUSCULE hanya masalah subtitle `.vtt` (menunggu perbaikan RAW dari user).
 
 ================================================================================
 TUNDA 1 — RELOKASI FOLDER TANPA RE-ENCODE (PRIORITAS USER)

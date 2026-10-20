@@ -380,6 +380,11 @@ def get_release(repo, tag):
 
 
 def declared_episode_count(body):
+    m = re.search(r"(\d+)\s*[–—-]\s*(\d+)\s*episodes?\b", body or "", re.IGNORECASE)
+    if m:
+        start, end = int(m.group(1)), int(m.group(2))
+        if end >= start:
+            return end - start + 1
     m = re.search(r"(\d+)\s*episodes?\b", body or "", re.IGNORECASE)
     if m:
         return int(m.group(1))
