@@ -26,8 +26,10 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -54,16 +56,76 @@ TREE_CACHE = {}
 # Repo stream_drive
 # ---------------------------------------------------------------------------
 
+def _load_drive_tree_via_clone():
+    """
+    Fallback saat Git Trees API gagal (HTTP 500 / respons terpotong).
+
+    Memakai PARTIAL CLONE tanpa blob (--filter=blob:none --no-checkout): yang
+    diunduh hanya commit + struktur pohon, BUKAN isi video. Jadi ukurannya kecil
+    walau repo berisi puluhan GB. Hasilnya setara entri tree API:
+    {path, type: "blob", size}.
+    """
+    tmp = tempfile.mkdtemp(prefix="drive_tree_")
+    try:
+        res = subprocess.run(
+            ["gh", "repo", "clone", DRIVE_REPO, tmp, "--",
+             "--depth", "1", "--filter=blob:none", "--no-checkout", "--quiet"],
+            capture_output=True, text=True,
+        )
+        if res.returncode != 0:
+            print(f"[-] Partial clone gagal: {res.stderr.strip()[:300]}")
+            return None
+
+        res = subprocess.run(["git", "-C", tmp, "ls-tree", "-r", "-l", "HEAD"],
+                             capture_output=True, text=True)
+        if res.returncode != 0:
+            print(f"[-] git ls-tree gagal: {res.stderr.strip()[:300]}")
+            return None
+
+        tree = []
+        for line in res.stdout.splitlines():
+            meta, sep, path = line.partition("\t")
+            if not sep:
+                continue
+            parts = meta.split()
+            if len(parts) < 4 or parts[1] != "blob":
+                continue
+            try:
+                size = int(parts[3])
+            except ValueError:
+                size = 0
+            tree.append({"path": path, "type": "blob", "size": size})
+        return tree
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def load_drive_tree():
     """Mengambil seluruh pohon file stream_drive sekali saja."""
     if "all" in TREE_CACHE:
         return TREE_CACHE["all"]
-    # Responsnya ~7 MB dan GitHub kadang membalas HTTP 500 acak -> percobakan lebih banyak
+
+    # Jalur utama: Git Trees API (cepat). GitHub kadang membalas HTTP 500 acak
+    # atau body terpotong untuk repo besar -> coba beberapa kali.
     out, err = gh_api("git/trees/main", "?recursive=1", retries=8)
-    if out is None:
-        print("[-] Tidak bisa membaca stream_drive. Pastikan DRIVE_PAT tersedia.")
-        sys.exit(2)
-    data = json.loads(out)
+    data = None
+    if out is not None:
+        try:
+            data = json.loads(out)
+        except json.JSONDecodeError:
+            data = None
+
+    # Fallback andal: partial clone (tanpa blob). Tidak bergantung API tree.
+    if data is None:
+        print("[!] Git Trees API gagal (HTTP 500/terpotong). "
+              "Beralih ke partial clone (hanya struktur, tanpa video)...")
+        tree = _load_drive_tree_via_clone()
+        if tree is None:
+            print("[-] Tidak bisa membaca stream_drive. Pastikan gh/DRIVE_PAT tersedia.")
+            sys.exit(2)
+        TREE_CACHE["all"] = tree
+        return tree
+
     if data.get("truncated"):
         print("[-] Peringatan: pohon stream_drive terpotong, hasil bisa kurang lengkap.")
     TREE_CACHE["all"] = data["tree"]

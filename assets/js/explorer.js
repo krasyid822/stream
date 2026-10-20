@@ -399,14 +399,13 @@ function renderDirectoryGrid() {
     // MODE PENCARIAN: Render dalam blok-blok baris hierarki direktori/season yang terpisah
     if (searchQuery !== "") {
         const playingFolder = window.currentPlayingMediaFolder || "";
-        const isMobile = (window.innerWidth <= 768);
 
         const sortedFolderKeys = Object.keys(searchGroups).sort((a, b) => {
             if (playingFolder) {
-                // Di Mobile: Pemutar video di bawah grid -> dekatkan folder aktif ke PALING BAWAH
-                // Di Desktop: Pemutar video di atas grid -> dekatkan folder aktif ke PALING ATAS
-                if (a === playingFolder) return isMobile ? 1 : -1;
-                if (b === playingFolder) return isMobile ? -1 : 1;
+                // Folder yang sedang diputar selalu di PALING ATAS. Di mobile
+                // pemutar ada di atas (sticky), di desktop juga di atas.
+                if (a === playingFolder) return -1;
+                if (b === playingFolder) return 1;
             }
             return a.localeCompare(b);
         });
@@ -568,16 +567,10 @@ function movePlayingGroupBlockToPlayer(folderPath) {
     const targetBlock = gridExplorer.querySelector(`.search-group-block[data-folder-path="${CSS.escape(folderPath)}"]`);
     if (!targetBlock) return;
 
-    const isMobile = (window.innerWidth <= 768);
-
-    if (isMobile) {
-        // Di Mobile: Pindahkan blok folder aktif ke PALING BAWAH (dekat player di bawah)
-        gridExplorer.appendChild(targetBlock);
-    } else {
-        // Di Desktop: Pindahkan blok folder aktif ke PALING ATAS (dekat player di atas)
-        if (gridExplorer.firstChild && gridExplorer.firstChild !== targetBlock) {
-            gridExplorer.insertBefore(targetBlock, gridExplorer.firstChild);
-        }
+    // Pemutar ada di ATAS pada desktop maupun mobile (di mobile ia sticky),
+    // jadi folder yang sedang diputar selalu dipindah ke PALING ATAS.
+    if (gridExplorer.firstChild && gridExplorer.firstChild !== targetBlock) {
+        gridExplorer.insertBefore(targetBlock, gridExplorer.firstChild);
     }
 }
 

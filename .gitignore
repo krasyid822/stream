@@ -37,3 +37,7 @@ hls_artifacts/
 
 # Konfigurasi lokal opencode (berisi path mesin: /opt/hopper, /usr/bin/brave)
 opencode.json
+
+# Berkas environment lokal (token/secret) — jangan pernah di-commit
+.env
+.env.*

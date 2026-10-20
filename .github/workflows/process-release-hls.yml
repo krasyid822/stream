@@ -25,10 +25,11 @@ permissions:
 env:
   # Target ukuran arsip per shard encode (GB). Makin kecil = makin banyak job paralel,
   # tapi makin sering tiap shard mengulang ekstrak zpaq yang lambat.
-  # 0.9 GB -> arsip 3,44 GB (14 ep 1080p HEVC) jadi 4 shard @4 episode = ~4j10m (aman).
-  HLS_CHUNK_SIZE_GB: ${{ vars.HLS_CHUNK_SIZE_GB || '0.9' }}
+  # 0.7 GB -> arsip 3,44 GB (14 ep 1080p HEVC) jadi 5 shard @~3 episode.
+  # (0.9 GB pernah membuat shard @4 episode menembus 320 menit -> job timeout.)
+  HLS_CHUNK_SIZE_GB: ${{ vars.HLS_CHUNK_SIZE_GB || '0.7' }}
   # Batas maksimum shard per grup arsip
-  HLS_MAX_SHARDS: ${{ vars.HLS_MAX_SHARDS || '6' }}
+  HLS_MAX_SHARDS: ${{ vars.HLS_MAX_SHARDS || '8' }}
 
 concurrency:
   group: "hls-release-processing"
@@ -252,11 +253,11 @@ jobs:
           sudo apt install -y --no-install-recommends ffmpeg p7zip-full p7zip-rar unrar zpaq unshield
 
       - name: Download, Extract & Encode Chunk
-        # Timeout level-step (bukan job): encode dihentikan lebih dulu pada menit ke-320,
-        # menyisakan ~30 menit agar langkah "Upload HLS Output" tetap sempat berjalan.
+        # Timeout level-step (bukan job): encode dihentikan lebih dulu pada menit ke-330,
+        # menyisakan ~20 menit agar langkah "Upload HLS Output" tetap sempat berjalan.
         # Episode yang sudah selesai sudah dipindahkan ke HLS_OUT per-episode, jadi
         # hasilnya tidak hilang walau encode dibunuh di tengah.
-        timeout-minutes: 320
+        timeout-minutes: 330
         env:
           GH_TOKEN: ${{ secrets.DRIVE_PAT || secrets.GITHUB_TOKEN }}
           PYTHONUNBUFFERED: "1"

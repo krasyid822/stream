@@ -71,10 +71,19 @@
         gap: 0.75rem;
     }
 
+    /* Mobile: pemutar DITEMPIELKAN DI ATAS (sticky) supaya tidak hilang saat
+       scroll daftar episode. Lebar tetap 100% — video TIDAK dikecilkan dan
+       area layar tidak dipersempit ke samping. */
     .player-wrapper {
+        order: -1;
+        position: sticky;
+        top: 0;
+        z-index: 100;
         width: 100%;
-        max-width: 500px;
-        margin: 0 auto;
+        max-width: none;
+        margin: 0;
+        padding-bottom: 0.35rem;
+        background: var(--bg-color);
     }
 
     .grid-explorer {
