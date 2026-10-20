@@ -240,27 +240,39 @@ let searchQuery = "";
 
 // Handle Real-Time Search Filter
 function handleSearch(query) {
-    const wasSearching = searchQuery !== "";
     searchQuery = query.trim().toLowerCase();
     const searching = searchQuery !== "";
     const appContainer = document.querySelector(".app-container");
-    const mainLayout = document.querySelector(".main-layout");
 
-    // Mode CARI: searchbar tetap di baris navigasi (tidak fixed/overlay).
-    // Hanya area hasil (.main-layout) yang di-scroll.
-    if (appContainer) {
-        if (searching && !wasSearching) {
-            // Masuk mode cari dari posisi scroll mana pun: mulai dari atas
-            // agar header + searchbar terlihat.
-            document.body.scrollTop = 0;
-            document.documentElement.scrollTop = 0;
+    // Mode CARI: HANYA searchbox container yang sticky. Header & breadcrumb
+    // tetap scroll normal, dan searchbar tidak memakai position: fixed.
+    if (appContainer) appContainer.classList.toggle("searching", searching);
+
+    const searchBoxContainer = document.getElementById("searchBoxContainer");
+    if (searchBoxContainer) {
+        if (searching) {
+            document.documentElement.style.setProperty(
+                "--search-sticky-h",
+                searchBoxContainer.offsetHeight + "px"
+            );
+        } else {
+            document.documentElement.style.removeProperty("--search-sticky-h");
         }
-        appContainer.classList.toggle("searching", searching);
     }
-    if (mainLayout) mainLayout.scrollTop = 0;
 
     renderDirectoryGrid();
 }
+
+window.addEventListener("resize", () => {
+    if (searchQuery === "") return;
+    const searchBoxContainer = document.getElementById("searchBoxContainer");
+    if (searchBoxContainer) {
+        document.documentElement.style.setProperty(
+            "--search-sticky-h",
+            searchBoxContainer.offsetHeight + "px"
+        );
+    }
+});
 
 // Render Directory Grid View
 function renderDirectoryGrid() {

@@ -137,34 +137,35 @@ html, body {
 }
 
 /* Mode CARI: kotak pencarian tetap di baris navigasi (BUKAN overlay/fixed).
-   Hasil pencarian di-scroll di dalam .main-layout, sehingga searchbar tidak
-   pernah menutupi konten. */
+   Hanya searchbox container yang ditempel saat scroll; header & breadcrumb
+   tetap ikut scroll normal. */
 .search-box-container.floating-search {
     border-color: var(--accent-pink) !important;
     box-shadow: 0 0 12px rgba(255, 0, 127, 0.35), 3px 3px 0px #000 !important;
 }
 
-/* Saat mode CARI aktif: header + searchbar tetap di tempat, hanya hasil
-   pencarian yang punya area scroll sendiri. */
-.app-container.searching {
-    height: 100vh;
-    overflow: hidden;
+.nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
 }
 
-.app-container.searching .main-layout {
-    flex: 1 1 0;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding-right: 0.25rem;
+.app-container.searching .nav-row {
+    display: contents;
 }
 
-/* Item di dalam area scroll tidak boleh menyusut (mis. video jadi 4px)
-   saat tinggi .main-layout dibatasi 100vh. Pada mobile, anak .player-wrapper
-   ikut jadi flex item karena wrapper memakai display:contents. */
-.app-container.searching .main-layout > *,
-.app-container.searching .player-wrapper.is-active > * {
-    flex-shrink: 0;
+.app-container.searching #searchBoxContainer {
+    position: sticky;
+    top: 0;
+    z-index: 950;
+    align-self: flex-start;
+    background: var(--bg-color);
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    margin: 0;
 }
 
 /* Pixel Badge */

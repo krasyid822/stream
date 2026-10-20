@@ -16,10 +16,17 @@
         z-index: 20000 !important;
     }
 
-    /* Searchbar TIDAK lagi mengambang/overlay di mobile. Saat mode CARI,
-       header + searchbar tetap di tempat dan hanya hasil yang di-scroll. */
-    .app-container.searching .main-layout {
-        padding-right: 0;
+    /* Saat mode CARI, HANYA searchbox container yang ditempel. Header dan
+       breadcrumb tetap ikut scroll normal. Searchbox dibuat selebar layar. */
+    .app-container.searching #searchBoxContainer {
+        align-self: stretch;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Video sticky digeser ke bawah searchbox sticky agar tidak tertutup. */
+    .app-container.searching .player-wrapper.is-active > .video-container {
+        top: var(--search-sticky-h, 0px);
     }
 
     .app-container {
