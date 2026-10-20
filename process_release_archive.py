@@ -153,8 +153,8 @@ def parse_release_body_lines(body_text):
                     source_info['icon'] = line
                 continue
 
-            # Lewati baris resolusi / episode
-            if re.match(r'^(?:\d+p|\d+\s*episodes?|\d+\s*compilations?|part\s*\d+|#+)', line, re.IGNORECASE):
+            # Lewati baris resolusi / episode (termasuk rentang seperti "14-26 Episodes")
+            if re.match(r'^(?:\d+p|\d+\s*[–—-]\s*\d+\s*episodes?|\d+\s*episodes?|\d+\s*compilations?|part\s*\d+|#+)', line, re.IGNORECASE):
                 continue
 
             # Lewati tag HTML / markdown gambar (mis. <img ...> untuk gambar sampul).
