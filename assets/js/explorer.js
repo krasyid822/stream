@@ -240,7 +240,25 @@ let searchQuery = "";
 
 // Handle Real-Time Search Filter
 function handleSearch(query) {
+    const wasSearching = searchQuery !== "";
     searchQuery = query.trim().toLowerCase();
+    const searching = searchQuery !== "";
+    const appContainer = document.querySelector(".app-container");
+    const mainLayout = document.querySelector(".main-layout");
+
+    // Mode CARI: searchbar tetap di baris navigasi (tidak fixed/overlay).
+    // Hanya area hasil (.main-layout) yang di-scroll.
+    if (appContainer) {
+        if (searching && !wasSearching) {
+            // Masuk mode cari dari posisi scroll mana pun: mulai dari atas
+            // agar header + searchbar terlihat.
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        }
+        appContainer.classList.toggle("searching", searching);
+    }
+    if (mainLayout) mainLayout.scrollTop = 0;
+
     renderDirectoryGrid();
 }
 
