@@ -86,6 +86,12 @@
         background: var(--bg-color);
     }
 
+    /* Di mobile player selalu selebar layar, jadi tombol perbesar/perkecil
+       (- / + / badge ukuran) disembunyikan. Tombol layar penuh tetap tampil. */
+    .player-resize-controls {
+        display: none !important;
+    }
+
     .grid-explorer {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));

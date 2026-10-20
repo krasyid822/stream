@@ -17,9 +17,9 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <!-- Clean Architecture CSS Imports -->
-    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020a">
-    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020a">
-    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020a">
+    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020b">
+    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020b">
+    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020b">
 
     <style>
         /* Core UI Component Wrappers */
@@ -163,11 +163,15 @@
                     </div>
 
                     <div style="display: inline-flex; align-items: center; gap: 0.3rem; flex-wrap: nowrap;">
-                        <!-- Pengatur ukuran preview player (kecil <-> besar) + layar penuh -->
+                        <!-- Pengatur ukuran preview player (kecil <-> besar) + layar penuh.
+                             Tombol -/+/badge ukuran disembunyikan di mobile (lihat mobile.css),
+                             tombol layar penuh tetap tampil. -->
                         <div style="display: inline-flex; align-items: center; gap: 0.2rem;">
-                            <button class="pixel-btn" onclick="resizePlayer(-1)" title="Perkecil player" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-minus"></i></button>
-                            <span id="playerSizeBadge" class="pixel-badge purple" style="font-size: 0.55rem; padding: 0.2rem 0.35rem; min-width: 3.4em; text-align: center;">440px</span>
-                            <button class="pixel-btn" onclick="resizePlayer(1)" title="Perbesar player" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-plus"></i></button>
+                            <span class="player-resize-controls" style="display: inline-flex; align-items: center; gap: 0.2rem;">
+                                <button class="pixel-btn" onclick="resizePlayer(-1)" title="Perkecil player" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-minus"></i></button>
+                                <span id="playerSizeBadge" class="pixel-badge purple" style="font-size: 0.55rem; padding: 0.2rem 0.35rem; min-width: 3.4em; text-align: center;">440px</span>
+                                <button class="pixel-btn" onclick="resizePlayer(1)" title="Perbesar player" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-plus"></i></button>
+                            </span>
                             <button class="pixel-btn" onclick="togglePlayerFullscreen()" title="Layar penuh" style="font-size: 0.7rem; padding: 0.2rem 0.45rem; border-color: var(--accent-purple); color: var(--accent-cyan); line-height: 1;"><i class="fa-solid fa-expand"></i></button>
                         </div>
 
@@ -197,7 +201,7 @@
     </div>
 
     <!-- Clean Architecture JavaScript Modules -->
-    <script src="assets/js/player.js?v=20261020a"></script>
-    <script src="assets/js/explorer.js?v=20261020a"></script>
+    <script src="assets/js/player.js?v=20261020b"></script>
+    <script src="assets/js/explorer.js?v=20261020b"></script>
 </body>
 </html>
