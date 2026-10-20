@@ -41,6 +41,32 @@ SUDAH SELESAI (sesi 2026-10-19)
    `window.HLS_USE_LOCAL = true`) bila ingin memakai salinan media lokal.
 
 ================================================================================
+SESI 2026-10-20 — PERBAIKAN PIPELINE & MOBILE PLAYER
+================================================================================
+7. Checkup gagal total karena Git Trees API stream_drive membalas HTTP 500 /
+   body terpotong (repo makin besar). Ditambahkan fallback PARTIAL CLONE
+   (`gh repo clone --depth 1 --filter=blob:none --no-checkout` + `git ls-tree`)
+   di checkups.py: hanya struktur pohon yang diunduh, bukan video. Terbukti
+   membaca 38.988 entri (~24 detik) dan 11 rilis.
+8. Job encode timeout 320 menit (shard @4 episode AM butuh >5j20m). Chunk
+   default diturunkan 0.9 -> 0.7 GB, max shard 6 -> 8, step timeout 320 -> 330.
+9. PRE-CHECK bug: rilis parsial (AM 13/14) di-skip karena folder sudah punya
+   MINIMAL 1 episode. Sekarang membandingkan dengan jumlah episode di body
+   release (`14 Episodes` / `N Compilation`). Retry parsial juga memakai jumlah
+   shard berdasarkan episode yang HILANG (AM: 1 episode hilang -> 1 shard),
+   jadi tidak mengulang ekstraksi di banyak shard. Resume per-episode tetap
+   melewati episode yang sudah ada.
+10. Mobile: player-wrapper kini `position: sticky; top: 0` DI ATAS grid, lebar
+    penuh (video tidak dikecilkan) supaya tidak hilang saat scroll. Urutan blok
+    folder aktif di mode pencarian ikut dipindah ke atas (desktop & mobile).
+    Cache-buster CSS/JS dinaikkan ke `?v=20261020a`.
+11. `.env` / `.env.*` ditambahkan ke .gitignore (jangan pernah di-commit).
+
+STATUS: Run AM di-retry (hanya Episode 9 yang belum). Rilis lain yang masih
+belum lengkap (ZERO-TSKMA 13/49, GSYOS 13/26, JCTK 11/12, dll.) TIDAK dijalankan
+otomatis; dispatch manual bila diinginkan.
+
+================================================================================
 TUNDA 1 — RELOKASI FOLDER TANPA RE-ENCODE (PRIORITAS USER)
 ================================================================================
 Masalah:
