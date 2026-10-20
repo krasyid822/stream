@@ -8,6 +8,8 @@ on:
       - 'index.html'
       - 'favicon.ico'
       - 'assets/**'
+      - 'manifest.webmanifest'
+      - 'sw.js'
       - 'aliases.json'
       - 'metadata.json'
       - '.github/workflows/deploy-pages.yml'
@@ -44,6 +46,8 @@ jobs:
             index.html
             favicon.ico
             assets
+            manifest.webmanifest
+            sw.js
             aliases.json
             metadata.json
           sparse-checkout-cone-mode: false
@@ -51,7 +55,7 @@ jobs:
       - name: Prepare Lightweight Web UI Artifact
         run: |
           mkdir -p site_dist
-          cp -r index.html favicon.ico assets aliases.json metadata.json site_dist/
+          cp -r index.html favicon.ico assets manifest.webmanifest sw.js aliases.json metadata.json site_dist/
           echo "Lightweight Web UI size:"
           du -sh site_dist/
 
