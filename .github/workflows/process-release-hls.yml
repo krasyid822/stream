@@ -1,8 +1,13 @@
 name: Process Release Archive & Auto HLS Stream Pipeline
+run-name: "HLS: ${{ inputs.release_tag || github.event.release.tag_name || 'manual' }}"
+
+# Catatan TUNDA 2:
+# Trigger release TIDAK lagi langsung menjalankan pipeline ini. Release masuk
+# ke antrian lewat `.github/workflows/hls-queue.yml`, lalu dispatcher
+# `.github/workflows/hls-dispatch.yml` menjalankan satu release pada satu waktu.
+# Workflow ini tetap bisa di-dispatch manual (mis. sync_only atau retry darurat).
 
 on:
-  release:
-    types: [published, edited]
   workflow_dispatch:
     inputs:
       release_tag:

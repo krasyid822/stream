@@ -109,19 +109,45 @@ Rancangan:
 ================================================================================
 TUNDA 2 — ANTRIAN JOB TANPA BATAS (WAIT-LIST)
 ================================================================================
-STATUS: [BELUM DIKERJAKAN]
-Kondisi sekarang:
-  process-release-hls.yml sudah punya:
-      concurrency:
-        group: "hls-release-processing"
-        cancel-in-progress: false
-  Efeknya: job yang berjalan TIDAK dibatalkan, tapi GitHub hanya menyimpan
-  SATU run "pending" per grup. Trigger ke-3 akan membuang pending sebelumnya.
+STATUS: [SELESAI 2026-10-21]
 
-Yang diinginkan:
-  Antrian tanpa batas (atau batas tinggi) dan tidak saling membatalkan.
+Realisasi:
+  - `.github/hls_queue.json` = file antrian (tanpa batas jumlah item).
+  - `.github/scripts/hls_queue.py`:
+      * `enqueue <tag>` — idempotent; tag yang sudah queued/dispatched tidak
+        diduplikasi; tag failed bisa diantrikan ulang.
+      * `reconcile` — mencocokkan antrian dengan run pipeline (lewat
+        `run-name: "HLS: <tag>"`), menghapus item yang sukses, menandai gagal,
+        dan memilih SATU tag berikutnya. Menulis tag ke
+        `.github/hls_queue_next.txt`. Tidak memilih tag baru bila masih ada run
+        pipeline aktif.
+      * `list` — melihat isi antrian.
+  - `.github/workflows/hls-queue.yml`:
+      * trigger release `published`/`edited` + `workflow_dispatch`.
+      * menambah tag ke antrian dengan retry/pull-rebase agar dua release yang
+        masuk hampir bersamaan tidak saling menimpa.
+      * melewati release `Metadata-Guide` dan prerelease.
+  - `.github/workflows/hls-dispatch.yml`:
+      * cron tiap 5 menit + manual.
+      * concurrency group `hls-queue-dispatcher` (satu dispatcher).
+      * reconcile + commit status antrian, lalu memanggil
+        `gh workflow run process-release-hls.yml -f release_tag=<tag>`.
+      * hanya satu pipeline berjalan; run yang sedang berjalan/queued TIDAK
+        dibatalkan.
+  - `process-release-hls.yml`:
+      * trigger `release` langsung DIHAPUS (semua release lewat antrian).
+      * `run-name: "HLS: <tag>"` untuk pencocokan run ↔ antrian.
+      * concurrency lama tetap dipertahankan sebagai pengaman tambahan.
+  - Jika sebuah run gagal, item ditandai `failed` dan tidak di-retry otomatis
+    tanpa akhir; enqueue ulang tag yang sama akan memulai percobaan baru.
+  - Kelebihan: trigger ke-3/ke-4/ke-5 tidak lagi membuang run pending seperti
+    concurrency group GitHub; antrian tetap utuh sampai diproses.
+  - Cara pakai manual:
+      gh workflow run hls-queue.yml -f release_tag=TSKB
+      gh workflow run hls-dispatch.yml   # opsional, mempercepat proses
+      python3 .github/scripts/hls_queue.py list
 
-Rancangan (file daftar tunggu):
+Rancangan awal (arsip):
   - Simpan antrian di sebuah file/issue/label (mis. 'pending_queue.json' di repo
     atau label 'queue:menunggu' pada issue).
   - Workflow job "queue" menerima release_tag dan memasukkannya ke daftar tunggu.

@@ -1,0 +1,104 @@
+name: HLS Queue - Enqueue
+
+# Semua release masuk ke file antrian, BUKAN langsung ke pipeline encode.
+# Dengan begitu trigger ke-3, ke-4, dst. tidak saling membuang run pending
+# seperti pada concurrency group biasa.
+
+on:
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag GitHub Release yang ingin dimasukkan ke antrian'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+# Sengaja TANPA concurrency group: kalau beberapa release masuk bersamaan,
+# setiap job tetap harus sempat menambahkan tag-nya ke file antrian. Race saat
+# commit ditangani oleh retry/pull-rebase di langkah Enqueue release.
+
+jobs:
+  enqueue:
+    name: "Tambah ke antrian"
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.release.prerelease == false &&
+       github.event.release.tag_name != 'Metadata-Guide')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout antrian
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+          sparse-checkout: |
+            .github
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure Git Identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Enqueue release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          TAG="${RELEASE_TAG:-}"
+          if [ -z "$TAG" ]; then
+            echo "::error::Tag release kosong."
+            exit 1
+          fi
+
+          SAVED=0
+          for attempt in 1 2 3 4 5; do
+            echo "[i] Percobaan enqueue #${attempt} untuk ${TAG}"
+            git pull --rebase origin "${{ github.event.repository.default_branch }}" || true
+
+            python3 .github/scripts/hls_queue.py enqueue "$TAG"
+
+            if git diff --quiet -- .github/hls_queue.json; then
+              echo "[i] ${TAG} sudah ada di antrian; tidak ada perubahan file."
+              SAVED=1
+              break
+            fi
+
+            git add .github/hls_queue.json
+            git commit -m "chore(queue): enqueue ${TAG} [skip ci]"
+
+            if git push origin "HEAD:${{ github.event.repository.default_branch }}"; then
+              echo "[✓] ${TAG} tersimpan di antrian."
+              SAVED=1
+              break
+            fi
+
+            echo "[!] Push ditolak; tarik perubahan terbaru lalu ulangi."
+            git reset --hard HEAD~1
+            sleep 3
+          done
+
+          if [ "$SAVED" != "1" ]; then
+            echo "::error::Gagal menyimpan antrian setelah beberapa percobaan."
+            exit 1
+          fi
+
+      - name: Trigger dispatcher (best effort)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run hls-dispatch.yml \
+            --ref "${{ github.event.repository.default_branch }}"
