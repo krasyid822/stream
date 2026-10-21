@@ -65,13 +65,25 @@ SESI 2026-10-20 — PERBAIKAN PIPELINE & MOBILE PLAYER
     episode (bukan 26). Efeknya GSYOS tidak lagi dianggap 13/26 -> ✅ 13/13
     dan tidak di-encode ulang.
 
-STATUS: AM sudah ✅ 14/14 (retry Episode 9 selesai). GSYOS ✅ 13/13 setelah
-fix rentang episode. Sisa: ZERO-TSKMA 13/49 & JCTK 11/12 (sedang diproses);
-MINUSCULE hanya masalah subtitle `.vtt` (menunggu perbaikan RAW dari user).
+STATUS per 2026-10-21:
+  - AM ✅ 14/14
+  - GSYOS ✅ 13/13
+  - FULLDIVE-RPG ✅ 12/12
+  - ZERO-TSKMA ✅ 49/49 (S1 13, S2 12, S3 12, S4 12)
+  - JCTK ✅ 25/12 (S1 12, S2 13)
+  - OREGAIRU ✅ 1/1 (catatan: episode bernomor 08)
+  - HYOUKA ✅ 3/3 (catatan: nomor tidak berurutan 4, 7, 20)
+  - TSKB ❌ 0/11 — folder belum ada di stream_drive
+  - 29DCBNN ❌ 0/12 — folder belum ada di stream_drive
+  - NAGATORO ❌ 0/12 — folder belum ada di stream_drive
+  - MINUSCULE ❌ 0/1 — RAW bertag [RAW] tetapi subtitle .vtt belum ada;
+    menunggu perbaikan RAW/subtitle dari user.
+  Metadata sudah disinkronkan (118 media) dan live.
 
 ================================================================================
 TUNDA 1 — RELOKASI FOLDER TANPA RE-ENCODE (PRIORITAS USER)
 ================================================================================
+STATUS: [BELUM DIKERJAKAN]
 Masalah:
   Struktur RAW berubah, mis. dulu 'anime/tskb/' (datar) kini jadi
   'anime/tskb/1/' dan 'anime/tskb/2/'. Karena judul kini menyebut >1 folder
@@ -97,6 +109,7 @@ Rancangan:
 ================================================================================
 TUNDA 2 — ANTRIAN JOB TANPA BATAS (WAIT-LIST)
 ================================================================================
+STATUS: [BELUM DIKERJAKAN]
 Kondisi sekarang:
   process-release-hls.yml sudah punya:
       concurrency:
@@ -159,6 +172,9 @@ Realisasi (2026-10-20):
 ================================================================================
 TUNDA 4 — APLIKASI UI PYTHON UNTUK MANAJEMEN RELEASE
 ================================================================================
+STATUS: [BELUM DIKERJAKAN]
+Catatan: integrasi MAL resmi sudah dipakai sebagian di TUNDA 3
+(fetch_mal_cover + cache ke folder_info), tetapi UI Python-nya belum dibuat.
 Yang diinginkan:
   Interface (Python) untuk menyusun/memperbarui GitHub Release otomatis:
   memperbarui RAW, mengunggah RAW baru, membuat release, dsb.
