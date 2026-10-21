@@ -2,13 +2,13 @@
   "items": [
     {
       "tag": "Metadata-Guide",
-      "status": "queued",
+      "status": "dispatched",
       "requested_at": 1792583580.7106931,
-      "updated_at": 1792583580.7106938,
-      "attempts": 0,
-      "dispatched_at": null,
+      "updated_at": 1792583594.886889,
+      "attempts": 1,
+      "dispatched_at": 1792583594.8868883,
       "last_error": null
     }
   ],
-  "updated_at": 1792583580.7107306
+  "updated_at": 1792583594.886931
 }
