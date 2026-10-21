@@ -726,6 +726,366 @@
       "type": "hls_stream"
     },
     {
+      "id": "anime_zero_tskma_2_Episode_01_hls_master_m3u8",
+      "name": "Episode 01",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 01_hls",
+      "master_url": "anime/zero_tskma/2/Episode 01_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 01_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_02_hls_master_m3u8",
+      "name": "Episode 02",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 02_hls",
+      "master_url": "anime/zero_tskma/2/Episode 02_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 02_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_03_hls_master_m3u8",
+      "name": "Episode 03",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 03_hls",
+      "master_url": "anime/zero_tskma/2/Episode 03_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 03_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_04_hls_master_m3u8",
+      "name": "Episode 04",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 04_hls",
+      "master_url": "anime/zero_tskma/2/Episode 04_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 04_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_05_hls_master_m3u8",
+      "name": "Episode 05",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 05_hls",
+      "master_url": "anime/zero_tskma/2/Episode 05_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 05_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_06_hls_master_m3u8",
+      "name": "Episode 06",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 06_hls",
+      "master_url": "anime/zero_tskma/2/Episode 06_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 06_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_07_hls_master_m3u8",
+      "name": "Episode 07",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 07_hls",
+      "master_url": "anime/zero_tskma/2/Episode 07_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 07_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_08_hls_master_m3u8",
+      "name": "Episode 08",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 08_hls",
+      "master_url": "anime/zero_tskma/2/Episode 08_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 08_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_09_hls_master_m3u8",
+      "name": "Episode 09",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 09_hls",
+      "master_url": "anime/zero_tskma/2/Episode 09_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 09_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_10_hls_master_m3u8",
+      "name": "Episode 10",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 10_hls",
+      "master_url": "anime/zero_tskma/2/Episode 10_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 10_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_11_hls_master_m3u8",
+      "name": "Episode 11",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 11_hls",
+      "master_url": "anime/zero_tskma/2/Episode 11_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 11_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_2_Episode_12_hls_master_m3u8",
+      "name": "Episode 12",
+      "folder": "anime/zero_tskma/2",
+      "path": "anime/zero_tskma/2/Episode 12_hls",
+      "master_url": "anime/zero_tskma/2/Episode 12_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/2/Episode 12_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_01_hls_master_m3u8",
+      "name": "Episode 01",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 01_hls",
+      "master_url": "anime/zero_tskma/3/Episode 01_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 01_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_02_hls_master_m3u8",
+      "name": "Episode 02",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 02_hls",
+      "master_url": "anime/zero_tskma/3/Episode 02_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 02_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_03_hls_master_m3u8",
+      "name": "Episode 03",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 03_hls",
+      "master_url": "anime/zero_tskma/3/Episode 03_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 03_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_04_hls_master_m3u8",
+      "name": "Episode 04",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 04_hls",
+      "master_url": "anime/zero_tskma/3/Episode 04_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 04_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_05_hls_master_m3u8",
+      "name": "Episode 05",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 05_hls",
+      "master_url": "anime/zero_tskma/3/Episode 05_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 05_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_06_hls_master_m3u8",
+      "name": "Episode 06",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 06_hls",
+      "master_url": "anime/zero_tskma/3/Episode 06_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 06_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_07_hls_master_m3u8",
+      "name": "Episode 07",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 07_hls",
+      "master_url": "anime/zero_tskma/3/Episode 07_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 07_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_08_hls_master_m3u8",
+      "name": "Episode 08",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 08_hls",
+      "master_url": "anime/zero_tskma/3/Episode 08_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 08_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_09_hls_master_m3u8",
+      "name": "Episode 09",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 09_hls",
+      "master_url": "anime/zero_tskma/3/Episode 09_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 09_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_10_hls_master_m3u8",
+      "name": "Episode 10",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 10_hls",
+      "master_url": "anime/zero_tskma/3/Episode 10_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 10_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_11_hls_master_m3u8",
+      "name": "Episode 11",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 11_hls",
+      "master_url": "anime/zero_tskma/3/Episode 11_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 11_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_3_Episode_12_hls_master_m3u8",
+      "name": "Episode 12",
+      "folder": "anime/zero_tskma/3",
+      "path": "anime/zero_tskma/3/Episode 12_hls",
+      "master_url": "anime/zero_tskma/3/Episode 12_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/3/Episode 12_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_01_hls_master_m3u8",
+      "name": "Episode 01",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 01_hls",
+      "master_url": "anime/zero_tskma/4/Episode 01_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 01_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_02_hls_master_m3u8",
+      "name": "Episode 02",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 02_hls",
+      "master_url": "anime/zero_tskma/4/Episode 02_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 02_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_03_hls_master_m3u8",
+      "name": "Episode 03",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 03_hls",
+      "master_url": "anime/zero_tskma/4/Episode 03_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 03_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_04_hls_master_m3u8",
+      "name": "Episode 04",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 04_hls",
+      "master_url": "anime/zero_tskma/4/Episode 04_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 04_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_05_hls_master_m3u8",
+      "name": "Episode 05",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 05_hls",
+      "master_url": "anime/zero_tskma/4/Episode 05_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 05_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_06_hls_master_m3u8",
+      "name": "Episode 06",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 06_hls",
+      "master_url": "anime/zero_tskma/4/Episode 06_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 06_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_07_hls_master_m3u8",
+      "name": "Episode 07",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 07_hls",
+      "master_url": "anime/zero_tskma/4/Episode 07_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 07_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_08_hls_master_m3u8",
+      "name": "Episode 08",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 08_hls",
+      "master_url": "anime/zero_tskma/4/Episode 08_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 08_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_09_hls_master_m3u8",
+      "name": "Episode 09",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 09_hls",
+      "master_url": "anime/zero_tskma/4/Episode 09_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 09_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_10_hls_master_m3u8",
+      "name": "Episode 10",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 10_hls",
+      "master_url": "anime/zero_tskma/4/Episode 10_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 10_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_11_hls_master_m3u8",
+      "name": "Episode 11",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 11_hls",
+      "master_url": "anime/zero_tskma/4/Episode 11_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 11_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_zero_tskma_4_Episode_12_hls_master_m3u8",
+      "name": "Episode 12",
+      "folder": "anime/zero_tskma/4",
+      "path": "anime/zero_tskma/4/Episode 12_hls",
+      "master_url": "anime/zero_tskma/4/Episode 12_hls/master.m3u8",
+      "poster_url": "anime/zero_tskma/4/Episode 12_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
       "id": "donghua_am_Episode_1_hls_master_m3u8",
       "name": "Episode 1",
       "folder": "donghua/am",
@@ -876,5 +1236,5 @@
       "type": "hls_stream"
     }
   ],
-  "updated_at": "1792514088.8200781"
+  "updated_at": "1792575929.3908465"
 }
