@@ -1,14 +1,4 @@
 {
-  "items": [
-    {
-      "tag": "Metadata-Guide",
-      "status": "dispatched",
-      "requested_at": 1792583580.7106931,
-      "updated_at": 1792583594.886889,
-      "attempts": 1,
-      "dispatched_at": 1792583594.8868883,
-      "last_error": null
-    }
-  ],
-  "updated_at": 1792583594.886931
+  "items": [],
+  "updated_at": 1792583657.0136116
 }
