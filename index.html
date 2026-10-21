@@ -24,9 +24,9 @@
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <!-- Clean Architecture CSS Imports -->
-    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020k">
-    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020k">
-    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020k">
+    <link rel="stylesheet" href="assets/css/design-system.css?v=20261020l">
+    <link rel="stylesheet" href="assets/css/layouts/desktop.css?v=20261020l">
+    <link rel="stylesheet" href="assets/css/layouts/mobile.css?v=20261020l">
 
     <style>
         /* Core UI Component Wrappers */
@@ -274,10 +274,27 @@
         </div>
     </div>
 
+    <!-- Modal Konfirmasi / Alert (pengganti window.confirm/alert) -->
+    <div class="settings-overlay confirm-overlay" id="confirmOverlay" aria-hidden="true">
+        <div class="settings-panel confirm-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitleText" aria-describedby="confirmMessage">
+            <div class="settings-header">
+                <div class="pixel-header-title"><i class="fa-solid fa-triangle-exclamation"></i> <span id="confirmTitleText">KONFIRMASI</span></div>
+                <button class="pixel-btn" id="confirmCloseBtn" type="button" aria-label="Tutup konfirmasi" style="font-size: 0.7rem; padding: 0.3rem 0.5rem; border-color: var(--accent-pink); color: var(--accent-pink);">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="confirm-message" id="confirmMessage"></p>
+            <div class="confirm-actions">
+                <button class="pixel-btn" id="confirmCancelBtn" type="button">BATAL</button>
+                <button class="pixel-btn primary" id="confirmOkBtn" type="button">LANJUT</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Clean Architecture JavaScript Modules -->
-    <script src="assets/js/pwa.js?v=20261020k"></script>
-    <script src="assets/js/settings.js?v=20261020k"></script>
-    <script src="assets/js/player.js?v=20261020k"></script>
-    <script src="assets/js/explorer.js?v=20261020k"></script>
+    <script src="assets/js/pwa.js?v=20261020l"></script>
+    <script src="assets/js/settings.js?v=20261020l"></script>
+    <script src="assets/js/player.js?v=20261020l"></script>
+    <script src="assets/js/explorer.js?v=20261020l"></script>
 </body>
 </html>

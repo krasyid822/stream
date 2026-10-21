@@ -594,6 +594,41 @@ video::-webkit-media-controls-overflow-button {
     margin: 0;
 }
 
+/* Modal konfirmasi/alert (pengganti dialog bawaan browser) */
+.confirm-overlay {
+    z-index: 31000;
+}
+
+.confirm-panel {
+    width: min(460px, 100%);
+}
+
+.confirm-message {
+    font-family: var(--code-font);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text-main);
+    margin: 0 0 1rem;
+    white-space: pre-line;
+}
+
+.confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.pixel-btn.danger {
+    border-color: var(--accent-pink);
+    color: var(--accent-pink);
+}
+
+.pixel-btn.danger:hover {
+    background: var(--accent-pink);
+    color: #000;
+}
+
 @media (max-width: 768px) {
     .settings-panel {
         padding: 0.75rem;

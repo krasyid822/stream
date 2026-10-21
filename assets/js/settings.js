@@ -103,10 +103,106 @@
         document.body.style.overflow = "";
     }
 
+    // --- Modal konfirmasi/alert internal (pengganti window.confirm/alert) ---
+    let dialogResolve = null;
+    let dialogPreviousFocus = null;
+    let dialogSettingsWasOpen = false;
+
+    function showDialog(options) {
+        const overlay = el("confirmOverlay");
+        if (!overlay) return Promise.resolve(false);
+
+        const opts = Object.assign({
+            title: "KONFIRMASI",
+            message: "",
+            confirmText: "LANJUT",
+            cancelText: "BATAL",
+            showCancel: true,
+            danger: false
+        }, options || {});
+
+        // Jika ada dialog yang masih terbuka, anggap batal dulu.
+        if (dialogResolve) {
+            const previous = dialogResolve;
+            dialogResolve = null;
+            previous(false);
+        }
+
+        return new Promise((resolve) => {
+            dialogResolve = resolve;
+            dialogPreviousFocus = document.activeElement;
+            dialogSettingsWasOpen = Boolean(
+                el("settingsOverlay") && el("settingsOverlay").classList.contains("open")
+            );
+
+            setText("confirmTitleText", opts.title);
+            setText("confirmMessage", opts.message);
+
+            const okBtn = el("confirmOkBtn");
+            const cancelBtn = el("confirmCancelBtn");
+            const closeBtn = el("confirmCloseBtn");
+
+            if (okBtn) {
+                okBtn.className = "pixel-btn " + (opts.danger ? "danger" : "primary");
+                okBtn.textContent = "";
+                const icon = document.createElement("i");
+                icon.className = opts.danger ? "fa-solid fa-trash-can" : "fa-solid fa-check";
+                okBtn.append(icon, document.createTextNode(" " + opts.confirmText));
+            }
+            if (cancelBtn) {
+                cancelBtn.textContent = opts.cancelText;
+                cancelBtn.style.display = opts.showCancel ? "" : "none";
+            }
+            if (closeBtn) closeBtn.style.display = opts.showCancel ? "" : "none";
+
+            overlay.classList.add("open");
+            overlay.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+
+            window.setTimeout(() => {
+                if (okBtn) okBtn.focus();
+            }, 0);
+        });
+    }
+
+    function closeDialog(result) {
+        const overlay = el("confirmOverlay");
+        if (!overlay) return;
+
+        overlay.classList.remove("open");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = dialogSettingsWasOpen ? "hidden" : "";
+
+        if (dialogPreviousFocus && document.contains(dialogPreviousFocus)) {
+            dialogPreviousFocus.focus();
+        }
+        dialogPreviousFocus = null;
+
+        const resolve = dialogResolve;
+        dialogResolve = null;
+        if (resolve) resolve(Boolean(result));
+    }
+
+    function confirmDialog(message, options) {
+        return showDialog(Object.assign({}, options || {}, {
+            message,
+            showCancel: true
+        }));
+    }
+
+    function alertDialog(message, options) {
+        return showDialog(Object.assign({}, options || {}, {
+            message,
+            showCancel: false,
+            confirmText: (options && options.confirmText) || "OK"
+        }));
+    }
+
     async function clearCache() {
         if (!window.pwa) return;
-        const ok = window.confirm(
-            "Hapus cache video yang pernah ditonton? Video tetap bisa diputar lagi (butuh internet)."
+        const ok = await confirmDialog(
+            "Hapus cache video yang pernah ditonton? Video tetap bisa diputar lagi (butuh internet).",
+            { title: "HAPUS CACHE", confirmText: "HAPUS", danger: true }
         );
         if (!ok) return;
         const btn = el("settingsClearBtn");
@@ -164,8 +260,26 @@
             });
         }
 
+        const confirmOverlay = el("confirmOverlay");
+        if (confirmOverlay) {
+            confirmOverlay.addEventListener("click", (event) => {
+                if (event.target === confirmOverlay) closeDialog(false);
+            });
+        }
+        const confirmOkBtn = el("confirmOkBtn");
+        if (confirmOkBtn) confirmOkBtn.addEventListener("click", () => closeDialog(true));
+        const confirmCancelBtn = el("confirmCancelBtn");
+        if (confirmCancelBtn) confirmCancelBtn.addEventListener("click", () => closeDialog(false));
+        const confirmCloseBtn = el("confirmCloseBtn");
+        if (confirmCloseBtn) confirmCloseBtn.addEventListener("click", () => closeDialog(false));
+
         document.addEventListener("keydown", (event) => {
-            if (event.key === "Escape") closeSettings();
+            if (event.key !== "Escape") return;
+            if (confirmOverlay && confirmOverlay.classList.contains("open")) {
+                closeDialog(false);
+                return;
+            }
+            closeSettings();
         });
 
         const clearBtn = el("settingsClearBtn");
@@ -201,6 +315,11 @@
     window.openSettings = openSettings;
     window.closeSettings = closeSettings;
     window.refreshSettings = refresh;
+
+    // Pengganti window.confirm/alert dengan modal internal.
+    window.pixelConfirm = confirmDialog;
+    window.pixelAlert = alertDialog;
+    window.pixelDialog = showDialog;
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", bind);
