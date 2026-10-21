@@ -146,6 +146,11 @@ Realisasi:
       gh workflow run hls-queue.yml -f release_tag=TSKB
       gh workflow run hls-dispatch.yml   # opsional, mempercepat proses
       python3 .github/scripts/hls_queue.py list
+  - Diuji end-to-end 2026-10-21 memakai tag Metadata-Guide:
+      enqueue (39595251869) -> dispatcher (39595270611) ->
+      pipeline "HLS: Metadata-Guide" (39595299513, sukses/plan skip) ->
+      dispatcher pembersih (39595408279) -> antrian kembali kosong.
+      Pipeline utama tidak dijalankan untuk release sungguhan saat pengujian.
 
 Rancangan awal (arsip):
   - Simpan antrian di sebuah file/issue/label (mis. 'pending_queue.json' di repo
