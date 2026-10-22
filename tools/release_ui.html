@@ -132,12 +132,17 @@
   }
   .cover-preview[data-state="ready"] .cover-placeholder { display: none; }
   .cover-preview[data-state="error"] .cover-placeholder { color: #ff9c9c; }
-  .cover-preview .cover-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .cover-preview .cover-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 6px; }
   .cover-preview .cover-title { color: var(--accent2); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
   .cover-preview .cover-url {
-    color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 11.5px; line-height: 1.45; word-break: break-all; max-height: 4.35em; overflow: hidden;
+    display: block; width: 100%; min-height: 38px; padding: 8px 10px;
+    color: var(--text); background: #161b21; border: 1px solid #343d48; border-radius: 7px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px; line-height: 1.5; word-break: break-all; overflow-wrap: anywhere;
+    white-space: pre-wrap; outline: none; cursor: text;
   }
+  .cover-preview .cover-url:focus { border-color: #5d8a66; box-shadow: 0 0 0 3px rgba(126,231,135,.12); }
+  .cover-preview .cover-url:empty::before { content: attr(data-placeholder); color: var(--muted); pointer-events: none; }
   @media (max-width: 520px) {
     .cover-preview { flex-direction: column; }
     .cover-thumb { flex-basis: 200px; width: 100%; height: 200px; }
@@ -222,17 +227,16 @@
         <div class="col-3"><label>Tipe</label><select id="episodeType"><option>Episodes</option><option>Compilation</option></select></div>
         <div class="col-5"><label>Folder tujuan default</label><input id="defaultDest" placeholder="anime/judul atau anime/judul/1"></div>
         <div class="col-12">
-          <label for="coverUrl">URL sampul (opsional, dari MAL atau body lama)</label>
-          <input id="coverUrl" placeholder="https://…" inputmode="url" autocomplete="off" spellcheck="false">
-          <div id="coverPreview" class="cover-preview hidden" aria-live="polite">
+          <label>URL sampul (opsional, dari MAL atau body lama)</label>
+          <div id="coverPreview" class="cover-preview" data-state="empty">
             <div class="cover-thumb">
-              <img id="coverPreviewImg" alt="Pratinjau sampul" referrerpolicy="no-referrer" loading="lazy" decoding="async">
+              <img id="coverPreviewImg" alt="Pratinjau sampul" referrerpolicy="no-referrer" decoding="async">
               <div id="coverPreviewPlaceholder" class="cover-placeholder">Belum ada URL</div>
             </div>
             <div class="cover-meta">
               <div class="cover-title">Pratinjau sampul</div>
-              <div id="coverPreviewStatus" class="hint">Menunggu URL…</div>
-              <div id="coverPreviewUrl" class="cover-url"></div>
+              <div id="coverPreviewUrl" class="cover-url" contenteditable="true" role="textbox" aria-label="URL sampul" spellcheck="false" data-placeholder="Tempel URL gambar di sini…"></div>
+              <div id="coverPreviewStatus" class="hint" aria-live="polite">Tempel URL gambar untuk melihat pratinjau.</div>
             </div>
           </div>
         </div>
@@ -374,9 +378,18 @@ function isHttpImageUrl(raw) {
   }
 }
 
+function getCoverUrl() {
+  return ($("coverPreviewUrl").textContent || "").replace(/[\r\n\t]+/g, "").trim();
+}
+
+function setCoverUrl(url) {
+  $("coverPreviewUrl").textContent = url || "";
+  renderCoverPreview(getCoverUrl());
+}
+
 function updateCoverPreview(immediate = false) {
   clearTimeout(coverPreviewTimer);
-  const raw = $("coverUrl").value.trim();
+  const raw = getCoverUrl();
   if (immediate) {
     renderCoverPreview(raw);
     return;
@@ -389,29 +402,24 @@ function renderCoverPreview(raw) {
   const img = $("coverPreviewImg");
   const placeholder = $("coverPreviewPlaceholder");
   const status = $("coverPreviewStatus");
-  const urlText = $("coverPreviewUrl");
   const token = ++coverPreviewToken;
 
   img.onload = null;
   img.onerror = null;
 
   if (!raw) {
-    box.classList.add("hidden");
-    box.dataset.state = "";
+    box.dataset.state = "empty";
     img.classList.remove("ready");
     img.removeAttribute("src");
     placeholder.textContent = "Belum ada URL";
-    status.textContent = "Menunggu URL…";
-    urlText.textContent = "";
+    status.textContent = "Tempel URL gambar untuk melihat pratinjau.";
     return;
   }
 
-  box.classList.remove("hidden");
   box.dataset.state = "loading";
   img.classList.remove("ready");
   img.removeAttribute("src");
   placeholder.textContent = "Memuat…";
-  urlText.textContent = raw;
 
   if (!isHttpImageUrl(raw)) {
     box.dataset.state = "error";
@@ -479,7 +487,7 @@ function readForm() {
     resolution: $("resolution").value.trim(),
     episode_count: Number($("episodeCount").value || 0),
     episode_type: $("episodeType").value,
-    cover_url: $("coverUrl").value.trim(),
+    cover_url: getCoverUrl(),
     aliases: $("aliases").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
     assets: readRows("#assetRows", "asset-path", "path"),
     mappings: readRows("#mappingRows", "map-name", "name"),
@@ -522,8 +530,7 @@ function resetForm() {
   $("episodeCount").value = "12";
   $("episodeType").value = "Episodes";
   $("defaultDest").value = "";
-  $("coverUrl").value = "";
-  updateCoverPreview(true);
+  setCoverUrl("");
   $("aliases").value = "";
   $("providerUrl").value = "";
   $("providerName").value = "";
@@ -560,8 +567,7 @@ function fillForm(parsed) {
   $("resolution").value = parsed.resolution || "480p";
   $("episodeCount").value = parsed.episodeCount || 1;
   $("episodeType").value = parsed.episodeType || "Episodes";
-  $("coverUrl").value = parsed.cover || "";
-  updateCoverPreview(true);
+  setCoverUrl(parsed.cover || "");
   $("aliases").value = (parsed.aliases || []).join("\n");
   const p = parsed.provider || {};
   $("providerUrl").value = p.url || "";
@@ -672,10 +678,7 @@ async function malSearch() {
 
 function useMalResult(r) {
   $("aliases").value = (r.titles || [r.title]).join("\n");
-  if (r.cover) {
-    $("coverUrl").value = r.cover;
-    updateCoverPreview(true);
-  }
+  if (r.cover) setCoverUrl(r.cover);
   if (!state.malId) $("title").value = "[RAW] " + r.title;
   if ((!$("episodeCount").value || Number($("episodeCount").value) < 1) && r.episodes) {
     $("episodeCount").value = r.episodes;
@@ -835,8 +838,26 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   $("btnRefresh").addEventListener("click", refreshReleases);
   $("releaseSearch").addEventListener("input", renderReleases);
-  $("coverUrl").addEventListener("input", () => updateCoverPreview());
-  $("coverUrl").addEventListener("change", () => updateCoverPreview(true));
+  const coverEditor = $("coverPreviewUrl");
+  coverEditor.addEventListener("input", () => {
+    if (!coverEditor.textContent.trim()) coverEditor.innerHTML = "";
+    updateCoverPreview();
+  });
+  coverEditor.addEventListener("blur", () => {
+    const clean = getCoverUrl();
+    if (coverEditor.textContent !== clean) coverEditor.textContent = clean;
+    renderCoverPreview(clean);
+  });
+  coverEditor.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") e.preventDefault();
+  });
+  coverEditor.addEventListener("paste", (e) => {
+    const text = ((e.clipboardData || window.clipboardData).getData("text") || "").replace(/\s+/g, "");
+    if (!text) return;
+    e.preventDefault();
+    document.execCommand("insertText", false, text);
+    updateCoverPreview();
+  });
   $("btnNew").addEventListener("click", resetForm);
   $("btnAddAsset").addEventListener("click", () => addAssetRow());
   $("btnAddMapping").addEventListener("click", () => addMappingRow());

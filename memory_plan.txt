@@ -209,8 +209,8 @@ Implementasi:
   - `release_ui.py` — server lokal stdlib (tanpa dependency Flask), bind
     127.0.0.1:8765, token CSRF per proses.
   - `tools/release_ui.html` — UI gelap, daftar release, form metadata dengan
-    pratinjau sampul langsung dari URL, aset, pemetaan path, MAL, kandidat
-    ikon provider, pratinjau dry-run, log job.
+    URL sampul yang bisa langsung diedit di kartu pratinjau gambar, aset,
+    pemetaan path, MAL, kandidat ikon provider, pratinjau dry-run, log job.
   - Jalankan: `./release_ui.sh` (launcher) atau `python3 release_ui.py`
     (opsional `--port`, `--no-browser`, `--repo OWNER/REPO`). Launcher juga
     mendukung `PORT`, `HOST`, dan `PYTHON_BIN`. Token GH dibaca dari
