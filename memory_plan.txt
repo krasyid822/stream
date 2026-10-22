@@ -210,9 +210,10 @@ Implementasi:
     127.0.0.1:8765, token CSRF per proses.
   - `tools/release_ui.html` — UI gelap, daftar release, form metadata, aset,
     pemetaan path, MAL, kandidat ikon provider, pratinjau dry-run, log job.
-  - Jalankan: `python3 release_ui.py` (opsional `--port`, `--no-browser`,
-    `--repo OWNER/REPO`). Token GH dibaca dari `gh auth` / `GH_TOKEN`;
-    `MAL_CLIENT_ID` dibaca dari env atau `.env` lokal.
+  - Jalankan: `./release_ui.sh` (launcher) atau `python3 release_ui.py`
+    (opsional `--port`, `--no-browser`, `--repo OWNER/REPO`). Launcher juga
+    mendukung `PORT`, `HOST`, dan `PYTHON_BIN`. Token GH dibaca dari
+    `gh auth` / `GH_TOKEN`; `MAL_CLIENT_ID` dibaca dari env atau `.env` lokal.
   - Release baru: `gh release create --draft` -> upload aset -> publish.
     Dengan urutan ini pipeline tidak terpicu sebelum aset lengkap.
   - Release lama: upload aset baru dulu, lalu edit judul/body. Mengganti aset
