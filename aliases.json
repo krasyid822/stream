@@ -23,7 +23,8 @@
       "29-sai Dokushin Chuuken Boukensha no Nichijou",
       "An Adventurer's Daily Grind at Age 29",
       "Rutinitas Sehari-hari Petualang di Usia 29 Tahun",
-      "29歳独身中堅冒険者の日常"
+      "29歳独身中堅冒険者の日常",
+      "v9.hidoristream.online"
     ],
     "am": [
       "Above Myriads",
@@ -204,10 +205,10 @@
       "note": "Sumber mentah dari Release YouTube_Minuscule_.1.7z"
     },
     "anime/29dcbnn": {
-      "provider": "hidoristream.my.id",
-      "url": "https://hidoristream.my.id",
-      "icon": "",
-      "note": "Sumber: Release [RAW HARDSUB] 29-sai Dokushin Chuuken Boukensha no Nichijou (Tag: 29DCBNN)"
+      "provider": "v9.hidoristream.online",
+      "url": "https://v9.hidoristream.online/",
+      "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+      "note": "Sumber mentah dari Release hidoristream.my.id_29dcbnn.7z"
     },
     "donghua/am": {
       "provider": "v9.hidoristream.online",
@@ -304,6 +305,12 @@
       "url": "https://otakudesu.io/",
       "icon": "https://otakudesu.io/otakudesu.png",
       "note": "Sumber mentah dari Release Otakudesu_Nagatoro_480p.7z"
+    },
+    "anime/29dcbnn/1": {
+      "provider": "v9.hidoristream.online",
+      "url": "https://v9.hidoristream.online/",
+      "icon": "http://v9.hidoristream.online/wp-content/uploads/2024/02/logo-picsay.png",
+      "note": "Sumber mentah dari Release hidoristream.my.id_29dcbnn.7z"
     }
   }
 }
