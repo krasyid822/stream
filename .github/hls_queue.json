@@ -1,23 +1,14 @@
 {
   "items": [
     {
-      "tag": "NAGATORO",
-      "status": "dispatched",
-      "requested_at": 1792640952.898897,
-      "updated_at": 1792650724.6031947,
-      "attempts": 1,
-      "dispatched_at": 1792650724.6031935,
-      "last_error": null
-    },
-    {
       "tag": "29DCBNN",
-      "status": "queued",
+      "status": "dispatched",
       "requested_at": 1792640971.6673958,
-      "updated_at": 1792640971.6673965,
-      "attempts": 0,
-      "dispatched_at": null,
+      "updated_at": 1792671455.1956103,
+      "attempts": 1,
+      "dispatched_at": 1792671455.1956096,
       "last_error": null
     }
   ],
-  "updated_at": 1792650724.6032434
+  "updated_at": 1792671455.1956468
 }
