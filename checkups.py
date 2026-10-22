@@ -64,6 +64,11 @@ def _load_drive_tree_via_clone():
     diunduh hanya commit + struktur pohon, BUKAN isi video. Jadi ukurannya kecil
     walau repo berisi puluhan GB. Hasilnya setara entri tree API:
     {path, type: "blob", size}.
+
+    PENTING: jangan pakai `ls-tree -l`. Pada partial clone, opsi `-l` memaksa
+    Git mengambil blob yang belum ada hanya untuk mengetahui ukurannya, sehingga
+    fallback ini bisa mengunduh seluruh repo dan menggantung. Ukuran file tidak
+    dibutuhkan untuk checkup; nilai None berarti "tidak diketahui".
     """
     tmp = tempfile.mkdtemp(prefix="drive_tree_")
     try:
@@ -76,25 +81,23 @@ def _load_drive_tree_via_clone():
             print(f"[-] Partial clone gagal: {res.stderr.strip()[:300]}")
             return None
 
-        res = subprocess.run(["git", "-C", tmp, "ls-tree", "-r", "-l", "HEAD"],
+        res = subprocess.run(["git", "-C", tmp, "ls-tree", "-r", "-z", "HEAD"],
                              capture_output=True, text=True)
         if res.returncode != 0:
             print(f"[-] git ls-tree gagal: {res.stderr.strip()[:300]}")
             return None
 
         tree = []
-        for line in res.stdout.splitlines():
-            meta, sep, path = line.partition("\t")
+        for entry in res.stdout.split("\0"):
+            if not entry:
+                continue
+            meta, sep, path = entry.partition("\t")
             if not sep:
                 continue
             parts = meta.split()
-            if len(parts) < 4 or parts[1] != "blob":
+            if len(parts) < 3 or parts[1] != "blob":
                 continue
-            try:
-                size = int(parts[3])
-            except ValueError:
-                size = 0
-            tree.append({"path": path, "type": "blob", "size": size})
+            tree.append({"path": path, "type": "blob", "size": None})
         return tree
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -116,18 +119,25 @@ def load_drive_tree():
             data = None
 
     # Fallback andal: partial clone (tanpa blob). Tidak bergantung API tree.
-    if data is None:
-        print("[!] Git Trees API gagal (HTTP 500/terpotong). "
-              "Beralih ke partial clone (hanya struktur, tanpa video)...")
+    # JANGAN memakai respons API yang truncated: folder yang ada bisa dianggap
+    # tidak ada (false negative), sehingga rilis yang sebenarnya sudah lengkap
+    # terlihat "belum diproses".
+    if data is None or data.get("truncated"):
+        if data is None:
+            print("[!] Git Trees API gagal (HTTP 500/terpotong). "
+                  "Beralih ke partial clone (hanya struktur, tanpa video)...")
+        else:
+            print("[!] Pohon stream_drive dari API terpotong. "
+                  "Beralih ke partial clone agar hasil checkup akurat...")
         tree = _load_drive_tree_via_clone()
-        if tree is None:
+        if tree is not None:
+            TREE_CACHE["all"] = tree
+            return tree
+        if data is None:
             print("[-] Tidak bisa membaca stream_drive. Pastikan gh/DRIVE_PAT tersedia.")
             sys.exit(2)
-        TREE_CACHE["all"] = tree
-        return tree
+        print("[-] Partial clone gagal; memakai pohon API yang terpotong (hasil bisa kurang lengkap).")
 
-    if data.get("truncated"):
-        print("[-] Peringatan: pohon stream_drive terpotong, hasil bisa kurang lengkap.")
     TREE_CACHE["all"] = data["tree"]
     return TREE_CACHE["all"]
 
