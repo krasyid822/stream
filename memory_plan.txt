@@ -203,25 +203,32 @@ Realisasi (2026-10-20):
 ================================================================================
 TUNDA 4 — APLIKASI UI PYTHON UNTUK MANAJEMEN RELEASE
 ================================================================================
-STATUS: [BELUM DIKERJAKAN]
-Catatan: integrasi MAL resmi sudah dipakai sebagian di TUNDA 3
-(fetch_mal_cover + cache ke folder_info), tetapi UI Python-nya belum dibuat.
-Yang diinginkan:
-  Interface (Python) untuk menyusun/memperbarui GitHub Release otomatis:
-  memperbarui RAW, mengunggah RAW baru, membuat release, dsb.
+STATUS: [SELESAI 2026-10-22]
 
-Sumber metadata:
-  - Judul RAW + gambar sampul: MyAnimeList lewat API RESMI (lihat bagian MAL).
-  - Sumber RAW: user hanya diminta URL tempat download.
-  - Ikon/logo penyedia RAW:
-      * Interface mencari kandidat (mis. favicon domain).
-      * User MEMILIH kandidat yang sesuai (bukan otomatis penuh).
-      * Kalau provider sudah tercatat di metadata proyek ini -> langsung pakai,
-        tanpa konfirmasi.
-      * Kalau tidak ada yang cocok -> user boleh menempel URL gambar manual.
+Implementasi:
+  - `release_ui.py` — server lokal stdlib (tanpa dependency Flask), bind
+    127.0.0.1:8765, token CSRF per proses.
+  - `tools/release_ui.html` — UI gelap, daftar release, form metadata, aset,
+    pemetaan path, MAL, kandidat ikon provider, pratinjau dry-run, log job.
+  - Jalankan: `python3 release_ui.py` (opsional `--port`, `--no-browser`,
+    `--repo OWNER/REPO`). Token GH dibaca dari `gh auth` / `GH_TOKEN`;
+    `MAL_CLIENT_ID` dibaca dari env atau `.env` lokal.
+  - Release baru: `gh release create --draft` -> upload aset -> publish.
+    Dengan urutan ini pipeline tidak terpicu sebelum aset lengkap.
+  - Release lama: upload aset baru dulu, lalu edit judul/body. Mengganti aset
+    dengan nama sama wajib centang `--clobber` + konfirmasi.
+  - Pratinjau menampilkan body, perintah `gh`, peringatan, dan perubahan
+    `aliases.json`. Sebelum apply, user wajib mengetik tag release.
+  - MAL memakai endpoint resmi `/v2/anime`; hasil di-cache di
+    `mal_cache.json` (gitignored), judul/cover/MAL ID disimpan ke
+    `aliases.json` saat apply (opsional commit & push).
+  - Ikon provider: kandidat dari sumber tersimpan, `<link rel=icon>`,
+    `og:image`, dan `/favicon.ico`; user memilih. Sumber yang sudah tercatat
+    otomatis dipakai saat folder tujuan diisi.
+  - TIDAK ada tombol/mekanisme unduh media.
 
 Catatan desain:
-  - Simpan token/API key di environment variable, JANGAN di dalam git.
+  - Token/API key hanya dari environment/`.env`, JANGAN di dalam git.
   - Semua aksi destruktif (menimpa asset release) harus konfirmasi + dry-run.
 
 ================================================================================

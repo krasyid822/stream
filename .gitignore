@@ -33,6 +33,8 @@ plan.json
 chunk.json
 .github/hls_queue_next.txt
 drive_skip_list.txt
+mal_cache.json
+release_ui_body_*.md
 stream_drive_target/
 hls_artifacts/
 
