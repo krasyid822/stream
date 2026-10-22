@@ -112,6 +112,36 @@
   .remote-list { margin-top: 9px; border: 1px dashed #3b4653; border-radius: 8px; padding: 9px; }
   .remote-list .item { display: flex; gap: 8px; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted var(--line); font-size: 12px; }
   .remote-list .item:last-child { border-bottom: 0; }
+  .cover-preview {
+    display: flex; gap: 14px; align-items: stretch; margin-top: 10px; padding: 10px;
+    border: 1px solid #303945; border-radius: 8px; background: rgba(11,14,18,.55);
+  }
+  .cover-preview[data-state="error"] { border-color: #6e3535; }
+  .cover-thumb {
+    position: relative; flex: 0 0 108px; width: 108px; height: 152px;
+    overflow: hidden; border-radius: 6px; border: 1px solid var(--line); background: #0b0e12;
+  }
+  .cover-thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    opacity: 0; transition: opacity .16s;
+  }
+  .cover-thumb img.ready { opacity: 1; }
+  .cover-placeholder {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding: 8px; text-align: center; color: var(--muted); font-size: 11.5px; line-height: 1.4;
+  }
+  .cover-preview[data-state="ready"] .cover-placeholder { display: none; }
+  .cover-preview[data-state="error"] .cover-placeholder { color: #ff9c9c; }
+  .cover-preview .cover-meta { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .cover-preview .cover-title { color: var(--accent2); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .cover-preview .cover-url {
+    color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px; line-height: 1.45; word-break: break-all; max-height: 4.35em; overflow: hidden;
+  }
+  @media (max-width: 520px) {
+    .cover-preview { flex-direction: column; }
+    .cover-thumb { flex-basis: 200px; width: 100%; height: 200px; }
+  }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .icon-card { border: 1px solid var(--line); border-radius: 8px; padding: 6px; background: var(--panel2); cursor: pointer; width: 94px; text-align: center; }
   .icon-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px #2f5b3a inset; }
@@ -191,7 +221,21 @@
         <div class="col-2"><label>Jumlah</label><input id="episodeCount" type="number" min="1" value="12"></div>
         <div class="col-3"><label>Tipe</label><select id="episodeType"><option>Episodes</option><option>Compilation</option></select></div>
         <div class="col-5"><label>Folder tujuan default</label><input id="defaultDest" placeholder="anime/judul atau anime/judul/1"></div>
-        <div class="col-12"><label>URL sampul (opsional, dari MAL atau body lama)</label><input id="coverUrl" placeholder="https://…"></div>
+        <div class="col-12">
+          <label for="coverUrl">URL sampul (opsional, dari MAL atau body lama)</label>
+          <input id="coverUrl" placeholder="https://…" inputmode="url" autocomplete="off" spellcheck="false">
+          <div id="coverPreview" class="cover-preview hidden" aria-live="polite">
+            <div class="cover-thumb">
+              <img id="coverPreviewImg" alt="Pratinjau sampul" referrerpolicy="no-referrer" loading="lazy" decoding="async">
+              <div id="coverPreviewPlaceholder" class="cover-placeholder">Belum ada URL</div>
+            </div>
+            <div class="cover-meta">
+              <div class="cover-title">Pratinjau sampul</div>
+              <div id="coverPreviewStatus" class="hint">Menunggu URL…</div>
+              <div id="coverPreviewUrl" class="cover-url"></div>
+            </div>
+          </div>
+        </div>
         <div class="col-12"><label>Alias / judul (satu per baris — baris pertama = judul utama)</label><textarea id="aliases" rows="5" placeholder="Judul utama&#10;Judul alternatif&#10;…"></textarea></div>
       </div>
       <div class="hint">Body release dibuat otomatis dengan format yang dibaca pipeline: cover, resolusi, jumlah episode, blok alias, path arsip, lalu URL + ikon provider.</div>
@@ -318,6 +362,82 @@ function fmtSize(n) {
   return n + " B";
 }
 
+let coverPreviewTimer = null;
+let coverPreviewToken = 0;
+
+function isHttpImageUrl(raw) {
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch (_) {
+    return false;
+  }
+}
+
+function updateCoverPreview(immediate = false) {
+  clearTimeout(coverPreviewTimer);
+  const raw = $("coverUrl").value.trim();
+  if (immediate) {
+    renderCoverPreview(raw);
+    return;
+  }
+  coverPreviewTimer = setTimeout(() => renderCoverPreview(raw), 350);
+}
+
+function renderCoverPreview(raw) {
+  const box = $("coverPreview");
+  const img = $("coverPreviewImg");
+  const placeholder = $("coverPreviewPlaceholder");
+  const status = $("coverPreviewStatus");
+  const urlText = $("coverPreviewUrl");
+  const token = ++coverPreviewToken;
+
+  img.onload = null;
+  img.onerror = null;
+
+  if (!raw) {
+    box.classList.add("hidden");
+    box.dataset.state = "";
+    img.classList.remove("ready");
+    img.removeAttribute("src");
+    placeholder.textContent = "Belum ada URL";
+    status.textContent = "Menunggu URL…";
+    urlText.textContent = "";
+    return;
+  }
+
+  box.classList.remove("hidden");
+  box.dataset.state = "loading";
+  img.classList.remove("ready");
+  img.removeAttribute("src");
+  placeholder.textContent = "Memuat…";
+  urlText.textContent = raw;
+
+  if (!isHttpImageUrl(raw)) {
+    box.dataset.state = "error";
+    placeholder.textContent = "URL belum valid";
+    status.textContent = "Gunakan URL gambar lengkap dengan http:// atau https://.";
+    return;
+  }
+
+  status.textContent = "Memuat gambar…";
+  img.onload = () => {
+    if (token !== coverPreviewToken) return;
+    box.dataset.state = "ready";
+    img.classList.add("ready");
+    status.textContent = `Sampul dimuat · ${img.naturalWidth}×${img.naturalHeight} px`;
+  };
+  img.onerror = () => {
+    if (token !== coverPreviewToken) return;
+    box.dataset.state = "error";
+    img.classList.remove("ready");
+    placeholder.textContent = "Gagal memuat gambar";
+    status.textContent = "Gambar tidak bisa dimuat. Cek URL, hotlink, atau format file.";
+  };
+  img.src = raw;
+  if (img.complete && img.naturalWidth) img.onload();
+}
+
 function addAssetRow(path = "", dest = "") {
   const tr = document.createElement("tr");
   tr.innerHTML = `
@@ -403,6 +523,7 @@ function resetForm() {
   $("episodeType").value = "Episodes";
   $("defaultDest").value = "";
   $("coverUrl").value = "";
+  updateCoverPreview(true);
   $("aliases").value = "";
   $("providerUrl").value = "";
   $("providerName").value = "";
@@ -440,6 +561,7 @@ function fillForm(parsed) {
   $("episodeCount").value = parsed.episodeCount || 1;
   $("episodeType").value = parsed.episodeType || "Episodes";
   $("coverUrl").value = parsed.cover || "";
+  updateCoverPreview(true);
   $("aliases").value = (parsed.aliases || []).join("\n");
   const p = parsed.provider || {};
   $("providerUrl").value = p.url || "";
@@ -550,7 +672,10 @@ async function malSearch() {
 
 function useMalResult(r) {
   $("aliases").value = (r.titles || [r.title]).join("\n");
-  if (r.cover) $("coverUrl").value = r.cover;
+  if (r.cover) {
+    $("coverUrl").value = r.cover;
+    updateCoverPreview(true);
+  }
   if (!state.malId) $("title").value = "[RAW] " + r.title;
   if ((!$("episodeCount").value || Number($("episodeCount").value) < 1) && r.episodes) {
     $("episodeCount").value = r.episodes;
@@ -710,6 +835,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
   $("btnRefresh").addEventListener("click", refreshReleases);
   $("releaseSearch").addEventListener("input", renderReleases);
+  $("coverUrl").addEventListener("input", () => updateCoverPreview());
+  $("coverUrl").addEventListener("change", () => updateCoverPreview(true));
   $("btnNew").addEventListener("click", resetForm);
   $("btnAddAsset").addEventListener("click", () => addAssetRow());
   $("btnAddMapping").addEventListener("click", () => addMappingRow());
