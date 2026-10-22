@@ -1,14 +1,4 @@
 {
-  "items": [
-    {
-      "tag": "29DCBNN",
-      "status": "dispatched",
-      "requested_at": 1792640971.6673958,
-      "updated_at": 1792671455.1956103,
-      "attempts": 1,
-      "dispatched_at": 1792671455.1956096,
-      "last_error": null
-    }
-  ],
-  "updated_at": 1792671455.1956468
+  "items": [],
+  "updated_at": 1792701313.952728
 }
