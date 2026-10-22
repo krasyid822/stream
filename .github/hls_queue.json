@@ -1,21 +1,12 @@
 {
   "items": [
     {
-      "tag": "TSKB",
-      "status": "dispatched",
-      "requested_at": 1792640926.7556047,
-      "updated_at": 1792640935.9096563,
-      "attempts": 1,
-      "dispatched_at": 1792640935.9096556,
-      "last_error": null
-    },
-    {
       "tag": "NAGATORO",
-      "status": "queued",
+      "status": "dispatched",
       "requested_at": 1792640952.898897,
-      "updated_at": 1792640952.8988974,
-      "attempts": 0,
-      "dispatched_at": null,
+      "updated_at": 1792650724.6031947,
+      "attempts": 1,
+      "dispatched_at": 1792650724.6031935,
       "last_error": null
     },
     {
@@ -28,5 +19,5 @@
       "last_error": null
     }
   ],
-  "updated_at": 1792640971.6674516
+  "updated_at": 1792650724.6032434
 }
