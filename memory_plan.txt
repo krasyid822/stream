@@ -201,7 +201,7 @@ Realisasi (2026-10-20):
   - aliases.json: 23 entri folder_info (3 kategori + 20 folder judul/musim).
 
 ================================================================================
-TUNDA 4 — APLIKASI UI PYTHON UNTUK MANAJEMEN RELEASE
+RELEASE UI — APLIKASI UI PYTHON UNTUK MANAJEMEN RELEASE
 ================================================================================
 STATUS: [SELESAI 2026-10-22]
 
@@ -414,7 +414,7 @@ CATATAN TODO DARI USER (dari README bagian "Catatan")
    alamat, bind eksplisit.
 3. [SELESAI] Cara set environment variable di GitHub repo — lihat bagian di bawah.
 4. [DITUNDA] Jangan boros kuota API MyAnimeList + otomatis simpan ke
-   metadata.json/aliases.json — lihat TUNDA 4 & tips di bawah (bagian dari UI MAL).
+   metadata.json/aliases.json — lihat RELEASE UI & tips di bawah (bagian dari UI MAL).
 5. [SELESAI] PWA (installable + offline + cache video ditonton + layar pengaturan
    ukuran cache) — lihat TUNDA 5.
 

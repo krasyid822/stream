@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # ============================================================
-# LAUNCHER RELEASE MANAGER (TUNDA 4)
+# LAUNCHER RELEASE MANAGER
 # ------------------------------------------------------------
 # Pakai:
 #   ./release_ui.sh                  -> http://127.0.0.1:8765/

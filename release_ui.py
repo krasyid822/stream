@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Release Manager (TUNDA 4) — UI lokal untuk menyusun / membuat / memperbarui
+Release Manager — UI lokal untuk menyusun / membuat / memperbarui
 GitHub Release RAW yang diproses pipeline HLS.
 
 Fitur utama:
@@ -11,6 +11,10 @@ Fitur utama:
   - Kategori/tipe/season dengan nilai tambahan yang disimpan di
     `release_ui.ini` lokal.
   - Tag `password` punya editor variasi khusus; Metadata-Guide read-only.
+  - Sumber unggah hanya folder RAW satu season; jumlah episode dapat dicek
+    lewat MAL, lalu folder diarsipkan 7z Ultra + enkripsi dari tag `password`.
+  - Komponen HTML/CSS/JS dipisah dan halaman memuat ulang otomatis saat file
+    komponen berubah.
   - Probe resolusi backend disiapkan untuk masa depan, tetapi UI saat ini
     TIDAK memanggil atau menampilkan tombol deteksi.
   - Cari kandidat ikon provider dari halaman sumber; user memilih sendiri.
@@ -39,6 +43,7 @@ from __future__ import annotations
 import argparse
 import configparser
 import copy
+import hashlib
 import html
 import json
 import os
@@ -63,6 +68,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 TEMPLATE_FILE = ROOT / "tools" / "release_ui.html"
+CSS_FILE = ROOT / "tools" / "release_ui.css"
+JS_FILE = ROOT / "tools" / "release_ui.js"
 ALIASES_FILE = ROOT / "aliases.json"
 MAL_CACHE_FILE = ROOT / "mal_cache.json"
 METADATA_FILE = ROOT / "metadata.json"
@@ -79,6 +86,8 @@ APPLY_LOCK = threading.Lock()
 MAL_LOCK = threading.Lock()
 MAL_LAST_REQUEST = 0.0
 MAX_ASSET_BYTES = 2 * 1024**3  # batas aman aset GitHub
+ARCHIVE_PART_BYTES = int(1.9 * 1024**3)  # volume 7z di bawah batas GitHub
+ARCHIVE_CACHE_DIR = Path(tempfile.gettempdir()) / "stream-release-ui-archives"
 MAX_BODY_BYTES = 4 * 1024**2
 RESOLUTION_PROBE_CACHE: dict[tuple, dict] = {}
 RESOLUTION_PROBE_LOCK = threading.Lock()
@@ -203,6 +212,171 @@ def resolve_local_path(raw: str) -> Path:
     if not p.is_absolute():
         p = ROOT / p
     return p.resolve()
+
+
+NATIVE_SCRIPT_RE = re.compile(
+    r"[\u0400-\u052f\u0600-\u06ff\u0900-\u097f\u0e00-\u0e7f"
+    r"\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\uf900-\ufaff]"
+)
+
+
+def is_native_title(value: str) -> bool:
+    return bool(NATIVE_SCRIPT_RE.search(value or ""))
+
+
+def order_aliases(base_title: str, aliases: list[str]) -> list[str]:
+    """Alias pertama tetap judul rilis; judul non-Latin diletakkan paling akhir."""
+    unique = list(dict.fromkeys(a for a in aliases if a))
+    if base_title:
+        unique = [base_title, *[a for a in unique if a != base_title]]
+    if not unique:
+        return []
+    first, rest = unique[0], unique[1:]
+    latin = [a for a in rest if not is_native_title(a)]
+    native = [a for a in rest if is_native_title(a)]
+    return [first, *latin, *native]
+
+
+def natural_sort_key(value: str):
+    return [int(part) if part.isdigit() else part.lower() for part in re.split(r"(\d+)", value)]
+
+
+def collect_folder_videos(folder: Path) -> list[Path]:
+    """Ambil semua video di folder (rekursif), lewati folder tersembunyi."""
+    if not folder.is_dir():
+        return []
+    videos: list[Path] = []
+    for root, dirs, files in os.walk(folder):
+        dirs[:] = [d for d in dirs if not d.startswith(".")]
+        for name in files:
+            if name.startswith("."):
+                continue
+            if Path(name).suffix.lower() in VIDEO_EXTENSIONS:
+                videos.append(Path(root) / name)
+    return sorted(videos, key=lambda p: natural_sort_key(str(p.relative_to(folder))))
+
+
+def folder_info(path: Path, resolution: str = "") -> dict:
+    videos = collect_folder_videos(path)
+    total = 0
+    for video in videos:
+        try:
+            total += video.stat().st_size
+        except OSError:
+            pass
+    return {
+        "path": str(path),
+        "name": path.name,
+        "count": len(videos),
+        "totalSize": total,
+        "videos": [str(v.relative_to(path)) for v in videos[:500]],
+        "suggestedName": archive_name_for_folder(path, resolution),
+    }
+
+
+def archive_name_for_folder(folder: Path, resolution: str = "") -> str:
+    """Nama primary arsip yang dapat diprediksi sebelum kompresi."""
+    base = re.sub(r"[^A-Za-z0-9._-]+", "_", folder.name).strip("._-") or "RAW"
+    base = re.sub(r"_{2,}", "_", base)
+    res = (resolution or "").strip().lower()
+    if re.fullmatch(r"\d{3,4}p", res) and not base.lower().endswith("_" + res):
+        base = f"{base}_{res}"
+    return f"{base}.7z.001"
+
+
+def folder_snapshot(folder: Path, videos: list[Path]) -> str:
+    digest = hashlib.sha256()
+    digest.update(str(folder.resolve()).encode("utf-8", errors="replace"))
+    for video in videos:
+        try:
+            stat = video.stat()
+        except OSError:
+            continue
+        digest.update(str(video.relative_to(folder)).encode("utf-8", errors="replace"))
+        digest.update(f"|{stat.st_size}|{stat.st_mtime_ns}\n".encode("ascii"))
+    return digest.hexdigest()
+
+
+def split_archive_file(single_path: Path, base_name: str, out_dir: Path) -> list[Path]:
+    """Pecah satu arsip menjadi volume .001, .002, ... yang kompatibel 7z."""
+    size = single_path.stat().st_size
+    if size <= 0:
+        raise RuntimeError(f"Arsip kosong: {single_path}")
+    count = max(1, (size + ARCHIVE_PART_BYTES - 1) // ARCHIVE_PART_BYTES)
+    parts = [out_dir / f"{base_name}.{idx:03d}" for idx in range(1, count + 1)]
+    if all(p.exists() for p in parts):
+        try:
+            if sum(p.stat().st_size for p in parts) == size:
+                return parts
+        except OSError:
+            pass
+    for part in out_dir.glob(f"{base_name}.[0-9][0-9][0-9]"):
+        try:
+            part.unlink()
+        except OSError:
+            pass
+    with single_path.open("rb") as source:
+        for part in parts:
+            remaining = ARCHIVE_PART_BYTES
+            with part.open("wb") as target:
+                while remaining > 0:
+                    chunk = source.read(min(8 * 1024 * 1024, remaining))
+                    if not chunk:
+                        break
+                    target.write(chunk)
+                    remaining -= len(chunk)
+    if sum(p.stat().st_size for p in parts) != size:
+        raise RuntimeError("Gagal memecah arsip dengan ukuran yang benar.")
+    return parts
+
+
+def create_folder_archive(folder: Path, primary_name: str, password: str, log=None) -> list[Path]:
+    """Arsipkan folder RAW (7z Ultra, header terenkripsi) dan pecah bila perlu."""
+    log = log or (lambda _msg: None)
+    if not shutil.which("7z"):
+        raise RuntimeError("Perintah '7z' tidak ditemukan. Pasang 7-Zip terlebih dahulu.")
+    videos = collect_folder_videos(folder)
+    if not videos:
+        raise RuntimeError(f"Folder RAW tidak memiliki file video yang didukung: {folder}")
+    single_name = primary_name[:-4] if primary_name.endswith(".001") else primary_name
+    if not single_name.lower().endswith(".7z"):
+        single_name += ".7z"
+    cache_key = hashlib.sha256(
+        (folder_snapshot(folder, videos) + "|" + single_name + "|" + (password or "")).encode("utf-8")
+    ).hexdigest()[:24]
+    cache_dir = ARCHIVE_CACHE_DIR / cache_key
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    single_path = cache_dir / single_name
+    if not single_path.exists():
+        log(f"[arsip] {folder} -> {single_name} ({len(videos)} video, Ultra, terenkripsi)")
+        building_path = cache_dir / (single_name + ".building")
+        try:
+            if building_path.exists():
+                building_path.unlink()
+        except OSError:
+            pass
+        cmd = [
+            "7z", "a", "-t7z", "-mx=9", "-m0=lzma2", "-mmt=on",
+            "-mhe=on", "-y", f"-p{password or 'kurniawan'}",
+            str(building_path), ".",
+        ]
+        proc = subprocess.run(cmd, cwd=str(folder), capture_output=True, text=True)
+        if proc.returncode != 0 or not building_path.exists():
+            try:
+                building_path.unlink()
+            except OSError:
+                pass
+            detail = (proc.stderr or proc.stdout or "").strip().splitlines()
+            raise RuntimeError(
+                "Gagal membuat arsip 7z"
+                + (": " + " | ".join(detail[-3:]) if detail else ".")
+            )
+        os.replace(building_path, single_path)
+    else:
+        log(f"[arsip] memakai cache {single_name} untuk {folder}")
+    parts = split_archive_file(single_path, single_name, cache_dir)
+    log(f"[arsip] siap {len(parts)} bagian: " + ", ".join(p.name for p in parts))
+    return parts
 
 
 def read_json_file(path: Path, default):
@@ -970,88 +1144,85 @@ def build_plan(data: dict) -> dict:
         for a in (data.get("aliases") or [])
         if str(a).strip()
     ]
-    # Alias pertama selalu judul dari input; alias lama tetap dipertahankan bila ada.
-    aliases = list(dict.fromkeys(aliases))
-    if base_title:
-        aliases = [base_title, *[a for a in aliases if a != base_title]]
+    # Alias pertama selalu judul dari input; judul native diletakkan paling akhir.
+    aliases = order_aliases(base_title, aliases)
     if not aliases:
         errors.append("Minimal satu alias/judul wajib diisi.")
 
     assets = normalize_assets(data.get("assets"))
     prepared_assets = []
     local_names = set()
+    folder_counts = []
     for idx, asset in enumerate(assets, start=1):
         raw_path = asset["path"]
         if not raw_path:
             continue
         path = resolve_local_path(raw_path)
-        if not path.is_file():
+        if not path.exists():
             errors.append(f"Aset #{idx} tidak ditemukan: {raw_path}")
             continue
-        name = path.name
-        if not safe_asset_name(name):
+        if not path.is_dir():
             errors.append(
-                f"Nama aset '{name}' mengandung spasi/slash. Pipeline menggunakan format path "
-                "tanpa spasi; ganti nama file terlebih dahulu."
+                f"Aset #{idx} bukan folder: {raw_path}. UI ini hanya menerima folder RAW satu season."
             )
+            continue
+        try:
+            info = folder_info(path, resolution)
+        except OSError as exc:
+            errors.append(f"Gagal membaca folder '{path}': {exc}")
+            continue
+        if not info["count"]:
+            errors.append(
+                f"Folder '{path.name}' tidak berisi video RAW yang didukung "
+                f"({', '.join(VIDEO_EXTENSIONS)})."
+            )
+            continue
+        name = info["suggestedName"]
+        if not safe_asset_name(name):
+            errors.append(f"Nama arsip '{name}' tidak aman untuk pipeline.")
             continue
         if name.lower() in local_names:
-            errors.append(f"Aset '{name}' dipilih lebih dari sekali.")
+            errors.append(f"Arsip '{name}' dihasilkan lebih dari sekali; ubah nama folder.")
             continue
         local_names.add(name.lower())
-        try:
-            size = path.stat().st_size
-        except OSError as exc:
-            errors.append(f"Gagal membaca ukuran '{name}': {exc}")
-            continue
-        if size > MAX_ASSET_BYTES:
-            errors.append(
-                f"Aset '{name}' berukuran {size / (1024**3):.2f} GB; batas aman aset GitHub "
-                "adalah 2 GB per file."
+        folder_counts.append(info["count"])
+        if info["totalSize"] > ARCHIVE_PART_BYTES:
+            warnings.append(
+                f"Folder '{path.name}' berukuran {info['totalSize'] / (1024**3):.2f} GB; "
+                "arsip akan dipecah otomatis agar tiap aset di bawah 2 GB."
             )
-        if size == 0:
-            errors.append(f"Aset '{name}' berukuran 0 byte.")
-        prepared_assets.append({"path": str(path), "name": name, "size": size, "dest": asset["dest"]})
+        warnings.append(
+            f"Folder '{path.name}': {info['count']} video RAW akan diarsipkan ke "
+            f"'{name}' (7z Ultra + enkripsi dari tag password)."
+        )
+        prepared_assets.append({
+            "path": "",
+            "folder": str(path),
+            "name": name,
+            "size": 0,
+            "dest": asset["dest"],
+            "videoCount": info["count"],
+            "rawSize": info["totalSize"],
+        })
 
-    # Kelompokkan aset lokal (split archive) dan tentukan folder tujuan tiap grup.
+    if folder_counts and episode_count not in folder_counts:
+        warnings.append(
+            "Jumlah episode di form (" + str(episode_count) + ") berbeda dengan jumlah video "
+            "di folder (" + ", ".join(str(n) for n in sorted(set(folder_counts))) + ")."
+        )
+
+    # Satu folder = satu arsip primary; bagian lain dibuat otomatis saat job.
     groups = []
-    if prepared_assets:
-        by_name = {a["name"]: a for a in prepared_assets}
-        for group in group_release_archives(list(by_name)):
-            group_assets = [by_name[n] for n in group["all_parts"] if n in by_name]
-            if not group_assets:
-                continue
-            dests = {a["dest"] for a in group_assets if a["dest"]}
-            if len(dests) > 1:
-                errors.append(
-                    f"Bagian arsip '{group['base_name']}' punya folder tujuan berbeda: "
-                    + ", ".join(sorted(dests))
-                )
-                dest = sorted(dests)[0]
-            else:
-                dest = next(iter(dests), "")
-            groups.append({
-                "base": group["base_name"],
-                "primary": group["primary_file"],
-                "parts": group["all_parts"],
-                "assets": group_assets,
-                "dest": dest,
-            })
-        # Deteksi nomor bagian yang bolong untuk arsip split .001/.002/...
-        for g in groups:
-            if len(g["parts"]) <= 1:
-                continue
-            indices = []
-            for n in g["parts"]:
-                _, idx, _, is_split = get_split_archive_info(n)
-                if is_split and idx < 9999:
-                    indices.append(idx)
-            if indices and len(indices) == len(g["parts"]):
-                expected = list(range(min(indices), max(indices) + 1))
-                if sorted(indices) != expected:
-                    warnings.append(
-                        f"Bagian arsip '{g['base']}' tampaknya tidak lengkap: {sorted(indices)}"
-                    )
+    for asset in prepared_assets:
+        primary = asset["name"]
+        base = primary[:-4] if primary.endswith(".001") else primary
+        groups.append({
+            "base": base,
+            "primary": primary,
+            "parts": [primary],
+            "assets": [asset],
+            "dest": asset["dest"],
+        })
 
     mappings = normalize_mappings(data.get("mappings"))
     mapping_by_name = {m["name"].lower(): m for m in mappings if m["name"]}
@@ -1249,7 +1420,19 @@ def build_plan(data: dict) -> dict:
             + " --notes-file <body.md> --draft"
         )
         for a in prepared_assets:
-            commands.append("gh release upload " + tag + " " + shlex.quote(a["path"]))
+            if a.get("folder"):
+                commands.append(
+                    "# 7z Ultra + enkripsi: "
+                    + shlex.quote(a["folder"])
+                    + " -> "
+                    + a["name"]
+                )
+                commands.append(
+                    "gh release upload " + tag + " "
+                    + shlex.quote("<arsip>/" + a["name"])
+                )
+            else:
+                commands.append("gh release upload " + tag + " " + shlex.quote(a["path"]))
         if not data.get("draft_only"):
             commands.append("gh release edit " + tag + " --draft=false")
     else:
@@ -1261,11 +1444,22 @@ def build_plan(data: dict) -> dict:
             + " --notes-file <body.md>"
         )
         for a in prepared_assets:
+            if a.get("folder"):
+                commands.append(
+                    "# 7z Ultra + enkripsi: "
+                    + shlex.quote(a["folder"])
+                    + " -> "
+                    + a["name"]
+                    + " (+ bagian lanjutan bila perlu)"
+                )
+                target = "<arsip>/" + a["name"]
+            else:
+                target = a["path"]
             commands.append(
                 "gh release upload "
                 + tag
                 + " "
-                + shlex.quote(a["path"])
+                + shlex.quote(target)
                 + (" --clobber" if clobber else "")
             )
         if data.get("publish_draft") and existing and existing.get("isDraft"):
@@ -1440,6 +1634,73 @@ def mal_search(query: str) -> list[dict]:
     cache.setdefault("queries", {})[key] = {"fetched_at": now_iso(), "results": results}
     save_mal_cache(cache)
     return results
+
+
+def mal_season_score(result: dict, season: str) -> int:
+    try:
+        number = int(str(season).strip())
+    except (TypeError, ValueError):
+        return 0
+    title = str(result.get("title") or "")
+    score = 0
+    if re.search(rf"\b(?:part|season)\s*0*{number}\b", title, re.IGNORECASE):
+        score += 10
+    if re.search(rf"\b{number}(?:st|nd|rd|th)\s+season\b", title, re.IGNORECASE):
+        score += 8
+    if number == 1:
+        if re.search(r"\b(?:part|season)\s*[2-9]\b", title, re.IGNORECASE):
+            score -= 5
+    else:
+        for other in (2, 3, 4, 5, 6, 7, 8, 9):
+            if other == number:
+                continue
+            if re.search(rf"\b(?:part|season)\s*0*{other}\b", title, re.IGNORECASE):
+                score -= 3
+    return score
+
+
+def mal_season_search(title: str, season: str = "", aliases=None) -> list[dict]:
+    """Cari anime MAL memakai judul + alias; hasil season terpilih didahulukan."""
+    title = (title or "").strip()
+    season = str(season or "").strip()
+    if not title:
+        return []
+    candidates = [title]
+    for alias in aliases or []:
+        value = str(alias or "").strip()
+        if value and value not in candidates:
+            candidates.append(value)
+    merged: list[dict] = []
+    seen: set = set()
+    for query in candidates[:6]:
+        results = mal_search(query)
+        if not results:
+            continue
+        for result in results:
+            key = result.get("id") or result.get("title")
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(result)
+        if merged:
+            break
+    if not merged:
+        # Fallback terakhir: buang diakritik dan coba beberapa kata pertama.
+        import unicodedata
+        simplified = unicodedata.normalize("NFKD", title)
+        simplified = "".join(ch for ch in simplified if not unicodedata.combining(ch))
+        words = re.sub(r"[^A-Za-z0-9 ]+", " ", simplified).split()
+        for count in (4, 3, 2):
+            if len(words) < count:
+                continue
+            results = mal_search(" ".join(words[:count]))
+            if results:
+                merged = results
+                break
+    merged = merged[:8]
+    if season:
+        merged = sorted(merged, key=lambda item: -mal_season_score(item, season))
+    return merged
 
 
 # ---------------------------------------------------------------------------
@@ -1625,6 +1886,59 @@ def commit_metadata(job: dict) -> None:
     add_job_log(job, "[metadata] aliases.json tersimpan di remote.")
 
 
+def archive_password_for_job(job: dict) -> str:
+    """Ambil kunci pertama dari release `password`, lalu fallback aman."""
+    try:
+        release = get_release(SPECIAL_PASSWORD_TAG)
+        variants = parse_password_variants((release or {}).get("body") or "")
+        if variants:
+            add_job_log(job, "[arsip] memakai kunci pertama dari tag password.")
+            return variants[0]
+        add_job_log(job, "[arsip] tag password tidak punya variasi; memakai fallback.")
+    except Exception as exc:
+        add_job_log(job, f"[arsip] gagal membaca tag password: {exc}")
+    env_key = (os.environ.get("RAW_ARCHIVE_PASSWORD") or "").strip()
+    if env_key:
+        add_job_log(job, "[arsip] memakai RAW_ARCHIVE_PASSWORD dari environment.")
+        return env_key
+    return "kurniawan"
+
+
+def materialize_plan_assets(job: dict, plan: dict) -> list[dict]:
+    """Ubah folder RAW pada rencana menjadi file arsip yang siap diunggah."""
+    assets = plan.get("assets") or []
+    if not any(a.get("folder") for a in assets):
+        return assets
+    password = archive_password_for_job(job)
+    materialized: list[dict] = []
+    for asset in assets:
+        folder = asset.get("folder")
+        if not folder:
+            materialized.append(asset)
+            continue
+        folder_path = Path(folder)
+        parts = create_folder_archive(
+            folder_path,
+            str(asset.get("name") or ""),
+            password,
+            log=lambda msg: add_job_log(job, msg),
+        )
+        for part in parts:
+            size = part.stat().st_size
+            if size > MAX_ASSET_BYTES:
+                raise RuntimeError(
+                    f"Bagian arsip '{part.name}' berukuran {size / (1024**3):.2f} GB; "
+                    "melebihi batas aman aset GitHub."
+                )
+            materialized.append({
+                "path": str(part),
+                "name": part.name,
+                "size": size,
+                "dest": asset.get("dest") or "",
+            })
+    return materialized
+
+
 def run_job(job_id: str, plan: dict, data: dict) -> None:
     job = JOBS[job_id]
     body_path = None
@@ -1643,6 +1957,10 @@ def run_job(job_id: str, plan: dict, data: dict) -> None:
             job["status"] = "success"
             add_job_log(job, "[✓] Variasi password diperbarui.")
             return
+
+        if any(a.get("folder") for a in (plan.get("assets") or [])):
+            add_job_log(job, "[arsip] menyiapkan arsip folder RAW sebelum menyentuh release.")
+            plan["assets"] = materialize_plan_assets(job, plan)
 
         if data.get("save_metadata"):
             before = read_json_file(ALIASES_FILE, {"aliases": {}, "folder_info": {}, "sources": {}})
@@ -1798,6 +2116,17 @@ def start_job(plan: dict, data: dict) -> str:
 # HTTP
 # ---------------------------------------------------------------------------
 
+def ui_version() -> str:
+    digest = hashlib.sha256()
+    digest.update(UI_TOKEN.encode("ascii"))
+    for path in (TEMPLATE_FILE, CSS_FILE, JS_FILE):
+        try:
+            digest.update(path.read_bytes())
+        except OSError:
+            digest.update(f"missing:{path}".encode("utf-8"))
+    return digest.hexdigest()[:16]
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "StreamReleaseUI/1.0"
 
@@ -1814,9 +2143,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(payload)
 
     def _send_html(self, text: str):
-        payload = text.encode("utf-8")
+        self._send_bytes(text.encode("utf-8"), "text/html; charset=utf-8")
+
+    def _send_bytes(self, payload: bytes, content_type: str):
         self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
@@ -1849,13 +2180,23 @@ class Handler(BaseHTTPRequestHandler):
             if parsed.path == "/":
                 template = TEMPLATE_FILE.read_text(encoding="utf-8")
                 repo = resolve_gh_repo() or "(repo tidak terdeteksi)"
+                version = ui_version()
                 page = (
                     template
                     .replace("__UI_TOKEN__", UI_TOKEN)
                     .replace("__REPO__", html.escape(repo))
-                    .replace("__MAL_READY__", "true" if os.environ.get("MAL_CLIENT_ID") else "false")
+                    .replace("__UI_VERSION__", version)
                 )
                 self._send_html(page)
+                return
+            if parsed.path == "/release_ui.css":
+                self._send_bytes(CSS_FILE.read_bytes(), "text/css; charset=utf-8")
+                return
+            if parsed.path == "/release_ui.js":
+                self._send_bytes(JS_FILE.read_bytes(), "text/javascript; charset=utf-8")
+                return
+            if parsed.path == "/api/ui-version":
+                self._send_json({"version": ui_version()})
                 return
             if parsed.path == "/api/state":
                 self._send_json({
@@ -1878,6 +2219,19 @@ class Handler(BaseHTTPRequestHandler):
                 sources = data_aliases.get("sources") or {}
                 key = find_source_key(sources, dest)
                 self._send_json({"source": sources.get(key) if key else None})
+                return
+            if parsed.path == "/api/folder-info":
+                query = urllib.parse.parse_qs(parsed.query)
+                raw_path = (query.get("path") or [""])[0]
+                resolution = (query.get("resolution") or [""])[0]
+                if not raw_path.strip():
+                    self._send_json({"error": "Path folder wajib diisi."}, 400)
+                    return
+                folder = resolve_local_path(raw_path)
+                if not folder.is_dir():
+                    self._send_json({"error": "Path bukan folder yang bisa dibaca."}, 400)
+                    return
+                self._send_json({"folder": folder_info(folder, resolution)})
                 return
             if parsed.path == "/api/release":
                 tag = (urllib.parse.parse_qs(parsed.query).get("tag") or [""])[0]
@@ -1948,6 +2302,14 @@ class Handler(BaseHTTPRequestHandler):
                 query = str(data.get("q") or "").strip()
                 self._send_json({"results": mal_search(query)})
                 return
+            if parsed.path == "/api/mal-season":
+                title = str(data.get("q") or "").strip()
+                season = str(data.get("season") or "").strip()
+                aliases = data.get("aliases")
+                if not isinstance(aliases, list):
+                    aliases = []
+                self._send_json({"results": mal_season_search(title, season, aliases)})
+                return
             if parsed.path == "/api/provider":
                 self._send_json(provider_candidates(
                     str(data.get("url") or ""),
@@ -1966,7 +2328,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Release Manager UI lokal (TUNDA 4)")
+    parser = argparse.ArgumentParser(description="Release Manager UI lokal")
     parser.add_argument("--host", default="127.0.0.1", help="Alamat bind (default 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8765, help="Port (default 8765)")
     parser.add_argument("--no-browser", action="store_true", help="Jangan buka browser otomatis")
@@ -1980,8 +2342,10 @@ def main() -> int:
     else:
         resolve_gh_repo()
 
-    if not TEMPLATE_FILE.exists():
-        print(f"[-] Template UI tidak ditemukan: {TEMPLATE_FILE}", file=sys.stderr)
+    missing = [p for p in (TEMPLATE_FILE, CSS_FILE, JS_FILE) if not p.exists()]
+    if missing:
+        for path in missing:
+            print(f"[-] Komponen UI tidak ditemukan: {path}", file=sys.stderr)
         return 1
     if args.host not in {"127.0.0.1", "localhost", "::1"}:
         print("[!] Peringatan: UI ini hanya untuk lokal. Jangan buka ke jaringan publik.", file=sys.stderr)
@@ -1989,7 +2353,7 @@ def main() -> int:
     httpd = ThreadingHTTPServer((args.host, args.port), Handler)
     url = f"http://{args.host}:{args.port}/"
     print("=" * 64)
-    print("STREAM RELEASE MANAGER (TUNDA 4)")
+    print("STREAM RELEASE MANAGER")
     print("=" * 64)
     print(f"Repo       : {GH_REPO or '(tidak terdeteksi)'}")
     print(f"MAL        : {'siap' if os.environ.get('MAL_CLIENT_ID') else 'MAL_CLIENT_ID belum diset'}")
