@@ -2,13 +2,13 @@
   "items": [
     {
       "tag": "MINUSCULE",
-      "status": "queued",
+      "status": "dispatched",
       "requested_at": 1792640896.6064117,
-      "updated_at": 1792640896.6064126,
-      "attempts": 0,
-      "dispatched_at": null,
+      "updated_at": 1792640908.6299074,
+      "attempts": 1,
+      "dispatched_at": 1792640908.6299067,
       "last_error": null
     }
   ],
-  "updated_at": 1792640896.606464
+  "updated_at": 1792640908.6299553
 }
