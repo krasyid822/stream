@@ -1,23 +1,14 @@
 {
   "items": [
     {
-      "tag": "MINUSCULE",
-      "status": "dispatched",
-      "requested_at": 1792640896.6064117,
-      "updated_at": 1792640908.6299074,
-      "attempts": 1,
-      "dispatched_at": 1792640908.6299067,
-      "last_error": null
-    },
-    {
       "tag": "TSKB",
-      "status": "queued",
+      "status": "dispatched",
       "requested_at": 1792640926.7556047,
-      "updated_at": 1792640926.7556052,
-      "attempts": 0,
-      "dispatched_at": null,
+      "updated_at": 1792640935.9096563,
+      "attempts": 1,
+      "dispatched_at": 1792640935.9096556,
       "last_error": null
     }
   ],
-  "updated_at": 1792640926.7556474
+  "updated_at": 1792640935.9096935
 }
