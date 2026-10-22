@@ -211,6 +211,10 @@ Implementasi:
   - `tools/release_ui.html` — UI gelap, daftar release, form metadata dengan
     URL sampul yang bisa langsung diedit di kartu pratinjau gambar, aset,
     pemetaan path, MAL, kandidat ikon provider, pratinjau dry-run, log job.
+  - Resolusi dideteksi otomatis dengan mem-probe video pertama dari aset lokal
+    (video langsung atau di dalam .7z/.zip/.rar/.tar). Hasil otomatis mengisi
+    field resolusi; tombol `Deteksi` tersedia untuk memaksa ulang. Arsip
+    `.zpaq` belum didukung untuk probe cepat.
   - Jalankan: `./release_ui.sh` (launcher) atau `python3 release_ui.py`
     (opsional `--port`, `--no-browser`, `--repo OWNER/REPO`). Launcher juga
     mendukung `PORT`, `HOST`, dan `PYTHON_BIN`. Token GH dibaca dari

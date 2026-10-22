@@ -11,6 +11,7 @@
 #
 # Token GitHub dibaca dari `gh auth` / GH_TOKEN.
 # MAL_CLIENT_ID dibaca dari environment atau .env lokal.
+# RAW_ARCHIVE_PASSWORD opsional untuk arsip yang dipakai deteksi resolusi.
 # ============================================================
 
 set -e

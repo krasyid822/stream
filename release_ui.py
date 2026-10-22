@@ -8,6 +8,7 @@ Fitur utama:
   - Susun body release sesuai format pipeline (cover, resolusi, episode,
     aliases, path arsip, sumber/icon provider).
   - Cari judul/alias/cover lewat API RESMI MyAnimeList (opsional).
+  - Deteksi resolusi otomatis dengan mem-probe video pertama dari aset lokal.
   - Cari kandidat ikon provider dari halaman sumber; user memilih sendiri.
   - Pratinjau (dry-run) sebelum membuat/mengubah release.
   - Buat release baru lewat draft -> upload aset -> publish, supaya pipeline
@@ -38,6 +39,7 @@ import os
 import re
 import secrets
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -67,10 +69,14 @@ MAL_LOCK = threading.Lock()
 MAL_LAST_REQUEST = 0.0
 MAX_ASSET_BYTES = 2 * 1024**3  # batas aman aset GitHub
 MAX_BODY_BYTES = 4 * 1024**2
+RESOLUTION_PROBE_CACHE: dict[tuple, dict] = {}
+RESOLUTION_PROBE_LOCK = threading.Lock()
 
 # Fungsi parsing/grouping dari pipeline dipakai ulang supaya format body dan
 # pengelompokan split archive tidak berbeda dengan proses encode.
 from process_release_archive import (  # noqa: E402
+    ARCHIVE_EXTENSIONS,
+    VIDEO_EXTENSIONS,
     declared_episode_count,
     extract_release_cover,
     get_split_archive_info,
@@ -85,7 +91,7 @@ from process_release_archive import (  # noqa: E402
 # ---------------------------------------------------------------------------
 
 def load_dotenv() -> None:
-    """Baca MAL_CLIENT_ID / GH_TOKEN dari .env lokal tanpa menimpa env asli."""
+    """Baca kredensial/opsi dari .env lokal tanpa menimpa environment asli."""
     path = ROOT / ".env"
     if not path.exists():
         return
@@ -96,7 +102,7 @@ def load_dotenv() -> None:
                 continue
             key, value = line.split("=", 1)
             key = key.strip()
-            if key not in {"MAL_CLIENT_ID", "GH_TOKEN", "GITHUB_TOKEN"}:
+            if key not in {"MAL_CLIENT_ID", "GH_TOKEN", "GITHUB_TOKEN", "RAW_ARCHIVE_PASSWORD"}:
                 continue
             if key in os.environ:
                 continue
@@ -375,6 +381,317 @@ def normalize_assets(raw) -> list[dict]:
         if path or dest:
             out.append({"path": path, "dest": dest})
     return out
+
+
+# ---------------------------------------------------------------------------
+# Deteksi resolusi dari video lokal (termasuk di dalam arsip RAW)
+# ---------------------------------------------------------------------------
+
+RESOLUTION_STANDARDS = (
+    (3840, 2160, "2160p"),
+    (2560, 1440, "1440p"),
+    (1920, 1080, "1080p"),
+    (1280, 720, "720p"),
+    (854, 480, "480p"),
+    (640, 360, "360p"),
+)
+
+
+def _is_video_name(name: str) -> bool:
+    return name.lower().endswith(VIDEO_EXTENSIONS)
+
+
+def _is_archive_name(name: str) -> bool:
+    lower = name.lower()
+    if any(lower.endswith(ext) for ext in ARCHIVE_EXTENSIONS):
+        return True
+    return bool(get_split_archive_info(name)[3])
+
+
+def _probe_passwords() -> list[str]:
+    """Password arsip yang lazim dipakai pipeline; tidak pernah dicetak ke log."""
+    values = [
+        os.environ.get("RAW_ARCHIVE_PASSWORD", "").strip(),
+        "kurniawan",
+        "",
+    ]
+    return list(dict.fromkeys(values))
+
+
+def _probe_error_line(proc: subprocess.CompletedProcess, fallback: str) -> str:
+    text = (proc.stderr or proc.stdout or "").strip()
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return lines[-1] if lines else fallback
+
+
+def _archive_error_text(errors: list[str], fallback: str) -> str:
+    text = "; ".join(dict.fromkeys(errors))
+    lower = text.lower()
+    if "headers error" in lower or "wrong password" in lower:
+        return "arsip terenkripsi dan password tidak cocok; set RAW_ARCHIVE_PASSWORD."
+    return text or fallback
+
+
+def _probe_media_dimensions(path: Path) -> dict:
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        raise RuntimeError("ffprobe tidak ditemukan. Install ffmpeg/ffprobe terlebih dahulu.")
+    try:
+        proc = subprocess.run(
+            [
+                ffprobe, "-v", "error", "-select_streams", "v:0",
+                "-show_streams", "-of", "json", str(path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=45,
+            stdin=subprocess.DEVNULL,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("ffprobe melewati batas waktu 45 detik.") from exc
+    if proc.returncode != 0:
+        raise RuntimeError(_probe_error_line(proc, "ffprobe gagal membaca video."))
+    try:
+        data = json.loads(proc.stdout or "{}")
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Output ffprobe bukan JSON valid.") from exc
+    streams = data.get("streams") or []
+    if not streams:
+        raise RuntimeError("Video tidak memiliki stream video yang bisa dibaca.")
+    stream = streams[0]
+    try:
+        width = int(stream.get("width") or 0)
+        height = int(stream.get("height") or 0)
+    except (TypeError, ValueError):
+        width = height = 0
+    if width <= 0 or height <= 0:
+        raise RuntimeError("ffprobe tidak menemukan lebar/tinggi video.")
+
+    # Video ponsel kadang menyimpan rotasi 90/270 derajat.
+    rotation = (stream.get("tags") or {}).get("rotate")
+    if rotation in (None, ""):
+        for side_data in stream.get("side_data_list") or []:
+            if isinstance(side_data, dict) and side_data.get("rotation") is not None:
+                rotation = side_data.get("rotation")
+                break
+    try:
+        if abs(int(float(rotation))) % 180 == 90:
+            width, height = height, width
+    except (TypeError, ValueError):
+        pass
+
+    return {
+        "width": width,
+        "height": height,
+        "codec": str(stream.get("codec_name") or ""),
+    }
+
+
+def _archive_video_entries(archive: Path, passwords: list[str]) -> list[tuple[str, int]]:
+    seven = shutil.which("7z")
+    if not seven:
+        raise RuntimeError("7z tidak ditemukan. Install p7zip untuk membaca arsip RAW.")
+    errors: list[str] = []
+    for password in passwords:
+        cmd = [seven, "l", "-slt", "-ba", "-y"]
+        if password:
+            cmd.append("-p" + password)
+        cmd.append(str(archive))
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=75,
+                stdin=subprocess.DEVNULL,
+            )
+        except subprocess.TimeoutExpired:
+            errors.append("daftar arsip melewati batas waktu 75 detik")
+            continue
+        if proc.returncode != 0:
+            errors.append(_probe_error_line(proc, "7z gagal membaca arsip"))
+            continue
+
+        entries: list[tuple[str, int]] = []
+        current: dict = {}
+
+        def flush() -> None:
+            raw_path = str(current.get("path") or "")
+            if not raw_path or not _is_video_name(raw_path):
+                return
+            try:
+                size = int(current.get("size") or 0)
+            except (TypeError, ValueError):
+                size = 0
+            entries.append((raw_path, size))
+
+        for line in proc.stdout.splitlines():
+            if not line.strip():
+                flush()
+                current = {}
+                continue
+            key, sep, value = line.partition(" = ")
+            if not sep:
+                continue
+            if key == "Path":
+                current["path"] = value
+            elif key == "Size":
+                current["size"] = value
+        flush()
+
+        if entries:
+            return entries
+        errors.append(f"tidak ada file video di dalam {archive.name}")
+
+    raise RuntimeError(_archive_error_text(errors, "arsip tidak bisa dibaca"))
+
+
+def _extract_archive_video(
+    archive: Path,
+    entry: str,
+    output_dir: Path,
+    passwords: list[str],
+) -> Path:
+    seven = shutil.which("7z")
+    if not seven:
+        raise RuntimeError("7z tidak ditemukan. Install p7zip untuk membaca arsip RAW.")
+    target = output_dir / Path(entry).name
+    errors: list[str] = []
+    for password in passwords:
+        try:
+            target.unlink()
+        except FileNotFoundError:
+            pass
+        cmd = [seven, "e", "-y", f"-o{output_dir}"]
+        if password:
+            cmd.append("-p" + password)
+        cmd.extend([str(archive), entry])
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,
+                stdin=subprocess.DEVNULL,
+            )
+        except subprocess.TimeoutExpired:
+            errors.append("ekstraksi video melewati batas waktu 300 detik")
+            continue
+        if proc.returncode == 0 and target.is_file() and target.stat().st_size > 0:
+            return target
+        errors.append(_probe_error_line(proc, "7z gagal mengekstrak video"))
+    raise RuntimeError(_archive_error_text(errors, "gagal mengekstrak video dari arsip"))
+
+
+def _resolution_label(width: int, height: int) -> str:
+    def score(item: tuple[int, int, str]) -> float:
+        std_width, std_height, _ = item
+        return abs(width - std_width) / std_width + abs(height - std_height) / std_height
+
+    return min(RESOLUTION_STANDARDS, key=score)[2]
+
+
+def _probe_local_asset(path: Path) -> dict:
+    try:
+        stat = path.stat()
+    except OSError as exc:
+        raise RuntimeError(f"tidak bisa membaca file: {exc}") from exc
+    cache_key = (str(path), stat.st_mtime_ns, stat.st_size)
+    with RESOLUTION_PROBE_LOCK:
+        cached = RESOLUTION_PROBE_CACHE.get(cache_key)
+    if cached:
+        return {**cached, "cached": True}
+
+    if _is_video_name(path.name):
+        info = _probe_media_dimensions(path)
+        result = {
+            "width": info["width"],
+            "height": info["height"],
+            "codec": info["codec"],
+            "source": path.name,
+            "entry": "",
+            "cached": False,
+        }
+    elif _is_archive_name(path.name):
+        lower = path.name.lower()
+        if lower.endswith(".zpaq"):
+            raise RuntimeError("arsip .zpaq belum didukung untuk deteksi cepat; gunakan video langsung.")
+        passwords = _probe_passwords()
+        entries = _archive_video_entries(path, passwords)
+        entry = entries[0][0]
+        with tempfile.TemporaryDirectory(prefix="release_ui_probe_") as tmp:
+            extracted = _extract_archive_video(path, entry, Path(tmp), passwords)
+            info = _probe_media_dimensions(extracted)
+        result = {
+            "width": info["width"],
+            "height": info["height"],
+            "codec": info["codec"],
+            "source": path.name,
+            "entry": entry,
+            "cached": False,
+        }
+    else:
+        raise RuntimeError("bukan file video atau arsip yang didukung")
+
+    with RESOLUTION_PROBE_LOCK:
+        RESOLUTION_PROBE_CACHE[cache_key] = dict(result)
+    return result
+
+
+def probe_resolution(raw_assets) -> dict:
+    """Cari video pertama yang bisa dibaca, lalu petakan dimensinya ke label resolusi."""
+    assets = normalize_assets(raw_assets)
+    if not assets:
+        raise RuntimeError("Isi minimal satu path aset lokal untuk deteksi resolusi.")
+
+    by_name: dict[str, Path] = {}
+    order: dict[str, int] = {}
+    errors: list[str] = []
+    for idx, asset in enumerate(assets):
+        raw_path = asset["path"]
+        if not raw_path:
+            continue
+        path = resolve_local_path(raw_path)
+        if not path.is_file():
+            errors.append(f"{path.name or raw_path}: file tidak ditemukan")
+            continue
+        key = path.name.lower()
+        if key in by_name:
+            continue
+        by_name[key] = path
+        order[key] = idx
+
+    if not by_name:
+        detail = "; ".join(errors[:3])
+        raise RuntimeError("Tidak ada aset lokal yang bisa diperiksa." + (f" {detail}" if detail else ""))
+
+    candidates: list[Path] = []
+    for group in group_release_archives(list(by_name)):
+        path = by_name.get(group["primary_file"].lower())
+        if path and (_is_video_name(path.name) or _is_archive_name(path.name)):
+            candidates.append(path)
+    candidates.sort(key=lambda p: order.get(p.name.lower(), 9999))
+
+    if not candidates:
+        raise RuntimeError("Tidak ada file video/arsip yang bisa diperiksa dari aset lokal.")
+
+    errors = []
+    for path in candidates:
+        try:
+            info = _probe_local_asset(path)
+            return {
+                "ok": True,
+                "resolution": _resolution_label(info["width"], info["height"]),
+                "width": info["width"],
+                "height": info["height"],
+                "codec": info["codec"],
+                "source": info["source"],
+                "entry": info["entry"],
+                "cached": info["cached"],
+            }
+        except Exception as exc:
+            errors.append(f"{path.name}: {exc}")
+    raise RuntimeError("Gagal mendeteksi resolusi. " + " | ".join(errors[:3]))
 
 
 def build_plan(data: dict) -> dict:
@@ -1374,6 +1691,9 @@ class Handler(BaseHTTPRequestHandler):
                     str(data.get("url") or ""),
                     str(data.get("dest") or ""),
                 ))
+                return
+            if parsed.path == "/api/probe-resolution":
+                self._send_json(probe_resolution(data.get("assets")))
                 return
             self._send_json({"error": "Tidak ditemukan."}, 404)
         except RuntimeError as exc:

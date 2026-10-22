@@ -87,6 +87,9 @@
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .row > * { flex: 0 0 auto; }
   .row .grow { flex: 1 1 220px; }
+  .resolution-row { display: flex; gap: 6px; align-items: center; }
+  .resolution-row input { min-width: 0; flex: 1 1 auto; }
+  .resolution-row button { flex: 0 0 auto; padding: 8px 9px; white-space: nowrap; }
   .hint { color: var(--muted); font-size: 12px; line-height: 1.55; margin-top: 7px; }
   .sidebar-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .sidebar-head h2 { margin: 0; flex: 1; font-size: 13px; font-weight: 700; letter-spacing: .09em; color: var(--accent2); }
@@ -221,11 +224,18 @@
       <div class="grid">
         <div class="col-3"><label>Tag release</label><input id="tag" placeholder="TSKB" autocomplete="off"></div>
         <div class="col-9"><label>Judul release (pakai [RAW] / [RAW HARDSUB])</label><input id="title" placeholder="[RAW HARDSUB] Judul lengkap…"></div>
-        <div class="col-2"><label>Resolusi</label><input id="resolution" list="resList" value="480p"></div>
-        <datalist id="resList"><option>480p</option><option>720p</option><option>1080p</option><option>2160p</option></datalist>
+        <div class="col-3">
+          <label for="resolution">Resolusi</label>
+          <div class="resolution-row">
+            <input id="resolution" list="resList" value="480p" autocomplete="off">
+            <button id="btnDetectResolution" class="icon-btn" type="button" title="Deteksi resolusi dari video di aset lokal">Deteksi</button>
+          </div>
+          <div id="resolutionHint" class="hint">Otomatis saat path aset diisi.</div>
+        </div>
+        <datalist id="resList"><option>360p</option><option>480p</option><option>720p</option><option>1080p</option><option>1440p</option><option>2160p</option></datalist>
         <div class="col-2"><label>Jumlah</label><input id="episodeCount" type="number" min="1" value="12"></div>
         <div class="col-3"><label>Tipe</label><select id="episodeType"><option>Episodes</option><option>Compilation</option></select></div>
-        <div class="col-5"><label>Folder tujuan default</label><input id="defaultDest" placeholder="anime/judul atau anime/judul/1"></div>
+        <div class="col-4"><label>Folder tujuan default</label><input id="defaultDest" placeholder="anime/judul atau anime/judul/1"></div>
         <div class="col-12">
           <label>URL sampul (opsional, dari MAL atau body lama)</label>
           <div id="coverPreview" class="cover-preview" data-state="empty">
@@ -336,7 +346,7 @@
 <script>
 const TOKEN = document.querySelector('meta[name="ui-token"]').content;
 const $ = (id) => document.getElementById(id);
-const state = { releases: [], selected: null, remoteAssets: [], preview: null, jobTimer: null, malId: null, malTitle: "" };
+const state = { releases: [], selected: null, remoteAssets: [], preview: null, jobTimer: null, malId: null, malTitle: "", resolutionAuto: true };
 
 function toast(msg, isError = false) {
   const el = $("toast");
@@ -446,13 +456,98 @@ function renderCoverPreview(raw) {
   if (img.complete && img.naturalWidth) img.onload();
 }
 
+let resolutionProbeToken = 0;
+let resolutionProbePromise = null;
+let resolutionProbeAgain = false;
+
+function collectAssetPaths() {
+  return Array.from(document.querySelectorAll(".asset-path"))
+    .map((field) => field.value.trim())
+    .filter(Boolean);
+}
+
+function setResolutionHint(text, isError = false, title = "") {
+  const hint = $("resolutionHint");
+  hint.textContent = text;
+  hint.title = title;
+  hint.style.color = isError ? "var(--danger)" : "";
+}
+
+function resetResolutionProbeState(message) {
+  resolutionProbeToken += 1;
+  resolutionProbePromise = null;
+  resolutionProbeAgain = false;
+  $("btnDetectResolution").disabled = false;
+  setResolutionHint(message);
+}
+
+async function detectResolution(force = false, requeue = false) {
+  if (!force && !state.resolutionAuto) return null;
+  if (resolutionProbePromise) {
+    if (requeue) resolutionProbeAgain = true;
+    return resolutionProbePromise;
+  }
+
+  const paths = collectAssetPaths();
+  if (!paths.length) {
+    if (force) setResolutionHint("Isi path aset lokal dulu untuk deteksi.", true);
+    return null;
+  }
+
+  const token = ++resolutionProbeToken;
+  $("btnDetectResolution").disabled = true;
+  setResolutionHint("Mendeteksi resolusi dari video…");
+  resolutionProbePromise = (async () => {
+    try {
+      const data = await api("/api/probe-resolution", {
+        method: "POST",
+        body: JSON.stringify({assets: paths.map((path) => ({path}))}),
+      });
+      if (token !== resolutionProbeToken) return null;
+      if (!force && !state.resolutionAuto) {
+        setResolutionHint("Resolusi sudah diubah manual; deteksi otomatis dilewati.");
+        return null;
+      }
+      const label = String(data.resolution || "");
+      if (!label) throw new Error("Backend tidak mengembalikan resolusi.");
+      const changed = $("resolution").value.trim() !== label;
+      $("resolution").value = label;
+      state.resolutionAuto = true;
+      const source = data.entry ? `${data.source} → ${data.entry}` : data.source;
+      setResolutionHint(
+        `Otomatis: ${label} · ${data.width}×${data.height} px`,
+        false,
+        `Sumber: ${source}`,
+      );
+      if (changed && state.preview) invalidatePreview();
+      return data;
+    } catch (e) {
+      if (token !== resolutionProbeToken) return null;
+      setResolutionHint("Deteksi gagal: " + e.message, true);
+      return null;
+    } finally {
+      if (token === resolutionProbeToken) {
+        $("btnDetectResolution").disabled = false;
+        resolutionProbePromise = null;
+        if (resolutionProbeAgain && state.resolutionAuto) {
+          resolutionProbeAgain = false;
+          setTimeout(() => detectResolution(), 0);
+        }
+      }
+    }
+  })();
+  return resolutionProbePromise;
+}
+
 function addAssetRow(path = "", dest = "") {
   const tr = document.createElement("tr");
   tr.innerHTML = `
     <td><input class="asset-path" placeholder="/path/ke/arsip.7z atau C:\\path\\arsip.7z"></td>
     <td><input class="asset-dest" placeholder="anime/judul/1"></td>
     <td><button class="icon-btn danger" title="Hapus baris">✕</button></td>`;
-  tr.querySelector(".asset-path").value = path;
+  const pathField = tr.querySelector(".asset-path");
+  pathField.value = path;
+  pathField.addEventListener("change", () => detectResolution(false, true));
   tr.querySelector(".asset-dest").value = dest || $("defaultDest").value.trim();
   tr.querySelector("button").addEventListener("click", () => tr.remove());
   $("assetRows").appendChild(tr);
@@ -527,6 +622,8 @@ function resetForm() {
   $("tag").value = "";
   $("title").value = "";
   $("resolution").value = "480p";
+  state.resolutionAuto = true;
+  resetResolutionProbeState("Otomatis saat path aset diisi.");
   $("episodeCount").value = "12";
   $("episodeType").value = "Episodes";
   $("defaultDest").value = "";
@@ -565,6 +662,8 @@ function fillForm(parsed) {
   $("tag").value = parsed.tag || "";
   $("title").value = parsed.title || "";
   $("resolution").value = parsed.resolution || "480p";
+  state.resolutionAuto = false;
+  resetResolutionProbeState("Resolusi dari body release. Klik Deteksi untuk memeriksa ulang.");
   $("episodeCount").value = parsed.episodeCount || 1;
   $("episodeType").value = parsed.episodeType || "Episodes";
   setCoverUrl(parsed.cover || "");
@@ -775,8 +874,9 @@ function renderPreview(plan) {
 }
 
 async function preview() {
+  $("btnPreview").disabled = true;
   try {
-    $("btnPreview").disabled = true;
+    await detectResolution(false);
     const data = await api("/api/preview", {method: "POST", body: JSON.stringify(readForm())});
     renderPreview(data.plan);
     if (data.plan.ok) toast("Pratinjau siap. Cek body & peringatan sebelum menyimpan.");
@@ -871,6 +971,11 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("btnMalSearch").addEventListener("click", malSearch);
   $("malQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") malSearch(); });
   $("btnProvider").addEventListener("click", providerSearch);
+  $("btnDetectResolution").addEventListener("click", () => detectResolution(true, true));
+  $("resolution").addEventListener("input", () => {
+    state.resolutionAuto = false;
+    setResolutionHint("Resolusi manual. Klik Deteksi untuk memeriksa dari video.");
+  });
   $("defaultDest").addEventListener("change", loadSavedSource);
   $("btnPreview").addEventListener("click", preview);
   $("btnApply").addEventListener("click", apply);
