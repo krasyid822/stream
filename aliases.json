@@ -51,7 +51,8 @@
       "Ijiranaide, Nagatoro-san",
       "Don't Toy with Me, Miss Nagatoro",
       "Jangan Main-main Denganku, Nona Nagatoro",
-      "イジらないで、長瀞さん"
+      "イジらないで、長瀞さん",
+      "otakudesu.io"
     ],
     "jctk": [
       "Jaku-Chara Tomozaki-kun",
@@ -291,6 +292,18 @@
       "url": "https://otakudesu.io/",
       "icon": "https://otakudesu.io/otakudesu.png",
       "note": "Sumber mentah dari Release Otakudesu.io_TSKB_480p.7z"
+    },
+    "anime/nagatoro/1": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_Nagatoro_480p.7z"
+    },
+    "anime/nagatoro": {
+      "provider": "otakudesu.io",
+      "url": "https://otakudesu.io/",
+      "icon": "https://otakudesu.io/otakudesu.png",
+      "note": "Sumber mentah dari Release Otakudesu_Nagatoro_480p.7z"
     }
   }
 }
