@@ -87,9 +87,27 @@
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .row > * { flex: 0 0 auto; }
   .row .grow { flex: 1 1 220px; }
-  .resolution-row { display: flex; gap: 6px; align-items: center; }
-  .resolution-row input { min-width: 0; flex: 1 1 auto; }
-  .resolution-row button { flex: 0 0 auto; padding: 8px 9px; white-space: nowrap; }
+  .title-row { display: flex; gap: 8px; align-items: center; }
+  .title-row input { min-width: 0; flex: 1 1 auto; }
+  .raw-toggle {
+    display: flex; align-items: center; gap: 10px; min-height: 39px;
+    padding: 0 10px; border: 1px solid #343d48; border-radius: 7px; background: var(--panel2);
+  }
+  .raw-toggle label {
+    display: flex; align-items: center; gap: 5px; margin: 0;
+    color: var(--text); font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .raw-toggle input { width: auto; }
+  .subhead {
+    margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line);
+    color: var(--accent2); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  }
+  .special-note {
+    border: 1px dashed #66502a; border-radius: 8px; padding: 12px;
+    background: rgba(255,209,102,.04); color: var(--text); font-size: 13px; line-height: 1.65;
+  }
+  .special-note a { color: var(--blue); }
+  textarea[readonly] { color: var(--muted); background: #101419; cursor: default; }
   .hint { color: var(--muted); font-size: 12px; line-height: 1.55; margin-top: 7px; }
   .sidebar-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   .sidebar-head h2 { margin: 0; flex: 1; font-size: 13px; font-weight: 700; letter-spacing: .09em; color: var(--accent2); }
@@ -155,12 +173,6 @@
   .icon-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px #2f5b3a inset; }
   .icon-card img { width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto 4px; background: #fff2; border-radius: 4px; }
   .icon-card span { color: var(--muted); font-size: 10.5px; line-height: 1.35; word-break: break-all; display: block; }
-  .mal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 10px; margin-top: 10px; }
-  .mal-card { display: flex; gap: 10px; border: 1px solid var(--line); border-radius: 8px; padding: 9px; background: var(--panel2); }
-  .mal-card img { width: 56px; height: 80px; object-fit: cover; border-radius: 4px; background: #000; }
-  .mal-card .info { min-width: 0; flex: 1; }
-  .mal-card .title { font-weight: 700; font-size: 13px; line-height: 1.4; }
-  .mal-card .sub { color: var(--muted); font-size: 11px; line-height: 1.45; margin-top: 3px; }
   .options { display: flex; flex-wrap: wrap; gap: 12px 18px; }
   .check { display: flex; align-items: flex-start; gap: 8px; color: var(--text); font-size: 12px; line-height: 1.5; max-width: 100%; }
   .check input { width: auto; margin-top: 3px; }
@@ -198,7 +210,6 @@
   <h1>▣ RELEASE MANAGER</h1>
   <span class="repo">__REPO__</span>
   <span class="spacer"></span>
-  <span id="malBadge" class="pill">MAL</span>
   <span class="pill ok">TUNDA 4</span>
 </header>
 
@@ -216,28 +227,33 @@
   </aside>
 
   <main>
-    <section class="card">
+    <section class="card regular-only" id="metadataCard">
       <div class="card-head">
         <h2>Metadata Release</h2>
         <span id="modeBadge" class="badge new">BARU</span>
       </div>
       <div class="grid">
         <div class="col-3"><label>Tag release</label><input id="tag" placeholder="TSKB" autocomplete="off"></div>
-        <div class="col-9"><label>Judul release (pakai [RAW] / [RAW HARDSUB])</label><input id="title" placeholder="[RAW HARDSUB] Judul lengkap…"></div>
-        <div class="col-3">
-          <label for="resolution">Resolusi</label>
-          <div class="resolution-row">
-            <input id="resolution" list="resList" value="480p" autocomplete="off">
-            <button id="btnDetectResolution" class="icon-btn" type="button" title="Deteksi resolusi dari video di aset lokal">Deteksi</button>
-          </div>
-          <div id="resolutionHint" class="hint">Otomatis saat path aset diisi.</div>
+        <div class="col-6">
+          <label for="title">Judul release</label>
+          <div class="title-row"><input id="title" placeholder="Judul lengkap tanpa prefix…" autocomplete="off"></div>
         </div>
+        <div class="col-3">
+          <label>Tipe subtitle</label>
+          <div class="raw-toggle">
+            <label><input type="radio" name="rawMode" value="raw" checked> [RAW]</label>
+            <label><input type="radio" name="rawMode" value="hardsub"> [RAW HARDSUB]</label>
+          </div>
+        </div>
+        <div class="col-2"><label for="resolution">Resolusi</label><input id="resolution" list="resList" value="480p" autocomplete="off"></div>
         <datalist id="resList"><option>360p</option><option>480p</option><option>720p</option><option>1080p</option><option>1440p</option><option>2160p</option></datalist>
         <div class="col-2"><label>Jumlah</label><input id="episodeCount" type="number" min="1" value="12"></div>
-        <div class="col-3"><label>Tipe</label><select id="episodeType"><option>Episodes</option><option>Compilation</option></select></div>
-        <div class="col-4"><label>Folder tujuan default</label><input id="defaultDest" placeholder="anime/judul atau anime/judul/1"></div>
+        <div class="col-3"><label>Tipe</label><select id="episodeType"></select></div>
+        <div class="col-3"><label>Kategori</label><select id="category"></select></div>
+        <div class="col-2"><label>Season</label><input id="season" type="number" min="1" step="1" placeholder="Tanpa"></div>
+        <div class="col-12"><div id="destHint" class="hint">Folder default: —</div></div>
         <div class="col-12">
-          <label>URL sampul (opsional, dari MAL atau body lama)</label>
+          <label>URL sampul (opsional)</label>
           <div id="coverPreview" class="cover-preview" data-state="empty">
             <div class="cover-thumb">
               <img id="coverPreviewImg" alt="Pratinjau sampul" referrerpolicy="no-referrer" decoding="async">
@@ -250,34 +266,26 @@
             </div>
           </div>
         </div>
-        <div class="col-12"><label>Alias / judul (satu per baris — baris pertama = judul utama)</label><textarea id="aliases" rows="5" placeholder="Judul utama&#10;Judul alternatif&#10;…"></textarea></div>
-      </div>
-      <div class="hint">Body release dibuat otomatis dengan format yang dibaca pipeline: cover, resolusi, jumlah episode, blok alias, path arsip, lalu URL + ikon provider.</div>
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>MyAnimeList (API resmi)</h2><span id="malState" class="badge">memeriksa…</span></div>
-      <div class="row">
-        <input id="malQuery" class="grow" placeholder="Cari judul di MAL…">
-        <button id="btnMalSearch" class="primary">Cari MAL</button>
-      </div>
-      <div class="hint">Hanya API resmi. Hasil disimpan ke cache lokal <span class="mono">mal_cache.json</span> agar kuota tidak boros. Pilih satu hasil untuk mengisi alias + sampul.</div>
-      <div id="malResults" class="mal-grid"></div>
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>Sumber / Provider</h2></div>
-      <div class="grid">
+        <div class="col-12">
+          <label>Alias / judul (otomatis dari Judul release — tidak dapat diedit)</label>
+          <textarea id="aliases" rows="4" readonly placeholder="Alias mengikuti Judul release…"></textarea>
+        </div>
+        <div class="col-12 subhead">Sumber / Provider</div>
         <div class="col-7"><label>URL situs penyedia</label><input id="providerUrl" placeholder="https://contoh.id/"></div>
         <div class="col-3"><label>Nama provider</label><input id="providerName" placeholder="contoh.id"></div>
         <div class="col-2" style="display:flex;align-items:end"><button id="btnProvider" style="width:100%">Cari ikon</button></div>
         <div class="col-12"><label>URL ikon provider (bisa diganti manual)</label><input id="providerIcon" placeholder="https://contoh.id/logo.png"></div>
+        <div class="col-12"><div id="providerNote" class="hint"></div><div id="iconCandidates" class="chips"></div></div>
       </div>
-      <div id="providerNote" class="hint"></div>
-      <div id="iconCandidates" class="chips"></div>
+      <div class="hint">Body release mengikuti format Metadata-Guide: cover, resolusi, jumlah episode, alias, path arsip, lalu URL + ikon provider.</div>
     </section>
 
-    <section class="card">
+    <section class="card hidden" id="specialCard">
+      <div class="card-head"><h2 id="specialHeading">Tag khusus</h2><span id="specialBadge" class="badge">KHUSUS</span></div>
+      <div id="specialContent"></div>
+    </section>
+
+    <section class="card regular-only" id="assetsCard">
       <div class="card-head"><h2>Aset RAW lokal</h2></div>
       <div class="row" style="margin-bottom:8px">
         <button id="btnAddAsset">+ Tambah baris aset</button>
@@ -287,11 +295,11 @@
         <thead><tr><th style="width:56%">Path file lokal</th><th style="width:34%">Folder tujuan</th><th></th></tr></thead>
         <tbody id="assetRows"></tbody>
       </table>
-      <div class="hint">Aset split (mis. <span class="mono">.7z.001</span>, <span class="mono">.7z.002</span>) boleh dimasukkan sebagai beberapa baris; pipeline mengelompokkannya otomatis. Nama file tidak boleh mengandung spasi.</div>
+      <div class="hint">Aset split (mis. <span class="mono">.7z.001</span>, <span class="mono">.7z.002</span>) boleh dimasukkan sebagai beberapa baris; pipeline mengelompokkannya otomatis. Nama file tidak boleh mengandung spasi. <br>Rencana berikutnya: kompresi <span class="mono">7z</span> preset Ultra + enkripsi otomatis dari tag <span class="mono">password</span>, lalu upload/update release.</div>
       <div id="remoteAssets" class="remote-list hidden"></div>
     </section>
 
-    <section class="card">
+    <section class="card regular-only" id="mappingCard">
       <div class="card-head"><h2>Pemetaan path di body</h2></div>
       <div class="row" style="margin-bottom:8px"><button id="btnAddMapping">+ Tambah pemetaan</button></div>
       <table>
@@ -301,19 +309,14 @@
       <div class="hint">Untuk release baru biarkan kosong; pratinjau akan mengisi otomatis dari aset lokal. Isi manual hanya jika satu release punya beberapa folder/season.</div>
     </section>
 
-    <section class="card">
+    <section class="card regular-only" id="optionsCard">
       <div class="card-head"><h2>Opsi</h2></div>
       <div class="options">
-        <label class="check"><input id="optSaveMetadata" type="checkbox" checked><span>Simpan judul/cover/sumber ke <span class="mono">aliases.json</span><small>Sumber metadata proyek; tidak menyentuh metadata.json.</small></span></label>
-        <label class="check"><input id="optCommitMetadata" type="checkbox"><span>Commit &amp; push <span class="mono">aliases.json</span><small>Hanya file ini yang di-commit.</small></span></label>
         <label class="check"><input id="optDraftOnly" type="checkbox"><span>Biarkan release baru sebagai draft<small>Tidak memicu antrian sampai dipublikasikan.</small></span></label>
-        <label class="check"><input id="optPublishDraft" type="checkbox"><span>Publikasikan jika release lama masih draft</span></label>
-        <label class="check"><input id="optClobber" type="checkbox"><span>Ganti aset yang namanya sama<small class="mono">gh release upload --clobber</small></span></label>
-        <label class="check hidden" id="clobberAckWrap"><input id="optClobberAck" type="checkbox"><span>Ya, saya paham aset lama akan dihapus<small>Tidak ada undo otomatis.</small></span></label>
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" id="applyCard">
       <div class="actions">
         <button id="btnPreview" class="primary">👁 Pratinjau / Dry-run</button>
         <div class="grow"></div>
@@ -346,7 +349,10 @@
 <script>
 const TOKEN = document.querySelector('meta[name="ui-token"]').content;
 const $ = (id) => document.getElementById(id);
-const state = { releases: [], selected: null, remoteAssets: [], preview: null, jobTimer: null, malId: null, malTitle: "", resolutionAuto: true };
+const state = {
+  releases: [], selected: null, remoteAssets: [], preview: null, jobTimer: null,
+  config: {types: [], categories: []}, special: null, baseAliases: [], originalTitle: "",
+};
 
 function toast(msg, isError = false) {
   const el = $("toast");
@@ -456,87 +462,113 @@ function renderCoverPreview(raw) {
   if (img.complete && img.naturalWidth) img.onload();
 }
 
-let resolutionProbeToken = 0;
-let resolutionProbePromise = null;
-let resolutionProbeAgain = false;
-
-function collectAssetPaths() {
-  return Array.from(document.querySelectorAll(".asset-path"))
-    .map((field) => field.value.trim())
-    .filter(Boolean);
+function currentRawMode() {
+  const selected = document.querySelector('input[name="rawMode"]:checked');
+  return selected ? selected.value : "raw";
 }
 
-function setResolutionHint(text, isError = false, title = "") {
-  const hint = $("resolutionHint");
-  hint.textContent = text;
-  hint.title = title;
-  hint.style.color = isError ? "var(--danger)" : "";
+function setRawMode(mode) {
+  const value = mode === "hardsub" ? "hardsub" : "raw";
+  document.querySelectorAll('input[name="rawMode"]').forEach((radio) => {
+    radio.checked = radio.value === value;
+  });
 }
 
-function resetResolutionProbeState(message) {
-  resolutionProbeToken += 1;
-  resolutionProbePromise = null;
-  resolutionProbeAgain = false;
-  $("btnDetectResolution").disabled = false;
-  setResolutionHint(message);
-}
-
-async function detectResolution(force = false, requeue = false) {
-  if (!force && !state.resolutionAuto) return null;
-  if (resolutionProbePromise) {
-    if (requeue) resolutionProbeAgain = true;
-    return resolutionProbePromise;
-  }
-
-  const paths = collectAssetPaths();
-  if (!paths.length) {
-    if (force) setResolutionHint("Isi path aset lokal dulu untuk deteksi.", true);
-    return null;
-  }
-
-  const token = ++resolutionProbeToken;
-  $("btnDetectResolution").disabled = true;
-  setResolutionHint("Mendeteksi resolusi dari video…");
-  resolutionProbePromise = (async () => {
-    try {
-      const data = await api("/api/probe-resolution", {
-        method: "POST",
-        body: JSON.stringify({assets: paths.map((path) => ({path}))}),
-      });
-      if (token !== resolutionProbeToken) return null;
-      if (!force && !state.resolutionAuto) {
-        setResolutionHint("Resolusi sudah diubah manual; deteksi otomatis dilewati.");
-        return null;
-      }
-      const label = String(data.resolution || "");
-      if (!label) throw new Error("Backend tidak mengembalikan resolusi.");
-      const changed = $("resolution").value.trim() !== label;
-      $("resolution").value = label;
-      state.resolutionAuto = true;
-      const source = data.entry ? `${data.source} → ${data.entry}` : data.source;
-      setResolutionHint(
-        `Otomatis: ${label} · ${data.width}×${data.height} px`,
-        false,
-        `Sumber: ${source}`,
-      );
-      if (changed && state.preview) invalidatePreview();
-      return data;
-    } catch (e) {
-      if (token !== resolutionProbeToken) return null;
-      setResolutionHint("Deteksi gagal: " + e.message, true);
-      return null;
-    } finally {
-      if (token === resolutionProbeToken) {
-        $("btnDetectResolution").disabled = false;
-        resolutionProbePromise = null;
-        if (resolutionProbeAgain && state.resolutionAuto) {
-          resolutionProbeAgain = false;
-          setTimeout(() => detectResolution(), 0);
-        }
-      }
+function updateAliasesFromTitle() {
+  const title = $("title").value.trim();
+  const aliases = [];
+  if (title) {
+    aliases.push(title);
+    for (const alias of state.baseAliases || []) {
+      if (alias === title || alias === state.originalTitle) continue;
+      aliases.push(alias);
     }
-  })();
-  return resolutionProbePromise;
+  }
+  $("aliases").value = Array.from(new Set(aliases)).join("\n");
+}
+
+function slugFromTag() {
+  return $("tag").value.trim().toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function computedDefaultDest() {
+  const category = $("category").value.trim();
+  const slug = slugFromTag();
+  const season = $("season").value.trim();
+  if (!category || !slug) return "";
+  return season ? `${category}/${slug}/${season}` : `${category}/${slug}`;
+}
+
+function updateDestHint() {
+  const dest = computedDefaultDest();
+  $("destHint").textContent = dest ? `Folder default: ${dest}` : "Folder default: isi kategori dan tag release.";
+  document.querySelectorAll("#assetRows .asset-dest, #mappingRows .map-dest").forEach((field) => {
+    if (field.dataset.auto === "1") field.value = dest;
+  });
+}
+
+function renderConfigSelects(typeValue = "", categoryValue = "") {
+  const typeSelect = $("episodeType");
+  const categorySelect = $("category");
+  const type = typeValue || typeSelect.value || state.config.types[0] || "Episodes";
+  const category = categoryValue || categorySelect.value || state.config.categories[0] || "";
+  const types = Array.from(new Set([...(state.config.types || []), type].filter(Boolean)));
+  const categories = Array.from(new Set([...(state.config.categories || []), category].filter(Boolean)));
+  typeSelect.innerHTML = types.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")
+    + '<option value="__add__">+ Tambah tipe…</option>';
+  categorySelect.innerHTML = categories.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")
+    + '<option value="__add__">+ Tambah kategori…</option>';
+  typeSelect.value = type;
+  categorySelect.value = category;
+  typeSelect.dataset.previous = type;
+  categorySelect.dataset.previous = category;
+  updateDestHint();
+}
+
+async function loadConfig() {
+  try {
+    const data = await api("/api/config");
+    state.config = data.config || {types: [], categories: []};
+  } catch (e) {
+    toast("Gagal memuat release_ui.ini: " + e.message, true);
+  }
+  renderConfigSelects();
+}
+
+async function addConfigChoice(kind, select) {
+  const label = kind === "types" ? "tipe" : "kategori";
+  const previous = select.dataset.previous || select.value;
+  const raw = prompt(`Nama ${label} baru:`, "");
+  if (raw == null || !raw.trim()) {
+    select.value = previous;
+    return;
+  }
+  const value = raw.trim();
+  const invalid = kind === "types" ? /[\/\\\r\n,]/ : /[\s/\\,]/;
+  if (!value || value.length > 40 || invalid.test(value)) {
+    toast(kind === "types"
+      ? "Nama tipe maksimal 40 karakter, tanpa / \\ , atau baris baru."
+      : "Nama kategori maksimal 40 karakter, tanpa spasi, / \\ , atau baris baru.", true);
+    select.value = previous;
+    return;
+  }
+  if (!state.config[kind].some((v) => v.toLowerCase() === value.toLowerCase())) {
+    state.config[kind].push(value);
+  }
+  try {
+    const data = await api("/api/config", {
+      method: "POST",
+      body: JSON.stringify({types: state.config.types, categories: state.config.categories}),
+    });
+    state.config = data.config;
+    renderConfigSelects(kind === "types" ? value : "", kind === "categories" ? value : "");
+    toast(`${label[0].toUpperCase() + label.slice(1)} disimpan ke release_ui.ini.`);
+  } catch (e) {
+    toast("Gagal menyimpan konfigurasi: " + e.message, true);
+    renderConfigSelects();
+  }
 }
 
 function addAssetRow(path = "", dest = "") {
@@ -546,9 +578,11 @@ function addAssetRow(path = "", dest = "") {
     <td><input class="asset-dest" placeholder="anime/judul/1"></td>
     <td><button class="icon-btn danger" title="Hapus baris">✕</button></td>`;
   const pathField = tr.querySelector(".asset-path");
+  const destField = tr.querySelector(".asset-dest");
   pathField.value = path;
-  pathField.addEventListener("change", () => detectResolution(false, true));
-  tr.querySelector(".asset-dest").value = dest || $("defaultDest").value.trim();
+  destField.value = dest || computedDefaultDest();
+  if (!dest) destField.dataset.auto = "1";
+  destField.addEventListener("input", () => { delete destField.dataset.auto; });
   tr.querySelector("button").addEventListener("click", () => tr.remove());
   $("assetRows").appendChild(tr);
 }
@@ -560,7 +594,10 @@ function addMappingRow(name = "", dest = "") {
     <td><input class="map-dest" placeholder="anime/judul/1"></td>
     <td><button class="icon-btn danger" title="Hapus baris">✕</button></td>`;
   tr.querySelector(".map-name").value = name;
-  tr.querySelector(".map-dest").value = dest || $("defaultDest").value.trim();
+  const mapDest = tr.querySelector(".map-dest");
+  mapDest.value = dest || computedDefaultDest();
+  if (!dest) mapDest.dataset.auto = "1";
+  mapDest.addEventListener("input", () => { delete mapDest.dataset.auto; });
   tr.querySelector("button").addEventListener("click", () => tr.remove());
   $("mappingRows").appendChild(tr);
 }
@@ -576,9 +613,27 @@ function readRows(selector, cls, key) {
 }
 
 function readForm() {
+  if (state.special === "password") {
+    return {
+      tag: "password",
+      special: "password",
+      title: $("specialTitle").value.trim(),
+      password_variants: $("passwordVariants").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean),
+      save_metadata: false,
+      commit_metadata: false,
+      draft_only: false,
+      publish_draft: false,
+      clobber: false,
+      clobber_ack: false,
+      mal_id: null,
+      mal_title: "",
+      confirm: $("confirmTag").value.trim(),
+    };
+  }
   return {
     tag: $("tag").value.trim(),
     title: $("title").value.trim(),
+    raw_mode: currentRawMode(),
     resolution: $("resolution").value.trim(),
     episode_count: Number($("episodeCount").value || 0),
     episode_type: $("episodeType").value,
@@ -589,14 +644,14 @@ function readForm() {
     provider_url: $("providerUrl").value.trim(),
     provider_name: $("providerName").value.trim(),
     provider_icon: $("providerIcon").value.trim(),
-    save_metadata: $("optSaveMetadata").checked,
-    commit_metadata: $("optCommitMetadata").checked,
+    save_metadata: true,
+    commit_metadata: false,
     draft_only: $("optDraftOnly").checked,
-    publish_draft: $("optPublishDraft").checked,
-    clobber: $("optClobber").checked,
-    clobber_ack: $("optClobberAck").checked,
-    mal_id: state.malId,
-    mal_title: state.malTitle,
+    publish_draft: false,
+    clobber: true,
+    clobber_ack: true,
+    mal_id: null,
+    mal_title: "",
     confirm: $("confirmTag").value.trim(),
   };
 }
@@ -613,20 +668,88 @@ function setMode(mode) {
   else { badge.textContent = "BARU"; badge.className = "badge new"; }
 }
 
+function setSpecialMode(mode) {
+  state.special = mode || null;
+  document.querySelectorAll(".regular-only").forEach((el) => el.classList.toggle("hidden", Boolean(mode)));
+  $("specialCard").classList.toggle("hidden", !mode);
+  $("applyCard").classList.toggle("hidden", mode === "metadata-guide");
+  if (!mode) {
+    $("specialContent").innerHTML = "";
+    $("btnPreview").disabled = false;
+  }
+}
+
+function splitDest(dest) {
+  const parts = String(dest || "").trim().split("/").filter(Boolean);
+  return {
+    category: parts[0] || "",
+    season: parts.length > 2 && /^\d+$/.test(parts[2] || "") ? parts[2] : "",
+  };
+}
+
+function renderSpecialCard(parsed) {
+  const mode = parsed.special;
+  setSpecialMode(mode);
+  state.preview = null;
+  $("previewCard").classList.add("hidden");
+  $("jobCard").classList.add("hidden");
+  $("confirmTag").value = "";
+  $("confirmHint").textContent = "—";
+  $("btnApply").disabled = true;
+
+  if (mode === "password") {
+    $("specialHeading").textContent = "Kunci Arsip (tag password)";
+    $("specialBadge").textContent = "KHUSUS";
+    $("specialContent").innerHTML = `
+      <div class="grid">
+        <div class="col-12"><div class="special-note">
+          Tag <span class="mono">password</span> adalah hukum khusus runner HLS. UI hanya mengubah daftar variasi;
+          runner akan mencoba setiap baris sampai ada yang cocok. Jangan mengubah nama tag.
+        </div></div>
+        <div class="col-5"><label>Judul release</label><input id="specialTitle" autocomplete="off"></div>
+        <div class="col-12"><label>Variasi password (satu per baris)</label><textarea id="passwordVariants" rows="6" placeholder="kunci-utama&#10;kunci-cadangan"></textarea></div>
+        <div class="col-12"><div class="hint">Body release akan ditulis ulang sebagai daftar baris berkode backtick, sesuai format runner.</div></div>
+      </div>`;
+    $("specialTitle").value = parsed.title || "Key for RAW Archive";
+    $("passwordVariants").value = (parsed.passwordVariants || []).join("\n");
+    $("btnPreview").disabled = false;
+    setMode("edit");
+    return;
+  }
+
+  if (mode === "metadata-guide") {
+    $("specialHeading").textContent = "Metadata-Guide (hukum khusus)";
+    $("specialBadge").textContent = "READ-ONLY";
+    $("specialContent").innerHTML = `
+      <div class="special-note">
+        Tag <span class="mono">Metadata-Guide</span> adalah dokumentasi format resmi, bukan media.
+        UI ini <b>tidak boleh mengubah</b> body/title-nya. Jika format panduan berubah,
+        sesuaikan parser/UI terlebih dahulu.
+        ${parsed.url ? `<br><a href="${esc(parsed.url)}" target="_blank" rel="noreferrer">Buka release Metadata-Guide ↗</a>` : ""}
+      </div>
+      <details style="margin-top:10px"><summary class="hint">Lihat body saat ini</summary><pre>${esc(parsed.body || "")}</pre></details>`;
+    $("btnPreview").disabled = true;
+    $("btnApply").disabled = true;
+    $("modeBadge").textContent = "KHUSUS";
+    $("modeBadge").className = "badge danger";
+  }
+}
+
 function resetForm() {
   state.selected = null;
   state.remoteAssets = [];
   state.preview = null;
-  state.malId = null;
-  state.malTitle = "";
+  state.baseAliases = [];
+  state.originalTitle = "";
+  setSpecialMode(null);
   $("tag").value = "";
   $("title").value = "";
+  setRawMode("raw");
   $("resolution").value = "480p";
-  state.resolutionAuto = true;
-  resetResolutionProbeState("Otomatis saat path aset diisi.");
   $("episodeCount").value = "12";
-  $("episodeType").value = "Episodes";
-  $("defaultDest").value = "";
+  renderConfigSelects("Episodes", state.config.categories[0] || "");
+  $("season").value = "";
+  updateDestHint();
   setCoverUrl("");
   $("aliases").value = "";
   $("providerUrl").value = "";
@@ -634,8 +757,6 @@ function resetForm() {
   $("providerIcon").value = "";
   $("iconCandidates").innerHTML = "";
   $("providerNote").textContent = "";
-  $("malResults").innerHTML = "";
-  $("malQuery").value = "";
   $("assetRows").innerHTML = "";
   $("mappingRows").innerHTML = "";
   addAssetRow();
@@ -644,12 +765,9 @@ function resetForm() {
   $("previewCard").classList.add("hidden");
   $("jobCard").classList.add("hidden");
   $("confirmTag").value = "";
+  $("confirmHint").textContent = "—";
   $("btnApply").disabled = true;
   $("optDraftOnly").checked = false;
-  $("optPublishDraft").checked = false;
-  $("optClobber").checked = false;
-  $("optClobberAck").checked = false;
-  $("clobberAckWrap").classList.add("hidden");
   setMode("new");
   document.querySelectorAll(".release-item").forEach(el => el.classList.remove("active"));
 }
@@ -657,25 +775,33 @@ function resetForm() {
 function fillForm(parsed) {
   state.selected = parsed.tag;
   state.remoteAssets = parsed.remoteAssets || [];
-  state.malId = parsed.malId || null;
-  state.malTitle = parsed.malTitle || "";
   $("tag").value = parsed.tag || "";
+  if (parsed.special) {
+    renderSpecialCard(parsed);
+    document.querySelectorAll(".release-item").forEach(el => el.classList.toggle("active", el.dataset.tag === parsed.tag));
+    return;
+  }
+
+  setSpecialMode(null);
+  state.baseAliases = parsed.aliases || [];
+  state.originalTitle = parsed.title || "";
   $("title").value = parsed.title || "";
+  setRawMode(parsed.rawMode || "raw");
   $("resolution").value = parsed.resolution || "480p";
-  state.resolutionAuto = false;
-  resetResolutionProbeState("Resolusi dari body release. Klik Deteksi untuk memeriksa ulang.");
   $("episodeCount").value = parsed.episodeCount || 1;
-  $("episodeType").value = parsed.episodeType || "Episodes";
+  const firstDest = parsed.dest || (parsed.mappings && parsed.mappings[0] && parsed.mappings[0].dest) || "";
+  const destParts = splitDest(firstDest);
+  renderConfigSelects(parsed.episodeType || "Episodes", destParts.category);
+  $("season").value = destParts.season;
+  updateDestHint();
+  updateAliasesFromTitle();
   setCoverUrl(parsed.cover || "");
-  $("aliases").value = (parsed.aliases || []).join("\n");
   const p = parsed.provider || {};
   $("providerUrl").value = p.url || "";
   $("providerIcon").value = p.icon || "";
   $("providerName").value = p.provider || "";
-  const firstDest = parsed.dest || (parsed.mappings && parsed.mappings[0] && parsed.mappings[0].dest) || "";
-  $("defaultDest").value = firstDest;
   $("assetRows").innerHTML = "";
-  addAssetRow("", firstDest);
+  addAssetRow("", firstDest || computedDefaultDest());
   $("mappingRows").innerHTML = "";
   (parsed.mappings || []).forEach(m => addMappingRow(m.name, m.dest));
   $("remoteAssets").classList.remove("hidden");
@@ -683,12 +809,9 @@ function fillForm(parsed) {
   $("previewCard").classList.add("hidden");
   $("jobCard").classList.add("hidden");
   $("confirmTag").value = "";
+  $("confirmHint").textContent = "—";
   $("btnApply").disabled = true;
   $("optDraftOnly").checked = false;
-  $("optPublishDraft").checked = false;
-  $("optClobber").checked = false;
-  $("optClobberAck").checked = false;
-  $("clobberAckWrap").classList.add("hidden");
   setMode("edit");
 }
 
@@ -748,47 +871,8 @@ async function loadRelease(tag) {
   }
 }
 
-async function malSearch() {
-  const q = $("malQuery").value.trim();
-  if (!q) { toast("Isi judul untuk dicari di MAL.", true); return; }
-  const box = $("malResults");
-  box.innerHTML = '<div class="hint">Mencari di MAL…</div>';
-  try {
-    const data = await api("/api/mal", {method: "POST", body: JSON.stringify({q})});
-    const results = data.results || [];
-    if (!results.length) { box.innerHTML = '<div class="hint">Tidak ada hasil.</div>'; return; }
-    box.innerHTML = results.map((r, i) => `
-      <div class="mal-card">
-        ${r.cover ? `<img src="${esc(r.cover)}" alt="">` : '<img alt="">'}
-        <div class="info">
-          <div class="title">${esc(r.title)}</div>
-          <div class="sub">MAL #${esc(r.id)} · ${esc(r.mediaType || "-")} · ${esc(r.episodes || "?")} ep · ${esc(r.startDate || "-")}</div>
-          <button class="icon-btn primary" data-idx="${i}" style="margin-top:6px">Pakai judul + sampul</button>
-        </div>
-      </div>`).join("");
-    box.querySelectorAll("button[data-idx]").forEach(btn => {
-      btn.addEventListener("click", () => useMalResult(results[Number(btn.dataset.idx)]));
-    });
-  } catch (e) {
-    box.innerHTML = "";
-    toast("MAL: " + e.message, true);
-  }
-}
-
-function useMalResult(r) {
-  $("aliases").value = (r.titles || [r.title]).join("\n");
-  if (r.cover) setCoverUrl(r.cover);
-  if (!state.malId) $("title").value = "[RAW] " + r.title;
-  if ((!$("episodeCount").value || Number($("episodeCount").value) < 1) && r.episodes) {
-    $("episodeCount").value = r.episodes;
-  }
-  state.malId = r.id;
-  state.malTitle = r.title;
-  toast("MAL dipakai: " + r.title + ". Cek prefix [RAW]/[RAW HARDSUB].");
-}
-
 async function loadSavedSource() {
-  const dest = $("defaultDest").value.trim();
+  const dest = computedDefaultDest();
   if (!dest) return;
   try {
     const data = await api("/api/source?dest=" + encodeURIComponent(dest));
@@ -808,7 +892,7 @@ async function providerSearch() {
   const box = $("iconCandidates");
   box.innerHTML = '<div class="hint">Mencari kandidat ikon…</div>';
   try {
-    const data = await api("/api/provider", {method: "POST", body: JSON.stringify({url, dest: $("defaultDest").value.trim()})});
+    const data = await api("/api/provider", {method: "POST", body: JSON.stringify({url, dest: computedDefaultDest()})});
     if (!$("providerName").value.trim() && data.provider) $("providerName").value = data.provider;
     $("providerNote").textContent = data.error ? ("Halaman tidak bisa dibaca (" + data.error + "); tetap ada kandidat favicon.") : "Pilih salah satu kandidat ikon.";
     const cands = data.candidates || [];
@@ -851,7 +935,7 @@ function renderPreview(plan) {
   $("previewCommands").textContent = (plan.commands || []).join("\n") || "(tidak ada perintah)";
   const changes = plan.metadataChanges || [];
   const metaNote = changes.length && plan.saveMetadata === false
-    ? '<div class="hint" style="color:var(--accent2);margin-bottom:6px">Opsi simpan metadata nonaktif — perubahan di bawah TIDAK akan ditulis.</div>'
+    ? '<div class="hint" style="color:var(--accent2);margin-bottom:6px">Pratinjau ini tidak akan menulis aliases.json.</div>'
     : "";
   $("previewMetadata").innerHTML = metaNote + (changes.length
     ? changes.map(c => `<div class="meta-change"><b>${esc(c.section)} → ${esc(c.key)}</b><br>${esc(JSON.stringify(c.after, null, 2))}</div>`).join("")
@@ -876,7 +960,6 @@ function renderPreview(plan) {
 async function preview() {
   $("btnPreview").disabled = true;
   try {
-    await detectResolution(false);
     const data = await api("/api/preview", {method: "POST", body: JSON.stringify(readForm())});
     renderPreview(data.plan);
     if (data.plan.ok) toast("Pratinjau siap. Cek body & peringatan sebelum menyimpan.");
@@ -930,12 +1013,8 @@ async function pollJob(id) {
 
 window.addEventListener("DOMContentLoaded", async () => {
   setMode("new");
-  addAssetRow();
-  if (__MAL_READY__) {
-    $("malBadge").textContent = "MAL siap"; $("malBadge").className = "pill ok"; $("malState").textContent = "siap"; $("malState").className = "badge";
-  } else {
-    $("malBadge").textContent = "MAL belum diset"; $("malBadge").className = "pill warn"; $("malState").textContent = "MAL_CLIENT_ID kosong"; $("malState").className = "badge danger";
-  }
+  await loadConfig();
+  resetForm();
   $("btnRefresh").addEventListener("click", refreshReleases);
   $("releaseSearch").addEventListener("input", renderReleases);
   const coverEditor = $("coverPreviewUrl");
@@ -962,27 +1041,34 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("btnAddAsset").addEventListener("click", () => addAssetRow());
   $("btnAddMapping").addEventListener("click", () => addMappingRow());
   $("btnApplyDefault").addEventListener("click", () => {
-    const dest = $("defaultDest").value.trim();
+    const dest = computedDefaultDest();
     document.querySelectorAll("#assetRows tr").forEach(tr => {
       const field = tr.querySelector(".asset-dest");
-      if (!field.value.trim()) field.value = dest;
+      if (!field.value.trim()) {
+        field.value = dest;
+        field.dataset.auto = "1";
+      }
     });
   });
-  $("btnMalSearch").addEventListener("click", malSearch);
-  $("malQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") malSearch(); });
   $("btnProvider").addEventListener("click", providerSearch);
-  $("btnDetectResolution").addEventListener("click", () => detectResolution(true, true));
-  $("resolution").addEventListener("input", () => {
-    state.resolutionAuto = false;
-    setResolutionHint("Resolusi manual. Klik Deteksi untuk memeriksa dari video.");
+  $("title").addEventListener("input", updateAliasesFromTitle);
+  $("tag").addEventListener("input", updateDestHint);
+  $("tag").addEventListener("change", loadSavedSource);
+  $("season").addEventListener("input", updateDestHint);
+  $("season").addEventListener("change", loadSavedSource);
+  $("episodeType").addEventListener("change", () => {
+    if ($("episodeType").value === "__add__") addConfigChoice("types", $("episodeType"));
   });
-  $("defaultDest").addEventListener("change", loadSavedSource);
+  $("category").addEventListener("change", () => {
+    if ($("category").value === "__add__") {
+      addConfigChoice("categories", $("category"));
+      return;
+    }
+    updateDestHint();
+    loadSavedSource();
+  });
   $("btnPreview").addEventListener("click", preview);
   $("btnApply").addEventListener("click", apply);
-  $("optClobber").addEventListener("change", () => {
-    $("clobberAckWrap").classList.toggle("hidden", !$("optClobber").checked);
-    if (!$("optClobber").checked) $("optClobberAck").checked = false;
-  });
   $("confirmTag").addEventListener("input", () => {
     const plan = state.preview;
     $("btnApply").disabled = !(plan && plan.ok && $("confirmTag").value.trim() === plan.tag);
@@ -992,8 +1078,12 @@ window.addEventListener("DOMContentLoaded", async () => {
       invalidatePreview();
     }
   });
+  document.addEventListener("change", (e) => {
+    if (e.target.closest("main") && e.target.id !== "confirmTag" && state.preview) {
+      invalidatePreview();
+    }
+  });
   await refreshReleases();
-  $("modeBadge").textContent = "BARU";
 });
 </script>
 </body>

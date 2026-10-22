@@ -134,7 +134,7 @@ def parse_release_body_lines(body_text):
     blocks = re.split(r'\r?\n\s*={3,}\s*\r?\n', body_text.strip())
 
     # 1. Parse Aliases (biasanya ada di blok index 1 jika format standar)
-    for block in blocks:
+    for block_index, block in enumerate(blocks):
         lines = [l.strip() for l in block.splitlines() if l.strip()]
         for line in lines:
             # Cek path folder arsip
@@ -157,8 +157,16 @@ def parse_release_body_lines(body_text):
                     source_info['icon'] = line
                 continue
 
-            # Lewati baris resolusi / episode (termasuk rentang seperti "14-26 Episodes")
-            if re.match(r'^(?:\d+p|\d+\s*[–—-]\s*\d+\s*episodes?|\d+\s*episodes?|\d+\s*compilations?|part\s*\d+|#+)', line, re.IGNORECASE):
+            # Blok header berisi resolusi + jumlah/tipe episode. Dukungan tipe
+            # kustom (mis. "2 Movie") diperlukan agar baris itu tidak dianggap
+            # alias. Baris bernomor di blok alias tetap dipertahankan.
+            if block_index == 0 and re.match(
+                r'^(?:\d+p|\d+(?:\s*[–—-]\s*\d+)?\s+[A-Za-z][A-Za-z0-9._ -]*)\s*$',
+                line,
+                re.IGNORECASE,
+            ):
+                continue
+            if re.match(r'^(?:part\s*\d+|#+)', line, re.IGNORECASE):
                 continue
 
             # Lewati tag HTML / markdown gambar (mis. <img ...> untuk gambar sampul).
@@ -730,7 +738,25 @@ def declared_episode_count(body):
     if m:
         return int(m.group(1))
     m = re.search(r"(\d+)\s*compilations?\b", body or "", re.IGNORECASE)
-    return int(m.group(1)) if m else None
+    if m:
+        return int(m.group(1))
+    # Tipe kustom (mis. "2 Movie") hanya dibaca dari blok header agar judul
+    # alias yang diawali angka tidak salah dianggap sebagai jumlah episode.
+    separator = re.search(r"\r?\n\s*={3,}\s*\r?\n", body or "")
+    if not separator:
+        return None
+    header = (body or "")[:separator.start()]
+    m = re.search(
+        r"(?m)^\s*(\d+)(?:\s*[–—-]\s*(\d+))?\s+[A-Za-z][A-Za-z0-9._ -]*\s*$",
+        header,
+    )
+    if not m:
+        return None
+    start = int(m.group(1))
+    if not m.group(2):
+        return start
+    end = int(m.group(2))
+    return end - start + 1 if end >= start else start
 
 def folder_completion_state(work_groups, expected_episodes):
     """

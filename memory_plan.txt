@@ -210,24 +210,36 @@ Implementasi:
     127.0.0.1:8765, token CSRF per proses.
   - `tools/release_ui.html` — UI gelap, daftar release, form metadata dengan
     URL sampul yang bisa langsung diedit di kartu pratinjau gambar, aset,
-    pemetaan path, MAL, kandidat ikon provider, pratinjau dry-run, log job.
-  - Resolusi dideteksi otomatis dengan mem-probe video pertama dari aset lokal
-    (video langsung atau di dalam .7z/.zip/.rar/.tar). Hasil otomatis mengisi
-    field resolusi; tombol `Deteksi` tersedia untuk memaksa ulang. Arsip
-    `.zpaq` belum didukung untuk probe cepat.
+    pemetaan path, kandidat ikon provider, pratinjau dry-run, log job.
+  - Judul/alias otomatis dari input `Judul release`; prefix RAW memakai
+    toggle `[RAW]` / `[RAW HARDSUB]` (tidak diketik manual). Alias tidak
+    editable.
+  - Kategori dari `metadata.json` + tambahan, tipe episode, dan season
+    disimpan lokal di `release_ui.ini` (gitignored). Folder default disusun
+    dari `<kategori>/<slug-tag>/<season?>`; baris pemetaan tetap bisa
+    disesuaikan untuk pengecualian.
+  - Tag `password` memakai editor variasi khusus (satu kunci per baris);
+    runner mencoba setiap variasi. Edit `password` tidak dimasukkan ke antrian
+    HLS. Tag `Metadata-Guide` adalah dokumen hukum read-only dan apply normal
+    ditolak.
+  - Parser pipeline menerima tipe episode kustom pada blok header (mis.
+    `2 Movie`) tanpa menganggapnya alias; jumlah dari tipe kustom juga dipakai
+    untuk checkup kelengkapan.
+  - Deteksi resolusi lokal ditunda. Backend probe masih ada untuk masa depan,
+    tetapi UI tidak menampilkan tombol atau memanggilnya otomatis.
   - Jalankan: `./release_ui.sh` (launcher) atau `python3 release_ui.py`
     (opsional `--port`, `--no-browser`, `--repo OWNER/REPO`). Launcher juga
     mendukung `PORT`, `HOST`, dan `PYTHON_BIN`. Token GH dibaca dari
     `gh auth` / `GH_TOKEN`; `MAL_CLIENT_ID` dibaca dari env atau `.env` lokal.
   - Release baru: `gh release create --draft` -> upload aset -> publish.
     Dengan urutan ini pipeline tidak terpicu sebelum aset lengkap.
-  - Release lama: upload aset baru dulu, lalu edit judul/body. Mengganti aset
-    dengan nama sama wajib centang `--clobber` + konfirmasi.
+  - Release lama: upload aset baru dulu, lalu edit judul/body. Opsi UI
+    disederhanakan menjadi hanya `Biarkan release baru sebagai draft`;
+    upload aset pengganti memakai clobber otomatis.
   - Pratinjau menampilkan body, perintah `gh`, peringatan, dan perubahan
     `aliases.json`. Sebelum apply, user wajib mengetik tag release.
-  - MAL memakai endpoint resmi `/v2/anime`; hasil di-cache di
-    `mal_cache.json` (gitignored), judul/cover/MAL ID disimpan ke
-    `aliases.json` saat apply (opsional commit & push).
+  - Kartu MAL dihapus dari UI; backend MAL lama tetap ada untuk kompatibilitas.
+    Metadata alias/folder tetap disimpan ke `aliases.json` saat apply.
   - Ikon provider: kandidat dari sumber tersimpan, `<link rel=icon>`,
     `og:image`, dan `/favicon.ico`; user memilih. Sumber yang sudah tercatat
     otomatis dipakai saat folder tujuan diisi.

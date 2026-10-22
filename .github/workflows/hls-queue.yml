@@ -28,7 +28,8 @@ jobs:
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.release.prerelease == false &&
-       github.event.release.tag_name != 'Metadata-Guide')
+       github.event.release.tag_name != 'Metadata-Guide' &&
+       github.event.release.tag_name != 'password')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

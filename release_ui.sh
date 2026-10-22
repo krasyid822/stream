@@ -10,8 +10,8 @@
 #   PYTHON_BIN=python3.12 ./release_ui.sh
 #
 # Token GitHub dibaca dari `gh auth` / GH_TOKEN.
-# MAL_CLIENT_ID dibaca dari environment atau .env lokal.
-# RAW_ARCHIVE_PASSWORD opsional untuk arsip yang dipakai deteksi resolusi.
+# MAL_CLIENT_ID opsional untuk backend MAL (kartu MAL tidak ditampilkan di UI).
+# Deteksi resolusi lokal ditunda; UI tidak memanggil probe otomatis.
 # ============================================================
 
 set -e

@@ -7,13 +7,18 @@ Fitur utama:
   - Daftar & muat release yang sudah ada.
   - Susun body release sesuai format pipeline (cover, resolusi, episode,
     aliases, path arsip, sumber/icon provider).
-  - Cari judul/alias/cover lewat API RESMI MyAnimeList (opsional).
-  - Deteksi resolusi otomatis dengan mem-probe video pertama dari aset lokal.
+  - Judul/alias otomatis dari input judul; toggle [RAW] / [RAW HARDSUB].
+  - Kategori/tipe/season dengan nilai tambahan yang disimpan di
+    `release_ui.ini` lokal.
+  - Tag `password` punya editor variasi khusus; Metadata-Guide read-only.
+  - Probe resolusi backend disiapkan untuk masa depan, tetapi UI saat ini
+    TIDAK memanggil atau menampilkan tombol deteksi.
   - Cari kandidat ikon provider dari halaman sumber; user memilih sendiri.
   - Pratinjau (dry-run) sebelum membuat/mengubah release.
   - Buat release baru lewat draft -> upload aset -> publish, supaya pipeline
     tidak terpicu saat aset masih setengah terunggah.
-  - Simpan judul/cover/sumber ke aliases.json (opsional commit & push).
+  - Simpan judul/cover/sumber ke aliases.json (commit/push tidak lagi
+    diekspos sebagai opsi UI).
   - Tidak menyediakan tombol/mekanisme unduh media.
 
 Jalankan:
@@ -32,6 +37,7 @@ Keamanan:
 from __future__ import annotations
 
 import argparse
+import configparser
 import copy
 import html
 import json
@@ -59,6 +65,11 @@ ROOT = Path(__file__).resolve().parent
 TEMPLATE_FILE = ROOT / "tools" / "release_ui.html"
 ALIASES_FILE = ROOT / "aliases.json"
 MAL_CACHE_FILE = ROOT / "mal_cache.json"
+METADATA_FILE = ROOT / "metadata.json"
+CONFIG_FILE = ROOT / "release_ui.ini"
+DEFAULT_EPISODE_TYPES = ("Episodes", "Compilation")
+SPECIAL_METADATA_TAG = "metadata-guide"
+SPECIAL_PASSWORD_TAG = "password"
 
 GH_REPO = ""
 UI_TOKEN = secrets.token_urlsafe(24)
@@ -172,7 +183,7 @@ def valid_dest(dest: str) -> bool:
     parts = dest.split("/")
     if not (2 <= len(parts) <= 3):
         return False
-    return all(re.fullmatch(r"[A-Za-z0-9._-]+", p) for p in parts)
+    return all(re.fullmatch(r"[^\s/\\]+", p) and p not in {".", ".."} for p in parts)
 
 
 def valid_http_url(url: str) -> bool:
@@ -219,6 +230,71 @@ def write_json_atomic(path: Path, data) -> None:
             pass
 
 
+def _dedupe_strings(items) -> list[str]:
+    out: list[str] = []
+    seen: set[str] = set()
+    for item in items or []:
+        value = str(item).strip()
+        if not value:
+            continue
+        key = value.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(value)
+    return out
+
+
+def metadata_categories() -> list[str]:
+    try:
+        data = read_json_file(METADATA_FILE, {})
+    except RuntimeError:
+        data = {}
+    values = data.get("categories") if isinstance(data, dict) else []
+    return _dedupe_strings(values or [])
+
+
+def load_ui_config() -> dict:
+    parser = configparser.ConfigParser()
+    try:
+        parser.read(CONFIG_FILE, encoding="utf-8")
+    except (OSError, configparser.Error):
+        pass
+    raw_types = parser.get("ui", "types", fallback="").split(",")
+    raw_categories = parser.get("ui", "categories", fallback="").split(",")
+    types = _dedupe_strings([*DEFAULT_EPISODE_TYPES, *raw_types])
+    categories = _dedupe_strings([*metadata_categories(), *raw_categories])
+    return {"types": types, "categories": categories}
+
+
+def save_ui_config(types, categories) -> dict:
+    clean_types = _dedupe_strings(types)
+    clean_categories = _dedupe_strings(categories)
+    for value in clean_types:
+        if "\n" in value or "\r" in value or "," in value or "/" in value or "\\" in value:
+            raise RuntimeError(f"Nilai tipe tidak valid: {value!r}")
+    for value in clean_categories:
+        if re.search(r"[\s/\\,]", value):
+            raise RuntimeError(f"Nilai kategori tidak valid: {value!r}")
+    parser = configparser.ConfigParser()
+    parser["ui"] = {
+        "types": ", ".join(clean_types),
+        "categories": ", ".join(clean_categories),
+    }
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix=".release_ui.ini.", dir=str(CONFIG_FILE.parent), text=True)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            parser.write(fh)
+        os.replace(tmp_name, CONFIG_FILE)
+    finally:
+        try:
+            os.unlink(tmp_name)
+        except FileNotFoundError:
+            pass
+    return load_ui_config()
+
+
 # ---------------------------------------------------------------------------
 # GitHub Release
 # ---------------------------------------------------------------------------
@@ -261,8 +337,99 @@ def get_release(tag: str) -> dict | None:
     return data
 
 
+def split_raw_title(name: str) -> tuple[str, str]:
+    raw = str(name or "").strip()
+    match = re.match(r"^\[(RAW(?:\s+HARDSUB)?)\]\s*(.*)$", raw, re.IGNORECASE)
+    if not match:
+        return "raw", raw
+    mode = "hardsub" if "HARDSUB" in match.group(1).upper() else "raw"
+    return mode, match.group(2).strip()
+
+
+def parse_password_variants(body: str) -> list[str]:
+    variants: list[str] = []
+    for line in (body or "").splitlines():
+        raw = line.strip()
+        if raw.startswith("```"):
+            continue
+        clean = raw.strip("\"`").strip()
+        if clean and clean not in variants:
+            variants.append(clean)
+    return variants
+
+
+def parse_episode_header(body: str) -> tuple[int, str]:
+    parts = re.split(r"\r?\n\s*={3,}\s*\r?\n", body or "", maxsplit=1)
+    header = parts[0] if len(parts) > 1 else ""
+    count = declared_episode_count(body) or 0
+    episode_type = "Episodes"
+    for line in header.splitlines():
+        match = re.match(
+            r"^\s*(\d+)(?:\s*[–—-]\s*(\d+))?\s+([A-Za-z][A-Za-z0-9._ -]*)\s*$",
+            line,
+        )
+        if not match:
+            continue
+        start = int(match.group(1))
+        end = int(match.group(2) or start)
+        if not count and end >= start:
+            count = end - start + 1
+        word = match.group(3).strip()
+        low = word.lower()
+        if low.startswith("episode"):
+            episode_type = "Episodes"
+        elif low.startswith("compilation"):
+            episode_type = "Compilation"
+        else:
+            episode_type = word
+        break
+    return count, episode_type
+
+
 def parse_existing_release(release: dict) -> dict:
     body = release.get("body") or ""
+    tag = release.get("tagName", "")
+    common = {
+        "tag": tag,
+        "title": release.get("name", ""),
+        "body": body,
+        "url": release.get("url", ""),
+        "isDraft": bool(release.get("isDraft")),
+        "isPrerelease": bool(release.get("isPrerelease")),
+        "special": None,
+    }
+    if tag.lower() == SPECIAL_PASSWORD_TAG:
+        return {
+            **common,
+            "special": "password",
+            "passwordVariants": parse_password_variants(body),
+            "aliases": [],
+            "mappings": [],
+            "remoteAssets": release.get("assets") or [],
+            "cover": "",
+            "resolution": "",
+            "episodeCount": 0,
+            "episodeType": "Episodes",
+            "dest": "",
+            "provider": {},
+            "rawMode": "raw",
+        }
+    if tag.lower() == SPECIAL_METADATA_TAG:
+        return {
+            **common,
+            "special": "metadata-guide",
+            "aliases": [],
+            "mappings": [],
+            "remoteAssets": release.get("assets") or [],
+            "cover": "",
+            "resolution": "",
+            "episodeCount": 0,
+            "episodeType": "Episodes",
+            "dest": "",
+            "provider": {},
+            "rawMode": "raw",
+        }
+
     file_mapping, aliases, source_info = parse_release_body_lines(body)
     # parse_release_body_lines menyimpan key dalam lowercase agar pencocokan
     # case-insensitive. Untuk ditampilkan/ditulis ulang, pulihkan nama aset asli
@@ -281,17 +448,8 @@ def parse_existing_release(release: dict) -> dict:
     m = re.search(r"(?m)^\s*(\d{3,4}p)\s*$", body)
     if m:
         resolution = m.group(1)
-    count = declared_episode_count(body) or 0
-    episode_kind = re.search(
-        r"(?m)^\s*\d+(?:\s*-\s*\d+)?\s+(Episodes?|Compilations?)\s*$",
-        body,
-        re.IGNORECASE,
-    )
-    episode_type = (
-        "Compilation"
-        if episode_kind and episode_kind.group(1).lower().startswith("compilation")
-        else "Episodes"
-    )
+    count, episode_type = parse_episode_header(body)
+    raw_mode, base_title = split_raw_title(release.get("name", ""))
 
     default_dest = mappings[0]["dest"] if mappings else ""
     aliases_data = read_json_file(ALIASES_FILE, {"aliases": {}, "folder_info": {}, "sources": {}})
@@ -311,12 +469,9 @@ def parse_existing_release(release: dict) -> dict:
     if not cover and info.get("cover"):
         cover = info["cover"]
     return {
-        "tag": release.get("tagName", ""),
-        "title": release.get("name", ""),
-        "body": body,
-        "url": release.get("url", ""),
-        "isDraft": bool(release.get("isDraft")),
-        "isPrerelease": bool(release.get("isPrerelease")),
+        **common,
+        "title": base_title,
+        "rawMode": raw_mode,
         "aliases": aliases,
         "mappings": mappings,
         "remoteAssets": release.get("assets") or [],
@@ -694,6 +849,70 @@ def probe_resolution(raw_assets) -> dict:
     raise RuntimeError("Gagal mendeteksi resolusi. " + " | ".join(errors[:3]))
 
 
+def build_password_plan(data: dict) -> dict:
+    """Rencana khusus release tag `password` (kunci arsip untuk runner)."""
+    tag = SPECIAL_PASSWORD_TAG
+    existing = get_release(tag)
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not existing:
+        errors.append("Release tag 'password' tidak ditemukan; UI ini hanya memperbarui release yang sudah ada.")
+        return {"ok": False, "errors": errors, "warnings": warnings, "tag": tag, "title": ""}
+
+    title = str(data.get("title") or existing.get("name") or "Key for RAW Archive").strip()
+    if not title:
+        errors.append("Judul release password wajib diisi.")
+    variants: list[str] = []
+    for item in data.get("password_variants") or []:
+        value = str(item).strip().strip("\"`").strip()
+        if not value:
+            continue
+        if "`" in value or "\n" in value or "\r" in value:
+            errors.append(f"Variasi password tidak valid: {value!r}")
+            continue
+        if value not in variants:
+            variants.append(value)
+    if not variants:
+        errors.append("Minimal satu variasi password wajib diisi.")
+    if errors:
+        return {"ok": False, "errors": errors, "warnings": warnings, "tag": tag, "title": title}
+
+    body = "\n".join(f"`{value}`" for value in variants) + "\n"
+    commands = [
+        "gh release edit "
+        + tag
+        + " --title "
+        + shlex.quote(title)
+        + " --notes-file <body.md>"
+    ]
+    warnings.append(
+        "Runner akan mencoba semua variasi password. Pastikan urutan/isi kunci benar; "
+        "jangan menambahkan kunci yang tidak dipakai arsip."
+    )
+    return {
+        "ok": True,
+        "special": "password",
+        "action": "edit",
+        "existing": True,
+        "publishDraft": False,
+        "tag": tag,
+        "title": title,
+        "body": body,
+        "aliases": [],
+        "mappings": [],
+        "assets": [],
+        "groups": [],
+        "remoteAssets": existing.get("assets") or [],
+        "commands": commands,
+        "warnings": warnings,
+        "errors": errors,
+        "metadataChanges": [],
+        "saveMetadata": False,
+        "defaultDest": "",
+        "passwordVariants": variants,
+    }
+
+
 def build_plan(data: dict) -> dict:
     """Validasi form, susun body, dan hasilkan rencana aksi (tanpa mutasi)."""
     errors: list[str] = []
@@ -702,10 +921,28 @@ def build_plan(data: dict) -> dict:
     tag = str(data.get("tag") or "").strip()
     if not valid_tag(tag):
         errors.append("Tag wajib diisi dan hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung.")
+    elif tag.lower() == SPECIAL_METADATA_TAG:
+        return {
+            "ok": False,
+            "errors": [
+                "Tag 'Metadata-Guide' adalah dokumen hukum/format khusus. "
+                "UI ini tidak boleh mengubah body-nya; sesuaikan UI jika format panduan berubah."
+            ],
+            "warnings": [],
+            "tag": tag,
+            "title": "Metadata-Guide",
+        }
+    elif tag.lower() == SPECIAL_PASSWORD_TAG:
+        return build_password_plan(data)
 
-    title = str(data.get("title") or "").strip()
-    if not title:
+    parsed_mode, base_title = split_raw_title(str(data.get("title") or ""))
+    raw_mode = str(data.get("raw_mode") or parsed_mode).strip().lower()
+    if raw_mode not in {"raw", "hardsub"}:
+        errors.append("Tipe RAW harus [RAW] atau [RAW HARDSUB].")
+        raw_mode = "raw"
+    if not base_title:
         errors.append("Judul release wajib diisi.")
+    title = f"[RAW HARDSUB] {base_title}" if raw_mode == "hardsub" else f"[RAW] {base_title}"
 
     resolution = str(data.get("resolution") or "").strip()
     if not re.fullmatch(r"\d{3,4}p", resolution, re.IGNORECASE):
@@ -719,8 +956,8 @@ def build_plan(data: dict) -> dict:
         errors.append("Jumlah episode minimal 1.")
 
     episode_type = str(data.get("episode_type") or "Episodes").strip()
-    if episode_type not in {"Episodes", "Compilation"}:
-        errors.append("Tipe episode harus Episodes atau Compilation.")
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9 ._-]{0,39}", episode_type):
+        errors.append("Tipe episode tidak valid (huruf/angka, maksimal 40 karakter).")
 
     cover = str(data.get("cover_url") or "").strip()
     if cover and not valid_http_url(cover):
@@ -733,8 +970,10 @@ def build_plan(data: dict) -> dict:
         for a in (data.get("aliases") or [])
         if str(a).strip()
     ]
-    # Dedupe tanpa mengubah urutan (alias pertama = judul utama)
+    # Alias pertama selalu judul dari input; alias lama tetap dipertahankan bila ada.
     aliases = list(dict.fromkeys(aliases))
+    if base_title:
+        aliases = [base_title, *[a for a in aliases if a != base_title]]
     if not aliases:
         errors.append("Minimal satu alias/judul wajib diisi.")
 
@@ -879,14 +1118,9 @@ def build_plan(data: dict) -> dict:
                 "pastikan tidak ada proses lain yang sedang berjalan."
             )
 
-    if title and not re.search(r"\[RAW(?:\s+HARDSUB)?\]", title, re.IGNORECASE):
-        warnings.append(
-            "Judul tidak memiliki tag [RAW] atau [RAW HARDSUB]. Pipeline tetap bisa jalan, "
-            "tetapi checkup tidak bisa memverifikasi ekspektasi subtitle."
-        )
-    if re.search(r"\[RAW\]", title, re.IGNORECASE):
+    if raw_mode == "raw":
         warnings.append("[RAW] berarti pipeline harus menghasilkan .vtt; pastikan video sumber punya subtitle.")
-    if re.search(r"\[RAW\s+HARDSUB\]", title, re.IGNORECASE):
+    else:
         warnings.append("[RAW HARDSUB] berarti tidak boleh ada .vtt terpisah; pastikan subtitle sudah terpiksel.")
 
     provider_url = str(data.get("provider_url") or "").strip()
@@ -927,7 +1161,10 @@ def build_plan(data: dict) -> dict:
     # Body release
     episode_word = episode_type
     if episode_count == 1:
-        episode_word = "Episode" if episode_type == "Episodes" else "Compilation"
+        if episode_type == "Episodes":
+            episode_word = "Episode"
+        elif episode_type == "Compilation":
+            episode_word = "Compilation"
     elif episode_type == "Compilation":
         episode_word = "Compilations"
 
@@ -1045,6 +1282,8 @@ def build_plan(data: dict) -> dict:
         "publishDraft": bool(action == "edit" and existing and existing.get("isDraft") and data.get("publish_draft")),
         "tag": tag,
         "title": title,
+        "baseTitle": base_title,
+        "rawMode": raw_mode,
         "body": body,
         "aliases": aliases,
         "mappings": mappings,
@@ -1064,8 +1303,8 @@ def apply_folder_info_safe(data: dict, folder_rel_path: str, title: str, cover_u
     """Setara apply_folder_info() dari pipeline, tetapi TIDAK memanggil MAL.
 
     apply_folder_info() punya fallback fetch_mal_cover() yang dapat memakai
-    kuota saat pratinjau. UI ini sudah punya pencarian MAL eksplisit, jadi
-    metadata preview/apply harus bebas efek samping jaringan.
+    kuota saat pratinjau. Metadata preview/apply di UI ini harus bebas efek
+    samping jaringan.
     """
     data.setdefault("folder_info", {})
     fi = data["folder_info"]
@@ -1392,6 +1631,19 @@ def run_job(job_id: str, plan: dict, data: dict) -> None:
     try:
         add_job_log(job, f"[start] {plan['action']} release {plan['tag']}")
 
+        if plan.get("special") == "password":
+            body_path = write_body_temp(job, plan["body"])
+            rc = run_job_cmd(job, [
+                "release", "edit", SPECIAL_PASSWORD_TAG,
+                "--title", plan["title"],
+                "--notes-file", str(body_path),
+            ])
+            if rc != 0:
+                raise RuntimeError("Gagal memperbarui variasi password.")
+            job["status"] = "success"
+            add_job_log(job, "[✓] Variasi password diperbarui.")
+            return
+
         if data.get("save_metadata"):
             before = read_json_file(ALIASES_FILE, {"aliases": {}, "folder_info": {}, "sources": {}})
             # build_plan sudah menghitung metadataChanges; terapkan ulang dengan helper
@@ -1612,6 +1864,9 @@ class Handler(BaseHTTPRequestHandler):
                     "cwd": str(ROOT),
                 })
                 return
+            if parsed.path == "/api/config":
+                self._send_json({"config": load_ui_config()})
+                return
             if parsed.path == "/api/releases":
                 self._send_json({"releases": list_releases()})
                 return
@@ -1653,6 +1908,13 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             data = self._read_json()
+            if parsed.path == "/api/config":
+                types = data.get("types")
+                categories = data.get("categories")
+                if not isinstance(types, list) or not isinstance(categories, list):
+                    raise RuntimeError("types dan categories harus berupa array.")
+                self._send_json({"config": save_ui_config(types, categories)})
+                return
             if parsed.path == "/api/preview":
                 plan = build_plan(data)
                 self._send_json({"plan": plan})
