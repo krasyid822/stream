@@ -585,12 +585,242 @@
       "type": "hls_stream"
     },
     {
+      "id": "anime_nagatoro_1_Episode_01_hls_master_m3u8",
+      "name": "Episode 01",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 01_hls",
+      "master_url": "anime/nagatoro/1/Episode 01_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 01_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_02_hls_master_m3u8",
+      "name": "Episode 02",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 02_hls",
+      "master_url": "anime/nagatoro/1/Episode 02_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 02_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_03_hls_master_m3u8",
+      "name": "Episode 03",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 03_hls",
+      "master_url": "anime/nagatoro/1/Episode 03_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 03_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_04_hls_master_m3u8",
+      "name": "Episode 04",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 04_hls",
+      "master_url": "anime/nagatoro/1/Episode 04_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 04_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_05_hls_master_m3u8",
+      "name": "Episode 05",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 05_hls",
+      "master_url": "anime/nagatoro/1/Episode 05_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 05_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_06_hls_master_m3u8",
+      "name": "Episode 06",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 06_hls",
+      "master_url": "anime/nagatoro/1/Episode 06_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 06_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_07_hls_master_m3u8",
+      "name": "Episode 07",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 07_hls",
+      "master_url": "anime/nagatoro/1/Episode 07_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 07_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_08_hls_master_m3u8",
+      "name": "Episode 08",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 08_hls",
+      "master_url": "anime/nagatoro/1/Episode 08_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 08_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_09_hls_master_m3u8",
+      "name": "Episode 09",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 09_hls",
+      "master_url": "anime/nagatoro/1/Episode 09_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 09_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_10_hls_master_m3u8",
+      "name": "Episode 10",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 10_hls",
+      "master_url": "anime/nagatoro/1/Episode 10_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 10_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_11_hls_master_m3u8",
+      "name": "Episode 11",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 11_hls",
+      "master_url": "anime/nagatoro/1/Episode 11_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 11_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_nagatoro_1_Episode_12_hls_master_m3u8",
+      "name": "Episode 12",
+      "folder": "anime/nagatoro/1",
+      "path": "anime/nagatoro/1/Episode 12_hls",
+      "master_url": "anime/nagatoro/1/Episode 12_hls/master.m3u8",
+      "poster_url": "anime/nagatoro/1/Episode 12_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
       "id": "anime_oregairu_Episode_08_hls_master_m3u8",
       "name": "Episode 08",
       "folder": "anime/oregairu",
       "path": "anime/oregairu/Episode 08_hls",
       "master_url": "anime/oregairu/Episode 08_hls/master.m3u8",
       "poster_url": "anime/oregairu/Episode 08_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_01_hls_master_m3u8",
+      "name": "Episode 01",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 01_hls",
+      "master_url": "anime/tskb/Episode 01_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 01_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_02_hls_master_m3u8",
+      "name": "Episode 02",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 02_hls",
+      "master_url": "anime/tskb/Episode 02_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 02_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_03_hls_master_m3u8",
+      "name": "Episode 03",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 03_hls",
+      "master_url": "anime/tskb/Episode 03_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 03_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_04_hls_master_m3u8",
+      "name": "Episode 04",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 04_hls",
+      "master_url": "anime/tskb/Episode 04_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 04_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_05_hls_master_m3u8",
+      "name": "Episode 05",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 05_hls",
+      "master_url": "anime/tskb/Episode 05_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 05_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_06_hls_master_m3u8",
+      "name": "Episode 06",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 06_hls",
+      "master_url": "anime/tskb/Episode 06_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 06_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_07_hls_master_m3u8",
+      "name": "Episode 07",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 07_hls",
+      "master_url": "anime/tskb/Episode 07_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 07_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_08_hls_master_m3u8",
+      "name": "Episode 08",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 08_hls",
+      "master_url": "anime/tskb/Episode 08_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 08_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_09_hls_master_m3u8",
+      "name": "Episode 09",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 09_hls",
+      "master_url": "anime/tskb/Episode 09_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 09_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_10_hls_master_m3u8",
+      "name": "Episode 10",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 10_hls",
+      "master_url": "anime/tskb/Episode 10_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 10_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_tskb_Episode_11_hls_master_m3u8",
+      "name": "Episode 11",
+      "folder": "anime/tskb",
+      "path": "anime/tskb/Episode 11_hls",
+      "master_url": "anime/tskb/Episode 11_hls/master.m3u8",
+      "poster_url": "anime/tskb/Episode 11_hls/poster.jpg",
       "subtitles": [],
       "type": "hls_stream"
     },
@@ -1085,96 +1315,6 @@
       "type": "hls_stream"
     },
     {
-      "id": "donghua_am_Episode_1_hls_master_m3u8",
-      "name": "Episode 1",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 1_hls",
-      "master_url": "donghua/am/Episode 1_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 1_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_2_hls_master_m3u8",
-      "name": "Episode 2",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 2_hls",
-      "master_url": "donghua/am/Episode 2_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 2_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_3_hls_master_m3u8",
-      "name": "Episode 3",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 3_hls",
-      "master_url": "donghua/am/Episode 3_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 3_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_4_hls_master_m3u8",
-      "name": "Episode 4",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 4_hls",
-      "master_url": "donghua/am/Episode 4_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 4_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_5_hls_master_m3u8",
-      "name": "Episode 5",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 5_hls",
-      "master_url": "donghua/am/Episode 5_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 5_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_6_hls_master_m3u8",
-      "name": "Episode 6",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 6_hls",
-      "master_url": "donghua/am/Episode 6_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 6_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_7_hls_master_m3u8",
-      "name": "Episode 7",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 7_hls",
-      "master_url": "donghua/am/Episode 7_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 7_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_8_hls_master_m3u8",
-      "name": "Episode 8",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 8_hls",
-      "master_url": "donghua/am/Episode 8_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 8_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_9_hls_master_m3u8",
-      "name": "Episode 9",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 9_hls",
-      "master_url": "donghua/am/Episode 9_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 9_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
       "id": "donghua_am_Episode_10_hls_master_m3u8",
       "name": "Episode 10",
       "folder": "donghua/am",
@@ -1203,27 +1343,7 @@
       "poster_url": "donghua/am/Episode 12_hls/poster.jpg",
       "subtitles": [],
       "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_13_hls_master_m3u8",
-      "name": "Episode 13",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 13_hls",
-      "master_url": "donghua/am/Episode 13_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 13_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
-    },
-    {
-      "id": "donghua_am_Episode_14_hls_master_m3u8",
-      "name": "Episode 14",
-      "folder": "donghua/am",
-      "path": "donghua/am/Episode 14_hls",
-      "master_url": "donghua/am/Episode 14_hls/master.m3u8",
-      "poster_url": "donghua/am/Episode 14_hls/poster.jpg",
-      "subtitles": [],
-      "type": "hls_stream"
     }
   ],
-  "updated_at": "1792640921.7711108"
+  "updated_at": "1792656902.9087315"
 }
