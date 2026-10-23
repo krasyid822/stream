@@ -57,6 +57,7 @@ import tempfile
 import threading
 import time
 import traceback
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -1542,6 +1543,97 @@ def diff_metadata(before: dict, after: dict) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Alias lokal (aliases.json)
+# ---------------------------------------------------------------------------
+
+_PROVIDER_ALIAS_RE = re.compile(r"^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?$", re.IGNORECASE)
+
+
+def normalize_alias_key(value: str) -> str:
+    """Normalisasi judul untuk pencocokan: tanpa aksen, tanda baca, dan kapital."""
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.casefold()
+    text = re.sub(r"[^\w]+", " ", text, flags=re.UNICODE)
+    return " ".join(text.split())
+
+
+def is_provider_alias(value: str) -> bool:
+    text = str(value or "").strip()
+    return bool(text and " " not in text and _PROVIDER_ALIAS_RE.match(text))
+
+
+def _clean_alias_bucket(raw_aliases) -> list[str]:
+    if not isinstance(raw_aliases, list):
+        return []
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for raw in raw_aliases:
+        alias = str(raw or "").strip()
+        if not alias or is_provider_alias(alias):
+            continue
+        key = normalize_alias_key(alias)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        cleaned.append(alias)
+    return cleaned
+
+
+def alias_lookup(query: str) -> dict:
+    """Cari bucket alias lokal berdasarkan judul yang sedang diketik."""
+    normalized = normalize_alias_key(query)
+    empty = {
+        "matchType": "none",
+        "bucket": "",
+        "aliases": [],
+        "candidates": [],
+        "unique": False,
+    }
+    if len(normalized) < 2:
+        return empty
+
+    data = read_json_file(ALIASES_FILE, {"aliases": {}})
+    canonical: list[tuple[str, list[str]]] = []
+    members: list[tuple[str, list[str]]] = []
+    prefixes: list[tuple[str, list[str]]] = []
+    seen_signatures: set[tuple[str, ...]] = set()
+
+    for bucket, raw_aliases in (data.get("aliases") or {}).items():
+        aliases = _clean_alias_bucket(raw_aliases)
+        if not aliases:
+            continue
+        keys = [normalize_alias_key(alias) for alias in aliases]
+        signature = tuple(keys)
+        if signature in seen_signatures:
+            continue
+        bucket_key = normalize_alias_key(str(bucket))
+        if normalized == bucket_key or (keys and normalized == keys[0]):
+            seen_signatures.add(signature)
+            canonical.append((str(bucket), aliases))
+        elif normalized in keys:
+            seen_signatures.add(signature)
+            members.append((str(bucket), aliases))
+        elif len(normalized) >= 4 and any(key.startswith(normalized) for key in keys):
+            seen_signatures.add(signature)
+            prefixes.append((str(bucket), aliases))
+
+    primary = canonical or members or prefixes
+    match_type = "exact" if (canonical or members) else ("prefix" if prefixes else "none")
+    best_bucket, best_aliases = primary[0] if primary else ("", [])
+    return {
+        "matchType": match_type,
+        "bucket": best_bucket,
+        "aliases": best_aliases,
+        "candidates": [
+            {"bucket": bucket, "aliases": aliases}
+            for bucket, aliases in primary[:8]
+        ],
+        "unique": len(primary) == 1,
+    }
+
+
+# ---------------------------------------------------------------------------
 # MAL resmi
 # ---------------------------------------------------------------------------
 
@@ -1568,7 +1660,10 @@ def mal_search(query: str) -> list[dict]:
     key = re.sub(r"\s+", " ", query.lower())
     cached = (cache.get("queries") or {}).get(key)
     if cached:
-        return cached.get("results", [])
+        cached_results = cached.get("results", [])
+        # Cache lama belum menyimpan judul Inggris/Jepang terpisah.
+        if not cached_results or all(item.get("titlesVersion") == 2 for item in cached_results):
+            return cached_results
 
     global MAL_LAST_REQUEST
     with MAL_LOCK:
@@ -1607,8 +1702,18 @@ def mal_search(query: str) -> list[dict]:
     for item in payload.get("data") or []:
         node = item.get("node") or {}
         alt = node.get("alternative_titles") or {}
+        english_title = str(alt.get("en") or alt.get("english") or "").strip()
+        japanese_title = str(alt.get("ja") or alt.get("japanese") or "").strip()
+        raw_synonyms = alt.get("synonyms") or []
+        if isinstance(raw_synonyms, str):
+            raw_synonyms = [raw_synonyms]
+        synonyms = [
+            str(value).strip()
+            for value in raw_synonyms
+            if str(value or "").strip()
+        ]
         titles = [node.get("title") or ""]
-        for key_name in ("english", "japanese", "synonyms"):
+        for key_name in ("en", "ja", "synonyms", "english", "japanese"):
             value = alt.get(key_name)
             if isinstance(value, list):
                 titles.extend(value)
@@ -1620,6 +1725,10 @@ def mal_search(query: str) -> list[dict]:
             "id": node.get("id"),
             "title": node.get("title") or "",
             "titles": titles,
+            "titlesVersion": 2,
+            "englishTitle": english_title,
+            "japaneseTitle": japanese_title,
+            "synonyms": synonyms,
             "cover": pic.get("large") or pic.get("medium") or "",
             "episodes": node.get("num_episodes") or 0,
             "mediaType": node.get("media_type") or "",
@@ -2298,6 +2407,10 @@ class Handler(BaseHTTPRequestHandler):
                     raise
                 self._send_json({"job_id": job_id})
                 return
+            if parsed.path == "/api/alias-lookup":
+                query = str(data.get("q") or "").strip()
+                self._send_json({"result": alias_lookup(query)})
+                return
             if parsed.path == "/api/mal":
                 query = str(data.get("q") or "").strip()
                 self._send_json({"results": mal_search(query)})
@@ -2318,6 +2431,33 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if parsed.path == "/api/probe-resolution":
                 self._send_json(probe_resolution(data.get("assets")))
+                return
+            if parsed.path == "/api/pick-folder":
+                try:
+                    import tkinter as tk
+                    from tkinter import filedialog
+                    root = tk.Tk(); root.withdraw()
+                    path = filedialog.askdirectory(title="Pilih folder RAW")
+                    root.destroy()
+                except Exception as exc:
+                    self._send_json({"error": f"File picker tidak tersedia: {exc}"}, 500)
+                    return
+                self._send_json({"path": path or ""})
+                return
+            if parsed.path == "/api/relocate":
+                old = str(data.get("old") or "").strip().strip("/")
+                new = str(data.get("new") or "").strip().strip("/")
+                dry = bool(data.get("dry_run"))
+                if not old or not new:
+                    self._send_json({"error": "old dan new wajib diisi."}, 400)
+                    return
+                cmd = [sys.executable, str(ROOT / "relocate_drive_folders.py"),
+                       "--map", f"{old}:{new}"]
+                if dry:
+                    cmd.append("--dry-run")
+                res = subprocess.run(cmd, capture_output=True, text=True)
+                self._send_json({"stdout": res.stdout, "stderr": res.stderr,
+                                 "code": res.returncode})
                 return
             self._send_json({"error": "Tidak ditemukan."}, 404)
         except RuntimeError as exc:

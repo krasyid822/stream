@@ -83,7 +83,7 @@ STATUS per 2026-10-21:
 ================================================================================
 TUNDA 1 — RELOKASI FOLDER TANPA RE-ENCODE (PRIORITAS USER)
 ================================================================================
-STATUS: [BELUM DIKERJAKAN]
+STATUS: [SELESAI 2026-10-23] (skrip relocate_drive_folders.py ditambahkan)
 Masalah:
   Struktur RAW berubah, mis. dulu 'anime/tskb/' (datar) kini jadi
   'anime/tskb/1/' dan 'anime/tskb/2/'. Karena judul kini menyebut >1 folder

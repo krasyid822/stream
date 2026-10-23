@@ -1,0 +1,63 @@
+Hide Ads					
+R822	
+MyAnimeList.net
+
+All
+Search Anime, Manga, and more...
+
+Anime
+Manga
+Community
+Industry
+Watch
+Read
+Help
+API
+Profile Favorites Notification Panel Forum Picture My Signature Account List List Style Design Privacy MAL Supporter Payment API
+App Information
+Please fill out as many fields as possible when first applying, and update them as they change.
+App Name	
+STREAM HUB HLS
+App Type	
+web
+If web is selected, a Client ID and Client Secret will be issued.
+Client ID	
+Client Secret	
+Client ID and Client Secret must not be disclosed.
+App Description	
+Dipakai untuk ngelengkapi metadata koleksi raw.
+50 characters minimum, 500 characters maximum. Special characters are not supported.
+App Redirect URL	
+http://localhost:8000/callback
+https://stream.rasyidkurniawan.my.id/callback
+Separate multiple URLs with line breaks.
+Homepage URL	
+https://stream.rasyidkurniawan.my.id/
+After publishing your app, please update this to the application website or app store URL.
+App Logo URL	
+https://stream.rasyidkurniawan.my.id/favicon.ico
+Privacy Policy URL	
+https://stream.rasyidkurniawan.my.id/privacy-policy.html
+Terms of Use URL	
+https://stream.rasyidkurniawan.my.id/terms-of-use.html
+Commercial /
+Non-Commercial	
+non-commercial
+Name /
+Company Name	
+krasyid822
+Purpose of Use	
+hobbyist
+ 	
+
+ I agree to the API License and Developer Agreement
+    
+    
+Home About Press Room Support Advertising FAQ Terms Privacy Cookie Notice at Collection Sitemap
+Tokyo Otaku Mode	Honeyfeed	Manga Store
+MyAnimeList.net is a property of MyAnimeList Co., Ltd. ©2026 All Rights Reserved.
+This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.
+
+==============
+
+d2449b1b455033c22720b99bf219343b

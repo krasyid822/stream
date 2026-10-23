@@ -4,7 +4,9 @@ const $ = (id) => document.getElementById(id);
 const state = {
   releases: [], selected: null, remoteAssets: [], preview: null, jobTimer: null,
   jobActive: false, pendingReload: false, config: {types: [], categories: []},
-  special: null, baseAliases: [], originalTitle: "", malResults: [], malSelected: null,
+  special: null, baseAliases: [], suggestedAliases: [], originalTitle: "",
+  malResults: [], malSelected: null, aliasLookupTimer: null, malAliasTimer: null,
+  aliasLookupSeq: 0,
 };
 
 function toast(msg, isError = false) {
@@ -140,12 +142,161 @@ function updateAliasesFromTitle() {
       if (alias === title || alias === state.originalTitle) continue;
       aliases.push(alias);
     }
+    for (const alias of state.suggestedAliases || []) {
+      if (alias === title) continue;
+      aliases.push(alias);
+    }
   }
   const unique = Array.from(new Set(aliases));
   const first = unique.shift() || "";
   const latin = unique.filter((alias) => !isNativeTitle(alias));
   const native = unique.filter((alias) => isNativeTitle(alias));
   $("aliases").value = [first, ...latin, ...native].filter(Boolean).join("\n");
+}
+
+function normalizeTitleKey(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+
+function isProviderAlias(value) {
+  const text = String(value || "").trim();
+  return /^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?$/i.test(text);
+}
+
+function uniqueAliases(values) {
+  const seen = new Set();
+  const out = [];
+  for (const value of values || []) {
+    const alias = String(value || "").replace(/\s+/g, " ").trim();
+    if (!alias || isProviderAlias(alias)) continue;
+    const key = normalizeTitleKey(alias);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(alias);
+  }
+  return out;
+}
+
+function setAliasStatus(text, isError = false) {
+  const el = $("aliasStatus");
+  if (!el) return;
+  el.textContent = text || "";
+  el.style.color = isError ? "var(--accent2)" : "";
+}
+
+function aliasesFromMalResult(result) {
+  if (!result) return [];
+  const structured = [
+    result.title,
+    result.englishTitle,
+    ...(Array.isArray(result.synonyms) ? result.synonyms : []),
+    result.japaneseTitle,
+  ].filter((value) => String(value || "").trim());
+  const source = structured.length > 1 ? structured : (result.titles || structured);
+  return uniqueAliases(source).slice(0, 12);
+}
+
+function applyMalAliases(result) {
+  const aliases = aliasesFromMalResult(result);
+  if (!aliases.length) return false;
+  state.suggestedAliases = uniqueAliases([...(state.suggestedAliases || []), ...aliases]);
+  updateAliasesFromTitle();
+  setAliasStatus(`Judul alternatif dilengkapi dari MAL: ${result.title || "kandidat teratas"}.`);
+  return true;
+}
+
+function clearAliasSuggestions() {
+  clearTimeout(state.aliasLookupTimer);
+  clearTimeout(state.malAliasTimer);
+  state.aliasLookupSeq += 1;
+  state.suggestedAliases = [];
+  setAliasStatus("");
+}
+
+function scheduleAliasAutoComplete() {
+  clearTimeout(state.aliasLookupTimer);
+  clearTimeout(state.malAliasTimer);
+  const query = $("title").value.trim();
+  if (query.length < 3) {
+    state.aliasLookupSeq += 1;
+    state.suggestedAliases = [];
+    updateAliasesFromTitle();
+    setAliasStatus("");
+    return;
+  }
+  state.aliasLookupTimer = setTimeout(() => lookupLocalAliases(query), 500);
+}
+
+async function lookupLocalAliases(query) {
+  const seq = ++state.aliasLookupSeq;
+  try {
+    const data = await api("/api/alias-lookup", {
+      method: "POST",
+      body: JSON.stringify({q: query}),
+    });
+    if (seq !== state.aliasLookupSeq || $("title").value.trim() !== query) return;
+    const result = data.result || {};
+    const canFill = result.matchType === "exact"
+      || (result.matchType === "prefix" && result.unique && query.length >= 6);
+    if (canFill && Array.isArray(result.aliases) && result.aliases.length) {
+      state.suggestedAliases = uniqueAliases(result.aliases);
+      updateAliasesFromTitle();
+      setAliasStatus(`Alias dilengkapi dari database lokal (${result.bucket}).`);
+      return;
+    }
+    state.suggestedAliases = [];
+    updateAliasesFromTitle();
+    if (result.matchType === "prefix" && !result.unique) {
+      setAliasStatus("Beberapa kandidat alias lokal; mencari judul alternatif via MAL…");
+    } else {
+      setAliasStatus("Mencari judul alternatif via MAL…");
+    }
+    scheduleMalAliasLookup(query);
+  } catch (e) {
+    if (seq !== state.aliasLookupSeq || $("title").value.trim() !== query) return;
+    state.suggestedAliases = [];
+    updateAliasesFromTitle();
+    setAliasStatus("Database alias lokal tidak terbaca; mencoba MAL…", true);
+    scheduleMalAliasLookup(query);
+  }
+}
+
+function scheduleMalAliasLookup(query) {
+  clearTimeout(state.malAliasTimer);
+  if (query.length < 6) {
+    setAliasStatus("Alias lokal belum ditemukan. Tulis judul lebih lengkap untuk mencari di MAL.");
+    return;
+  }
+  state.malAliasTimer = setTimeout(() => lookupMalAliases(query), 1200);
+}
+
+async function lookupMalAliases(query) {
+  const seq = state.aliasLookupSeq;
+  setAliasStatus("Mencari judul alternatif via MAL…");
+  try {
+    const aliases = $("aliases").value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+    const data = await api("/api/mal-season", {
+      method: "POST",
+      body: JSON.stringify({q: query, season: $("season").value.trim(), aliases}),
+    });
+    if (seq !== state.aliasLookupSeq || $("title").value.trim() !== query) return;
+    const result = (data.results || [])[0];
+    if (!result) {
+      setAliasStatus("MAL tidak menemukan judul alternatif untuk input ini.");
+      return;
+    }
+    if (!applyMalAliases(result)) {
+      setAliasStatus("MAL tidak mengembalikan judul alternatif tambahan.");
+    }
+  } catch (e) {
+    if (seq !== state.aliasLookupSeq || $("title").value.trim() !== query) return;
+    setAliasStatus("MAL tidak tersedia; alias hanya dari judul input.", true);
+  }
 }
 
 function slugFromTag() {
@@ -278,6 +429,7 @@ function selectMalResult(index) {
   state.malSelected = result;
   if (Number(result.episodes) > 0) $("episodeCount").value = Number(result.episodes);
   $("malCandidates").value = String(index);
+  applyMalAliases(result);
   updateMalComparison();
 }
 
@@ -535,6 +687,7 @@ function resetForm() {
   state.preview = null;
   state.baseAliases = [];
   state.originalTitle = "";
+  clearAliasSuggestions();
   clearMalResults();
   setSpecialMode(null);
   $("tag").value = "";
@@ -571,6 +724,7 @@ function resetForm() {
 function fillForm(parsed) {
   state.selected = parsed.tag;
   state.remoteAssets = parsed.remoteAssets || [];
+  clearAliasSuggestions();
   clearMalResults();
   setWorkspaceVisible(true);
   $("tag").value = parsed.tag || "";
@@ -863,7 +1017,24 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("btnMalEpisodes").addEventListener("click", checkMalEpisodes);
   $("malCandidates").addEventListener("change", () => selectMalResult(Number($("malCandidates").value)));
   $("btnAddAsset").addEventListener("click", () => addAssetRow());
+$("btnPickFolder").addEventListener("click", async () => {
+  try {
+    const r = await api("/api/pick-folder", {method: "POST", body: JSON.stringify({})});
+    if (r.path) addAssetRow(r.path);
+  } catch (e) { toast(e.message, true); }
+});
   $("btnAddMapping").addEventListener("click", () => addMappingRow());
+$("btnRelocate").addEventListener("click", async () => {
+  const old = $("relocateOld").value.trim();
+  const nw = $("relocateNew").value.trim();
+  const dry = $("relocateDry").checked;
+  const log = $("relocateLog");
+  log.textContent = "Menjalankan…";
+  try {
+    const r = await api("/api/relocate", {method: "POST", body: JSON.stringify({old, new: nw, dry_run: dry})});
+    log.textContent = (r.stdout || "") + (r.stderr ? "\n[stderr]\n" + r.stderr : "");
+  } catch (e) { log.textContent = e.message; toast(e.message, true); }
+});
   $("btnApplyDefault").addEventListener("click", () => {
     const dest = computedDefaultDest();
     document.querySelectorAll("#assetRows tr").forEach(tr => {
@@ -878,12 +1049,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("title").addEventListener("input", () => {
     updateAliasesFromTitle();
     clearMalResults();
+    scheduleAliasAutoComplete();
   });
   $("tag").addEventListener("input", updateDestHint);
   $("tag").addEventListener("change", loadSavedSource);
   $("season").addEventListener("input", () => {
     updateDestHint();
     clearMalResults();
+    scheduleAliasAutoComplete();
   });
   $("season").addEventListener("change", loadSavedSource);
   $("resolution").addEventListener("change", () => {

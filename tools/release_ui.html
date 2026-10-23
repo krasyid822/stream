@@ -82,6 +82,7 @@
           <label>Alias / judul (otomatis dari Judul release — tidak dapat diedit)</label>
           <textarea id="aliases" rows="4" readonly placeholder="Alias mengikuti Judul release…"></textarea>
           <div class="hint">Urutan alias: judul asli Latin → judul Inggris → judul Indonesia → judul lokal/native. Judul native diletakkan paling bawah.</div>
+          <div id="aliasStatus" class="hint" aria-live="polite"></div>
         </div>
         <div class="col-12 subhead">Sumber / Provider</div>
         <div class="col-7"><label>URL situs penyedia</label><input id="providerUrl" placeholder="https://contoh.id/"></div>
@@ -102,6 +103,7 @@
       <div class="card-head"><h2>Folder RAW lokal</h2></div>
       <div class="row" style="margin-bottom:8px">
         <button id="btnAddAsset">+ Tambah baris folder</button>
+<button id="btnPickFolder" class="icon-btn">Pilih folder RAW…</button>
         <button id="btnApplyDefault" class="icon-btn">Terapkan folder default ke baris kosong</button>
       </div>
       <table>
@@ -122,7 +124,16 @@
       <div class="hint">Untuk release baru biarkan kosong; pratinjau akan mengisi otomatis dari aset lokal. Isi manual hanya jika satu release punya beberapa folder/season.</div>
     </section>
 
-    <section class="card regular-only" id="optionsCard">
+    <section class="card regular-only" id="relocateCard">
+  <div class="card-head"><h2>Relokasi folder (tanpa re-encode)</h2></div>
+  <div class="row" style="gap:8px;flex-wrap:wrap">
+    <input id="relocateOld" placeholder="folder lama (mis. anime/tskb)" style="flex:1">
+    <input id="relocateNew" placeholder="folder baru (mis. anime/tskb/1)" style="flex:1">
+    <label class="check"><input id="relocateDry" type="checkbox" checked><span>Dry-run</span></label>
+    <button id="btnRelocate">Jalankan</button>
+  </div>
+  <pre id="relocateLog" class="mono" style="white-space:pre-wrap;margin-top:8px"></pre>
+</section>
       <div class="card-head"><h2>Opsi</h2></div>
       <div class="options">
         <label class="check"><input id="optDraftOnly" type="checkbox"><span>Biarkan release baru sebagai draft<small>Tidak memicu antrian sampai dipublikasikan.</small></span></label>
