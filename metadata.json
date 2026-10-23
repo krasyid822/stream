@@ -96,6 +96,36 @@
       "type": "hls_stream"
     },
     {
+      "id": "anime_29dcbnn_1_Episode_29_hidoristream_my_id_29dcbnn_eps_10_hls_master_m3u8",
+      "name": "Episode 29_hidoristream_my_id_29dcbnn_eps_10",
+      "folder": "anime/29dcbnn/1",
+      "path": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_10_hls",
+      "master_url": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_10_hls/master.m3u8",
+      "poster_url": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_10_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_29dcbnn_1_Episode_29_hidoristream_my_id_29dcbnn_eps_11_hls_master_m3u8",
+      "name": "Episode 29_hidoristream_my_id_29dcbnn_eps_11",
+      "folder": "anime/29dcbnn/1",
+      "path": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_11_hls",
+      "master_url": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_11_hls/master.m3u8",
+      "poster_url": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_11_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
+      "id": "anime_29dcbnn_1_Episode_29_hidoristream_my_id_29dcbnn_eps_12_hls_master_m3u8",
+      "name": "Episode 29_hidoristream_my_id_29dcbnn_eps_12",
+      "folder": "anime/29dcbnn/1",
+      "path": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_12_hls",
+      "master_url": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_12_hls/master.m3u8",
+      "poster_url": "anime/29dcbnn/1/Episode 29_hidoristream_my_id_29dcbnn_eps_12_hls/poster.jpg",
+      "subtitles": [],
+      "type": "hls_stream"
+    },
+    {
       "id": "anime_fulldive-rpg_FullDive_RPG_01_hls_master_m3u8",
       "name": "FullDive RPG 01",
       "folder": "anime/fulldive-rpg",
@@ -1556,5 +1586,5 @@
       "type": "hls_stream"
     }
   ],
-  "updated_at": "1792691669.0086787"
+  "updated_at": "1792763350.8732793"
 }
